@@ -1,0 +1,6 @@
+{
+  "name": "Shree Krishna Multispecialty Hospital",
+  "description": "Modern multispecialty hospital portal with department showcase, doctor profiles, appointment booking, patient portal for reports, and role-based admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
