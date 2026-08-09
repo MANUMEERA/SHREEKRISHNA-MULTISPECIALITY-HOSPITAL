@@ -536,7 +536,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
               <a
                 href={`https://wa.me/${confirmedAppointment.user_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                  `*Shree Krishna Multispecialty Hospital - Appointment Confirmation*\n\nDear ${confirmedAppointment.user_name},\nYour appointment has been registered successfully!\n\n*Doctor:* ${confirmedAppointment.doctor_name}\n*Department:* ${confirmedAppointment.department}\n*Date & Time:* ${confirmedAppointment.appointment_date} at ${confirmedAppointment.time_slot}\n*Appointment ID:* ${confirmedAppointment.id}\n\n*Address:* Opp. Horizon Tower, Kilvani Road, Aamli, Silvassa.\n*Helpline:* +91 90990 57219`
+                  `*Shree Krishna Multispecialty Hospital - Appointment Confirmation*\n\nDear ${confirmedAppointment.user_name},\nYour appointment has been registered successfully!\n\n*Doctor:* ${confirmedAppointment.doctor_name}\n*Department:* ${confirmedAppointment.department}\n*Date & Time:* ${confirmedAppointment.appointment_date} at ${confirmedAppointment.time_slot}\n*Appointment ID:* ${confirmedAppointment.id}\n\n*Address:* Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa, Dadra & Nagar Haveli- 396230 (UT)\n*Helpline:* +91 90990 57219`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

@@ -100,6 +100,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     phone: '+91 90990 57219',
     email: 'dr.tushar.patel@skmh.org',
     is_active: true,
+    availability_status: 'Available',
     education: ['D. Ortho - Recognized University', 'MBBS - Medical College'],
     achievements: ['Expert in complex Ilizarov & Trauma surgeries', 'Pioneer in advanced Joint Replacement in South Gujarat']
   },
@@ -121,6 +122,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     phone: '+91 90990 57219',
     email: 'dr.dipti.agarwal@skmh.org',
     is_active: true,
+    availability_status: 'In OPD',
     education: ['MS Obstetrics & Gynecology', 'FMAS Minimal Access Surgery', 'FICOG Fellow', 'MBBS'],
     achievements: ['Over 3,000 successful safe deliveries', 'Fellow in Minimal Access Surgery & Infertility Care']
   },
@@ -142,6 +144,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     phone: '+91 90990 57219',
     email: 'dr.naval.rajput@skmh.org',
     is_active: true,
+    availability_status: 'In OT / Surgery',
     education: ['MBBS - General Medicine', 'Postgraduate Diploma in Health & Hospital Administration'],
     achievements: ['15+ years of clinical leadership in Silvassa', 'Distinguished Clinical Administrator']
   },
@@ -165,6 +168,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     is_active: true,
     is_on_call: false,
     consultant_type: 'Resident Consultant',
+    availability_status: 'Available',
     education: ['MPT Orthopedics & Rehabilitation', 'BPT Bachelor of Physiotherapy'],
     achievements: ['Specialist in Robotic & VR Neuromuscular Therapy', 'Certified Class-IV Laser Pain Management Practitioner']
   },
@@ -188,6 +192,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     is_active: true,
     is_on_call: true,
     consultant_type: 'Visiting / On-Call',
+    availability_status: 'Available',
     education: ['DNB Cardiology - National Board', 'MD Medicine', 'MBBS'],
     achievements: ['Over 2,500 successful cardiac interventions', 'Visiting Specialist for Emergency Cardiac ICU Care']
   },
@@ -211,6 +216,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     is_active: true,
     is_on_call: true,
     consultant_type: 'Visiting / On-Call',
+    availability_status: 'Off Duty',
     education: ['Fellowship in Neonatology', 'MD Pediatrics', 'MBBS'],
     achievements: ['Gold Medalist in Pediatric Medicine', 'Pioneer in advanced NICU emergency management']
   },

@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Bell, User, Calendar, Shield, LogOut, Menu, X, ChevronDown, CheckCircle2, FileText, Stethoscope } from 'lucide-react';
+import { Bell, User, Calendar, Shield, LogOut, Menu, X, ChevronDown, CheckCircle2, FileText, Stethoscope, Bot, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { HospitalLogo } from '../common/HospitalLogo';
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onOpenAiBot?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenAiBot }) => {
   const { user, role, logout, notifications, unreadCount, markNotificationRead } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
@@ -193,6 +194,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </button>
           )}
 
+          {/* AI Desk Chatbot Button */}
+          {onOpenAiBot && (
+            <button
+              onClick={onOpenAiBot}
+              className="px-3.5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer border border-teal-700 transition-all hover:scale-105 active:scale-95"
+              title="Open 24/7 AI Desk Assistant"
+            >
+              <Bot className="w-4 h-4 text-emerald-300 animate-pulse" />
+              <span>AI Desk</span>
+            </button>
+          )}
+
           {/* Book Appointment CTA */}
           <button
             onClick={() => setActiveTab('booking')}
@@ -234,6 +247,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </nav>
           
           <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+            {onOpenAiBot && (
+              <button
+                onClick={() => {
+                  onOpenAiBot();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full py-3 rounded-xl bg-teal-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow"
+              >
+                <Bot className="w-4 h-4 text-emerald-300" /> 24/7 AI Desk Assistant
+              </button>
+            )}
+
             {!user ? (
               <button
                 onClick={() => {

@@ -425,7 +425,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4">
                 <div>
                   <h1 className="text-xl font-black tracking-tight text-slate-900">SHREE KRISHNA MULTISPECIALTY HOSPITAL</h1>
-                  <p className="text-xs font-bold text-slate-700">Near Collectorate Office, Court Road, Silvassa - 396230</p>
+                  <p className="text-xs font-bold text-slate-700">Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa - 396230 (UT)</p>
                   <p className="text-[11px] font-medium text-slate-600">Ph: (0260) 264-9999 • Email: billing@shreekrishnahospital.org</p>
                 </div>
                 <div className="text-right">

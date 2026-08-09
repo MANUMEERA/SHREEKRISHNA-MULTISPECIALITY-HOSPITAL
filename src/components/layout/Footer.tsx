@@ -238,7 +238,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
             <div className="flex items-start gap-2.5 text-xs text-slate-300">
               <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
               <p className="leading-relaxed font-medium">
-                Opp. Horizon Tower, Kilvani Road, Silvassa, Dadra & Nagar Haveli (UT)
+                Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa, Dadra & Nagar Haveli- 396230 (UT)
               </p>
             </div>
 
@@ -246,7 +246,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
             <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-md bg-slate-900 group relative">
               <iframe
                 title="Shree Krishna Hospital Silvassa Location Map"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3742.234125603173!2d73.0031835!3d20.2721868!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be0ce29f456108f%3A0x89e8027ef9a159f4!2sKilvani%20Rd%2C%20Silvassa%2C%20Dadra%20and%20Nagar%20Haveli%20and%20Daman%20and%20Diu%20396230!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+                src="https://maps.google.com/maps?q=Opp.+Horizon+tower,+Kilvani+Road,+Mitu+Apartment,+C/o+-+Gulabbhai+Patel,+Amli,+Silvassa,+Dadra+%26+Nagar+Haveli-+396230&t=&z=16&ie=UTF8&iwloc=&output=embed"
                 width="100%"
                 height="130"
                 style={{ border: 0 }}
@@ -257,10 +257,10 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
               />
               <div className="p-2 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-[11px]">
                 <span className="text-slate-400 flex items-center gap-1 font-medium">
-                  Kilvani Road, Silvassa
+                  Kilvani Road, Amli, Silvassa
                 </span>
                 <a
-                  href="https://maps.google.com/?q=Shree+Krishna+Hospital+Kilvani+Road+Silvassa"
+                  href="https://maps.google.com/?q=Opp.+Horizon+tower,+Kilvani+Road,+Mitu+Apartment,+C/o+-+Gulabbhai+Patel,+Amli,+Silvassa,+Dadra+%26+Nagar+Haveli-+396230"
                   target="_blank"
                   rel="noreferrer"
                   className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] transition-colors flex items-center gap-1 shadow-sm"

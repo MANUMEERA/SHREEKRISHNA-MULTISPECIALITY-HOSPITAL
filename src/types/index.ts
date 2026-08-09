@@ -27,6 +27,8 @@ export interface User {
   medical_history_notes?: string;
 }
 
+export type DoctorAvailabilityStatus = 'Available' | 'In OPD' | 'In OT / Surgery' | 'On Leave' | 'Off Duty';
+
 export interface Doctor {
   id: string;
   name: string;
@@ -47,6 +49,7 @@ export interface Doctor {
   is_active: boolean;
   is_on_call?: boolean;
   consultant_type?: 'Resident Consultant' | 'Visiting / On-Call';
+  availability_status?: DoctorAvailabilityStatus;
   education?: string[];
   achievements?: string[];
   

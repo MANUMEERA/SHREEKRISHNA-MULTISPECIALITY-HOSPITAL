@@ -152,7 +152,7 @@ export const DoctorsPage: React.FC<DoctorsPageProps> = ({ setActiveTab, onSelect
                       />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 mb-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-1">
                         <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
                           {doc.department.split('&')[0]}
                         </span>
@@ -165,6 +165,20 @@ export const DoctorsPage: React.FC<DoctorsPageProps> = ({ setActiveTab, onSelect
                             Resident
                           </span>
                         )}
+
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                          doc.availability_status === 'In OPD' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                          doc.availability_status === 'In OT / Surgery' ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                          doc.availability_status === 'On Leave' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                          doc.availability_status === 'Off Duty' ? 'bg-slate-100 text-slate-600 border-slate-200' :
+                          'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        }`}>
+                          {doc.availability_status === 'In OPD' && '🔵 In OPD'}
+                          {doc.availability_status === 'In OT / Surgery' && '🔴 In OT'}
+                          {doc.availability_status === 'On Leave' && '🟡 Leave'}
+                          {doc.availability_status === 'Off Duty' && '⚪ Off Duty'}
+                          {(doc.availability_status === 'Available' || !doc.availability_status) && '🟢 Available'}
+                        </span>
                       </div>
                       <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-emerald-700 transition-colors">
                         {doc.name}

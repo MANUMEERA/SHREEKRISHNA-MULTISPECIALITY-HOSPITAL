@@ -117,9 +117,26 @@ export const TopDoctors: React.FC<TopDoctorsProps> = ({ setActiveTab, onSelectDo
 
                 {/* Details */}
                 <div className="space-y-1.5">
-                  <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
-                    {doc.department.split('&')[0]}
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
+                      {doc.department.split('&')[0]}
+                    </span>
+
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border shadow-xs ${
+                      doc.availability_status === 'In OPD' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                      doc.availability_status === 'In OT / Surgery' ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                      doc.availability_status === 'On Leave' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                      doc.availability_status === 'Off Duty' ? 'bg-slate-100 text-slate-600 border-slate-200' :
+                      'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    }`}>
+                      {doc.availability_status === 'In OPD' && '🔵 In OPD'}
+                      {doc.availability_status === 'In OT / Surgery' && '🔴 In OT / Surgery'}
+                      {doc.availability_status === 'On Leave' && '🟡 On Leave'}
+                      {doc.availability_status === 'Off Duty' && '⚪ Off Duty'}
+                      {(doc.availability_status === 'Available' || !doc.availability_status) && '🟢 Available'}
+                    </span>
                   </div>
+
                   <h3 className="font-bold text-slate-900 text-base group-hover:text-emerald-700 transition-colors">
                     {doc.name}
                   </h3>

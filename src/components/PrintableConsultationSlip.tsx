@@ -118,7 +118,7 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
               <HospitalLogo size="md" variant="full" showSubtitle={false} />
               <p className="text-[11px] text-slate-600 font-bold mt-1">Multi-Specialty Healthcare & Trauma Center • Silvassa</p>
               <p className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
-                <MapPin className="w-3 h-3 text-emerald-700" /> Opp. Kilvani Naka, Silvassa (D&NH) • 📞 +91 90990 57219
+                <MapPin className="w-3 h-3 text-emerald-700" /> Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa - 396230 • 📞 +91 90990 57219
               </p>
             </div>
 
