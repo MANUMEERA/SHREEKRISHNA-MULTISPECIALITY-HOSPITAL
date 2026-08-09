@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Appointment, PrescribedMedicine, HigherReference, PatientVitals } from '../types';
 import { X, Plus, Trash2, Stethoscope, Activity, Pill, FileCheck2, Share2, AlertCircle, Calendar, HeartPulse, User } from 'lucide-react';
+import { api } from '../lib/api';
 
 interface ClinicalObservationModalProps {
   isOpen: boolean;
@@ -31,8 +32,24 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
     pulse_rate: appointment.vitals?.pulse_rate || '72 bpm',
     temperature: appointment.vitals?.temperature || '98.6 °F',
     spo2: appointment.vitals?.spo2 || '99%',
-    weight_kg: appointment.vitals?.weight_kg || '68'
+    weight_kg: appointment.vitals?.weight_kg || '68',
+    fasting_sugar: appointment.vitals?.fasting_sugar || '95 mg/dL',
+    pp_sugar: appointment.vitals?.pp_sugar || '135 mg/dL',
+    random_sugar: appointment.vitals?.random_sugar || '110 mg/dL'
   });
+
+  const [availableMedicines, setAvailableMedicines] = useState<string[]>([]);
+  const [availableTestsMaster, setAvailableTestsMaster] = useState<string[]>([]);
+
+  useEffect(() => {
+    api.getMedicines().then(list => {
+      setAvailableMedicines(list.map(m => m.name));
+    }).catch(console.error);
+
+    api.getDiagnosticTests().then(list => {
+      setAvailableTestsMaster(list.map(t => t.test_name));
+    }).catch(console.error);
+  }, []);
 
   const [diagnosis, setDiagnosis] = useState<string>(
     appointment.diagnosis || ''
@@ -43,16 +60,16 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
       {
         id: `med-${Date.now()}-1`,
         name: 'Tab. Paracetamol (500mg)',
-        dosage: '1 Tablet',
+        dosage: '1 Nos',
         frequency: '1-0-1 (Twice Daily)',
         duration: '5 Days',
-        instructions: 'Take after food'
+        instructions: 'After meals'
       }
     ]
   );
 
   const [newMedName, setNewMedName] = useState('');
-  const [newMedDosage, setNewMedDosage] = useState('1 Tablet');
+  const [newMedDosage, setNewMedDosage] = useState('1 Nos');
   const [newMedFreq, setNewMedFreq] = useState('1-0-1 (Twice Daily)');
   const [newMedDuration, setNewMedDuration] = useState('5 Days');
   const [newMedInstruct, setNewMedInstruct] = useState('After meals');
@@ -186,7 +203,7 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
               <HeartPulse className="w-4 h-4 text-emerald-600" /> Patient Vitals On Visit
             </h3>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase">Blood Pressure</label>
                 <input
@@ -239,6 +256,40 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                   value={vitals.weight_kg}
                   onChange={(e) => setVitals({ ...vitals, weight_kg: e.target.value })}
                   className="w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                />
+              </div>
+
+              {/* Blood Sugar Details */}
+              <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-200/80">
+                <label className="block text-[10px] font-extrabold text-amber-900 uppercase">Fasting Sugar</label>
+                <input
+                  type="text"
+                  placeholder="95 mg/dL"
+                  value={vitals.fasting_sugar}
+                  onChange={(e) => setVitals({ ...vitals, fasting_sugar: e.target.value })}
+                  className="w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold bg-white text-amber-950"
+                />
+              </div>
+
+              <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-200/80">
+                <label className="block text-[10px] font-extrabold text-amber-900 uppercase">PP Sugar</label>
+                <input
+                  type="text"
+                  placeholder="135 mg/dL"
+                  value={vitals.pp_sugar}
+                  onChange={(e) => setVitals({ ...vitals, pp_sugar: e.target.value })}
+                  className="w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold bg-white text-amber-950"
+                />
+              </div>
+
+              <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-200/80">
+                <label className="block text-[10px] font-extrabold text-amber-900 uppercase">Random Sugar</label>
+                <input
+                  type="text"
+                  placeholder="110 mg/dL"
+                  value={vitals.random_sugar}
+                  onChange={(e) => setVitals({ ...vitals, random_sugar: e.target.value })}
+                  className="w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold bg-white text-amber-950"
                 />
               </div>
             </div>
@@ -308,42 +359,100 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
             )}
 
             {/* Quick Add Medicine Form */}
-            <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 pt-2 border-t border-emerald-200/60">
-              <input
-                type="text"
-                placeholder="Medicine Name (e.g. Tab. Amoxicillin 625mg)"
-                value={newMedName}
-                onChange={(e) => setNewMedName(e.target.value)}
-                className="sm:col-span-2 p-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-emerald-600"
-              />
-              <input
-                type="text"
-                placeholder="Dosage (1 Tablet)"
-                value={newMedDosage}
-                onChange={(e) => setNewMedDosage(e.target.value)}
-                className="p-2 rounded-xl border border-slate-200 text-xs bg-white"
-              />
-              <input
-                type="text"
-                placeholder="Frequency (1-0-1)"
-                value={newMedFreq}
-                onChange={(e) => setNewMedFreq(e.target.value)}
-                className="p-2 rounded-xl border border-slate-200 text-xs bg-white"
-              />
-              <input
-                type="text"
-                placeholder="Duration (5 Days)"
-                value={newMedDuration}
-                onChange={(e) => setNewMedDuration(e.target.value)}
-                className="p-2 rounded-xl border border-slate-200 text-xs bg-white"
-              />
-              <button
-                type="button"
-                onClick={handleAddMedicine}
-                className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow flex items-center justify-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add
-              </button>
+            <div className="space-y-2 pt-3 border-t border-emerald-200/60">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <div className="sm:col-span-4">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Medicine Search / Name</label>
+                  <input
+                    type="text"
+                    list="medicine-suggestions"
+                    placeholder="Search Medicine (e.g. Tab. Paracetamol)..."
+                    value={newMedName}
+                    onChange={(e) => setNewMedName(e.target.value)}
+                    className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-emerald-600 font-bold"
+                  />
+                  <datalist id="medicine-suggestions">
+                    {availableMedicines.map((med, idx) => (
+                      <option key={idx} value={med} />
+                    ))}
+                  </datalist>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dosage</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 1/2 Nos or 5 ml"
+                    value={newMedDosage}
+                    onChange={(e) => setNewMedDosage(e.target.value)}
+                    className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white"
+                  />
+                  <div className="flex gap-1 mt-1">
+                    {['1/2 Nos', '1 Nos', '2 Nos', '5 ml'].map((doseVal) => (
+                      <button
+                        key={doseVal}
+                        type="button"
+                        onClick={() => setNewMedDosage(doseVal)}
+                        className="px-1.5 py-0.5 text-[9px] rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold"
+                      >
+                        {doseVal}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Frequency</label>
+                  <select
+                    value={newMedFreq}
+                    onChange={(e) => setNewMedFreq(e.target.value)}
+                    className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white font-semibold"
+                  >
+                    <option value="1-0-1 (Twice Daily)">1-0-1 (Twice Daily)</option>
+                    <option value="1-1-1 (Thrice Daily)">1-1-1 (Thrice Daily)</option>
+                    <option value="1-0-0 (Once Daily Morning)">1-0-0 (Morning)</option>
+                    <option value="0-0-1 (Once Daily Night)">0-0-1 (Night)</option>
+                    <option value="SOS (As Needed)">SOS (As Needed)</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Duration</label>
+                  <input
+                    type="text"
+                    placeholder="5 Days"
+                    value={newMedDuration}
+                    onChange={(e) => setNewMedDuration(e.target.value)}
+                    className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 flex items-end">
+                  <button
+                    type="button"
+                    onClick={handleAddMedicine}
+                    className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add Rx
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Instruction:</span>
+                <select
+                  value={newMedInstruct}
+                  onChange={(e) => setNewMedInstruct(e.target.value)}
+                  className="p-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-700 font-medium"
+                >
+                  <option value="After meals">After meals</option>
+                  <option value="Before meals">Before meals</option>
+                  <option value="With water">With water</option>
+                  <option value="At bedtime">At bedtime</option>
+                  <option value="On empty stomach">On empty stomach</option>
+                  <option value="Every 8 hours">Every 8 hours</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -367,15 +476,21 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Type test name (e.g., Complete Blood Count, Chest X-Ray PA View, 2D Echo)..."
+                list="test-suggestions"
+                placeholder="Search or type diagnostic test (e.g. Complete Blood Count, Chest X-Ray PA View)..."
                 value={newTestInput}
                 onChange={(e) => setNewTestInput(e.target.value)}
-                className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs"
+                className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs font-semibold"
               />
+              <datalist id="test-suggestions">
+                {availableTestsMaster.map((tName, idx) => (
+                  <option key={idx} value={tName} />
+                ))}
+              </datalist>
               <button
                 type="button"
                 onClick={handleAddTest}
-                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow flex items-center gap-1"
+                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-4 h-4" /> Add Test
               </button>

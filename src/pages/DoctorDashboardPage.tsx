@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   Stethoscope, Calendar, Clock, User as UserIcon, Phone, FileText, CheckCircle2, 
-  XCircle, Plus, Edit, Eye, Lock, ShieldAlert, HeartPulse, Pill, FilePlus, 
+  XCircle, Plus, Edit, Eye, EyeOff, Lock, ShieldAlert, HeartPulse, Pill, FilePlus, 
   Search, RefreshCw, Printer, AlertCircle, ChevronRight, Upload, X, ShieldCheck, Check,
   UserPlus, FolderHeart, AlertTriangle, Building2, MapPin, LogOut, KeyRound
 } from 'lucide-react';

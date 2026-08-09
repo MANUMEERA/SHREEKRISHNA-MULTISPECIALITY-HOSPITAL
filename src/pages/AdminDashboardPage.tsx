@@ -14,6 +14,13 @@ import { PrintableConsultationSlip } from '../components/PrintableConsultationSl
 import { DoctorSecurityMonitorModal } from '../components/DoctorSecurityMonitorModal';
 import { WalkInRegistrationModal } from '../components/WalkInRegistrationModal';
 import { StaffManagementSection } from '../components/StaffManagementSection';
+import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
+import { InpatientManagerModal } from '../components/InpatientManagerModal';
+import { HospitalSettingsModal } from '../components/HospitalSettingsModal';
+import { AccountingManagerSection } from '../components/AccountingManagerSection';
+import { InventoryManagerSection } from '../components/InventoryManagerSection';
+import { GeminiHospitalBotModal } from '../components/GeminiHospitalBotModal';
+import { AudioNotificationToast } from '../components/AudioNotificationToast';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -21,12 +28,38 @@ export const AdminDashboardPage: React.FC = () => {
 
   const isReceptionist = userRole === 'receptionist';
 
-  const [adminSubTab, setAdminSubTab] = useState<'analytics' | 'departments' | 'doctors' | 'appointments' | 'patients' | 'supabase' | 'staff'>(
+  const [adminSubTab, setAdminSubTab] = useState<'analytics' | 'departments' | 'doctors' | 'appointments' | 'patients' | 'supabase' | 'staff' | 'accounting' | 'inventory'>(
     userRole === 'receptionist' ? 'appointments' : 'patients'
   );
 
+  // Auto-Refresh state
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [lastRefreshedTime, setLastRefreshedTime] = useState<string>(new Date().toLocaleTimeString());
+
+  // Payment receipt modal
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptPatient, setReceiptPatient] = useState<{
+    name: string;
+    code: string;
+    phone: string;
+    email?: string;
+    doctor?: string;
+  }>({ name: 'Walk-in Patient', code: 'SKMH-WALKIN', phone: '+91 98000 00000' });
+
+  // IPD modal
+  const [ipdModalOpen, setIpdModalOpen] = useState(false);
+
+  // Hospital settings modal
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+
+  // Gemini AI Bot Modal
+  const [aiBotModalOpen, setAiBotModalOpen] = useState(false);
+
+  // Audio toast
+  const [toastMessage, setToastMessage] = useState<{ id: string; title: string; description: string; timestamp: string } | null>(null);
+
   useEffect(() => {
-    if (isReceptionist && adminSubTab !== 'appointments') {
+    if (isReceptionist && adminSubTab !== 'appointments' && adminSubTab !== 'patients') {
       setAdminSubTab('appointments');
     }
   }, [isReceptionist, adminSubTab]);
@@ -152,7 +185,16 @@ export const AdminDashboardPage: React.FC = () => {
 
   useEffect(() => {
     loadAllAdminData();
-  }, []);
+
+    // Auto Refresh Interval every 8 seconds
+    const interval = setInterval(() => {
+      if (autoRefreshEnabled) {
+        loadAllAdminData();
+      }
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [autoRefreshEnabled]);
 
   const loadAllAdminData = async () => {
     const s = await api.getAdminStats();
@@ -168,6 +210,7 @@ export const AdminDashboardPage: React.FC = () => {
     setAppointments(apts);
     setPatients(pts);
     setReports(reps);
+    setLastRefreshedTime(new Date().toLocaleTimeString());
   };
 
   // Open EHR History Drawer / Modal
@@ -613,23 +656,50 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              {/* Auto Refresh Status Badge & Toggle */}
+              <button
+                onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border cursor-pointer transition-all ${
+                  autoRefreshEnabled
+                    ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+                    : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+                title="Auto Refresh Hospital Dashboard"
+              >
+                <div className={`w-2 h-2 rounded-full ${autoRefreshEnabled ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
+                <span>Auto-Refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
+                <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">({lastRefreshedTime})</span>
+              </button>
+
+              {/* Gemini AI Bot Launcher */}
+              <button
+                onClick={() => setAiBotModalOpen(true)}
+                className="px-3.5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
+              >
+                <Brain className="w-4 h-4 text-emerald-300" /> AI Assistant Desk
+              </button>
+
+              {/* IPD Admissions Manager */}
+              <button
+                onClick={() => setIpdModalOpen(true)}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 cursor-pointer"
+              >
+                <BedDouble className="w-4 h-4 text-emerald-400" /> IPD Beds
+              </button>
+
+              {/* Hospital Seal & Stamp Config */}
+              <button
+                onClick={() => setSettingsModalOpen(true)}
+                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" /> Seal & Legal
+              </button>
+
               <button
                 onClick={handleOpenAddPatient}
                 className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2"
               >
                 <UserPlus className="w-4 h-4" /> Register Patient
-              </button>
-              <button
-                onClick={handleOpenAddDepartment}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all flex items-center gap-2"
-              >
-                <Building2 className="w-4 h-4 text-emerald-400" /> Department
-              </button>
-              <button
-                onClick={handleOpenAddDoctor}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4 text-emerald-400" /> Add Doctor
               </button>
             </div>
           </div>
@@ -801,12 +871,60 @@ export const AdminDashboardPage: React.FC = () => {
                     }`}>
                       <UserCheck className="w-4 h-4" />
                     </div>
-                    <span>Staff Categories & Designations</span>
+                    <span>Staff Categories & Roles</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                     adminSubTab === 'staff' ? 'bg-emerald-900 text-white' : 'bg-emerald-100 text-emerald-800'
                   }`}>
                     Roles
+                  </span>
+                </button>
+
+                {/* TAB: ACCOUNTING & FINANCIAL LEDGER */}
+                <button
+                  onClick={() => setAdminSubTab('accounting')}
+                  className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between group ${
+                    adminSubTab === 'accounting'
+                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10'
+                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl transition-colors ${
+                      adminSubTab === 'accounting' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'
+                    }`}>
+                      <FileSpreadsheet className="w-4 h-4" />
+                    </div>
+                    <span>Accounting & Revenue Ledger</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    adminSubTab === 'accounting' ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-100 text-emerald-900'
+                  }`}>
+                    Financial
+                  </span>
+                </button>
+
+                {/* TAB: PHARMACY & SUPPLIES INVENTORY */}
+                <button
+                  onClick={() => setAdminSubTab('inventory')}
+                  className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between group ${
+                    adminSubTab === 'inventory'
+                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10'
+                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl transition-colors ${
+                      adminSubTab === 'inventory' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'
+                    }`}>
+                      <Pill className="w-4 h-4" />
+                    </div>
+                    <span>Pharmacy & Supplies Stock</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    adminSubTab === 'inventory' ? 'bg-slate-800 text-emerald-400' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    Stock
                   </span>
                 </button>
 
@@ -1114,10 +1232,27 @@ export const AdminDashboardPage: React.FC = () => {
                               
                               <button
                                 onClick={() => handleOpenPrintSlip(apt)}
-                                className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-200 flex items-center gap-1"
-                                title="Print OPD Consultation Slip"
+                                className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-200 flex items-center gap-1"
+                                title="Print Read-Only Prescribed Slip By Doctor"
                               >
-                                <Printer className="w-3 h-3 text-blue-600" />
+                                <Printer className="w-3 h-3 text-blue-600" /> Slip
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setReceiptPatient({
+                                    name: apt.user_name,
+                                    code: apt.patient_code || 'SKMH-WALKIN',
+                                    phone: apt.patient_phone || '+91 98000 00000',
+                                    email: apt.user_email,
+                                    doctor: apt.doctor_name
+                                  });
+                                  setReceiptModalOpen(true);
+                                }}
+                                className="px-2 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold shadow flex items-center gap-1 cursor-pointer"
+                                title="Collect Payment & Produce Cash/UPI/Card Receipt with Print/PDF"
+                              >
+                                <FileText className="w-3 h-3 text-emerald-300" /> Bill Receipt
                               </button>
 
                               <select
@@ -1445,6 +1580,16 @@ export const AdminDashboardPage: React.FC = () => {
             {/* TAB 7: STAFF CATEGORIES & DESIGNATIONS */}
             {adminSubTab === 'staff' && (
               <StaffManagementSection />
+            )}
+
+            {/* TAB 8: ACCOUNTING & FINANCIAL LEDGER */}
+            {adminSubTab === 'accounting' && (
+              <AccountingManagerSection />
+            )}
+
+            {/* TAB 9: PHARMACY & SUPPLIES INVENTORY */}
+            {adminSubTab === 'inventory' && (
+              <InventoryManagerSection />
             )}
 
 
@@ -2442,6 +2587,50 @@ export const AdminDashboardPage: React.FC = () => {
         isOpen={doctorSecurityModalOpen}
         onClose={() => setDoctorSecurityModalOpen(false)}
         onDoctorUpdated={loadAllAdminData}
+      />
+
+      {/* ================= PAYMENT RECEIPT BILLING MODAL (CASH / UPI QR / CARD) ================= */}
+      <PaymentReceiptModal
+        isOpen={receiptModalOpen}
+        onClose={() => setReceiptModalOpen(false)}
+        patientName={receiptPatient.name}
+        patientCode={receiptPatient.code}
+        patientPhone={receiptPatient.phone}
+        patientEmail={receiptPatient.email}
+        doctorName={receiptPatient.doctor}
+        onPaymentSuccess={() => {
+          loadAllAdminData();
+          setToastMessage({
+            id: Date.now().toString(),
+            title: 'Payment Received',
+            description: `Payment bill receipt generated for ${receiptPatient.name}`,
+            timestamp: new Date().toLocaleTimeString()
+          });
+        }}
+      />
+
+      {/* ================= INPATIENT ADMISSIONS & WARD BEDS (IPD) MODAL ================= */}
+      <InpatientManagerModal
+        isOpen={ipdModalOpen}
+        onClose={() => setIpdModalOpen(false)}
+      />
+
+      {/* ================= HOSPITAL SEAL STAMP & LEGAL POLICY SETTINGS MODAL ================= */}
+      <HospitalSettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+      />
+
+      {/* ================= GEMINI AI ASSISTANT DESK MODAL ================= */}
+      <GeminiHospitalBotModal
+        isOpen={aiBotModalOpen}
+        onClose={() => setAiBotModalOpen(false)}
+      />
+
+      {/* ================= AUDIO NOTIFICATION CHIME TOAST ================= */}
+      <AudioNotificationToast
+        toast={toastMessage}
+        onClose={() => setToastMessage(null)}
       />
 
     </div>

@@ -1,4 +1,8 @@
-import { User, Doctor, Department, Appointment, MedicalReport, NotificationItem, AnalyticsStats, AppointmentStatus, UserRole, DoctorLoginLog, StaffCategory, StaffDesignation } from '../types';
+import { 
+  User, Doctor, Department, Appointment, MedicalReport, NotificationItem, AnalyticsStats, AppointmentStatus, UserRole, 
+  DoctorLoginLog, StaffCategory, StaffDesignation, MedicineItem, DiagnosticTestItem, HospitalChargeCategory, 
+  AdmittedPatientRecord, PaymentReceipt, AccountingEntry, HospitalStampConfig, HospitalPolicy 
+} from '../types';
 import { INITIAL_DEPARTMENTS, INITIAL_DOCTORS, INITIAL_USERS, INITIAL_APPOINTMENTS, INITIAL_REPORTS, INITIAL_NOTIFICATIONS } from './mockData';
 
 const STORAGE_KEYS = {
@@ -12,7 +16,132 @@ const STORAGE_KEYS = {
   DOCTOR_LOGS: 'skmh_doctor_login_logs_v2',
   SUPER_ADMIN_PASSKEY: 'skmh_super_admin_passkey_v2',
   STAFF_CATEGORIES: 'skmh_staff_categories_v2',
-  STAFF_DESIGNATIONS: 'skmh_staff_designations_v2'
+  STAFF_DESIGNATIONS: 'skmh_staff_designations_v2',
+  MEDICINES: 'skmh_medicines_v2',
+  DIAGNOSTIC_TESTS: 'skmh_diagnostic_tests_v2',
+  CHARGE_CATEGORIES: 'skmh_charge_categories_v2',
+  IPD_PATIENTS: 'skmh_ipd_patients_v2',
+  RECEIPTS: 'skmh_payment_receipts_v2',
+  ACCOUNTING: 'skmh_accounting_entries_v2',
+  STAMP_CONFIG: 'skmh_stamp_config_v2',
+  POLICIES: 'skmh_policies_v2',
+  VISITOR_COUNT: 'skmh_visitor_count_v2'
+};
+
+export const INITIAL_MEDICINES: MedicineItem[] = [
+  { id: 'med-1', name: 'Tab. Paracetamol (500mg)', category: 'Tablet', stock_count: 1200, min_threshold: 200, unit: 'Nos', expiry_date: '2027-11-30', unit_price: 3.5, location: 'Shelf A-1' },
+  { id: 'med-2', name: 'Tab. Amoxicillin & Clavulanate (625mg)', category: 'Tablet', stock_count: 450, min_threshold: 100, unit: 'Nos', expiry_date: '2027-08-15', unit_price: 18.0, location: 'Shelf A-3' },
+  { id: 'med-3', name: 'Tab. Pantoprazole (40mg)', category: 'Tablet', stock_count: 850, min_threshold: 150, unit: 'Nos', expiry_date: '2028-02-28', unit_price: 7.5, location: 'Shelf B-2' },
+  { id: 'med-4', name: 'Syr. Benadryl Cough Formula (100ml)', category: 'Syrup', stock_count: 35, min_threshold: 50, unit: 'ml', expiry_date: '2026-10-20', unit_price: 125.0, location: 'Rack C-1' },
+  { id: 'med-5', name: 'Inj. Ondansetron (2ml Vials)', category: 'Injection', stock_count: 240, min_threshold: 80, unit: 'Vials', expiry_date: '2027-05-10', unit_price: 42.0, location: 'Cold Storage 1' },
+  { id: 'med-6', name: 'Saline Normal Saline 0.9% (500ml)', category: 'Saline', stock_count: 18, min_threshold: 40, unit: 'Packs', expiry_date: '2026-09-12', unit_price: 65.0, location: 'IPD Storage' },
+  { id: 'med-7', name: 'Eye Drop Tobramycin 0.3%', category: 'Drops', stock_count: 90, min_threshold: 30, unit: 'ml', expiry_date: '2027-01-15', unit_price: 85.0, location: 'Shelf D-4' }
+];
+
+export const INITIAL_DIAGNOSTIC_TESTS: DiagnosticTestItem[] = [
+  { id: 'test-1', test_name: 'Complete Blood Count (CBC) with ESR', category: 'Pathology / Lab', price: 350, turnaround_time: '2 Hours', description: 'Hemoglobin, WBC, Platelets, RBC indices', is_active: true },
+  { id: 'test-2', test_name: 'Chest X-Ray PA View (Digital)', category: 'Radiology / X-Ray', price: 450, turnaround_time: '30 Mins', description: 'Digital thoracic radiographic view', is_active: true },
+  { id: 'test-3', test_name: 'Fasting & Post-Prandial Blood Sugar', category: 'Pathology / Lab', price: 200, turnaround_time: '1 Hour', description: 'Glucose estimation', is_active: true },
+  { id: 'test-4', test_name: 'Lipid Profile Complete (Cholesterol)', category: 'Pathology / Lab', price: 650, turnaround_time: '3 Hours', description: 'Triglycerides, HDL, LDL, VLDL', is_active: true },
+  { id: 'test-5', test_name: '12-Lead Digital Electrocardiogram (ECG)', category: 'Cardiology / ECG', price: 300, turnaround_time: '15 Mins', description: 'Cardiac rhythm evaluation', is_active: true },
+  { id: 'test-6', test_name: 'Whole Abdomen Ultrasound (USG)', category: 'Ultrasound / Scan', price: 1200, turnaround_time: '1 Hour', description: 'Liver, Gallbladder, Kidneys, Bladder', is_active: true },
+  { id: 'test-7', test_name: 'MRI Brain / Spine (1.5 Tesla)', category: 'Radiology / X-Ray', price: 4500, turnaround_time: '4 Hours', description: 'High resolution neuro scan', is_active: true }
+];
+
+export const INITIAL_CHARGE_CATEGORIES: HospitalChargeCategory[] = [
+  { id: 'chg-1', category_name: 'Consultation', service_name: 'Senior Doctor OPD Consultation Fee', charge_amount: 500, department: 'Cardiology', doctor_name: 'Dr. Rajesh Krishna' },
+  { id: 'chg-2', category_name: 'Consultation', service_name: 'Orthopedic Joint Consultation Fee', charge_amount: 600, department: 'Orthopedics', doctor_name: 'Dr. Tushar Patel' },
+  { id: 'chg-3', category_name: 'Ward Stay', service_name: 'Deluxe Ward Daily Room Charge', charge_amount: 2500, department: 'Inpatient (IPD)' },
+  { id: 'chg-4', category_name: 'Ward Stay', service_name: 'Super Deluxe Suite Daily Room Charge', charge_amount: 4500, department: 'Inpatient (IPD)' },
+  { id: 'chg-5', category_name: 'Ward Stay', service_name: 'General Ward Bed Charge', charge_amount: 1000, department: 'Inpatient (IPD)' },
+  { id: 'chg-6', category_name: 'Surgery', service_name: 'Laparoscopic Appendectomy / OT Charge', charge_amount: 35000, department: 'General Surgery', doctor_name: 'Dr. Naval Singh Rajput' },
+  { id: 'chg-7', category_name: 'X-Ray', service_name: 'Digital Radiography Per Film', charge_amount: 450, department: 'Radiology' }
+];
+
+export const INITIAL_IPD_PATIENTS: AdmittedPatientRecord[] = [
+  {
+    id: 'ipd-2026-101',
+    patient_id: 'pat-1',
+    patient_name: 'Amitabh Sharma',
+    patient_code: 'SKMH-2026-PAT-101',
+    phone: '+91 98112 23344',
+    doctor_id: 'doc-1',
+    doctor_name: 'Dr. Tushar Patel',
+    department: 'Orthopedics',
+    ward_type: 'Super Deluxe Suite',
+    bed_number: 'Bed SD-302',
+    admission_date: '2026-08-05',
+    status: 'Admitted',
+    diagnosis_at_admission: 'Acute Right Knee Ligament Injury & Meniscal Tear',
+    daily_bed_charge: 4500,
+    daily_routine_checkups: [
+      { id: 'chk-1', date: '2026-08-06', time: '09:00 AM', bp: '122/82', pulse: '74 bpm', temp: '98.4 °F', sugar: '110 mg/dL', notes: 'Stable post-op recovery. Mild knee swelling.', doctor_or_nurse: 'Dr. Tushar Patel' },
+      { id: 'chk-2', date: '2026-08-07', time: '09:30 AM', bp: '120/80', pulse: '72 bpm', temp: '98.6 °F', sugar: '105 mg/dL', notes: 'Physiotherapy started. Pain managed well.', doctor_or_nurse: 'Dr. Tushar Patel' }
+    ],
+    daily_doses: [
+      { id: 'dose-1', date: '2026-08-06', time: '08:00 AM', medicine_name: 'Tab. Paracetamol 500mg', dose_amount: '1 Nos', type: 'Medicine', given_by: 'Nurse Sunita' },
+      { id: 'dose-2', date: '2026-08-06', time: '10:00 AM', medicine_name: 'Saline Normal Saline 500ml', dose_amount: '1 Pack', type: 'Saline', given_by: 'Nurse Sunita' },
+      { id: 'dose-3', date: '2026-08-07', time: '08:00 AM', medicine_name: 'Inj. Ondansetron 2ml', dose_amount: '1 Vial', type: 'Injection', given_by: 'Nurse Rina' }
+    ],
+    surgeries_performed: [
+      { id: 'surg-1', date: '2026-08-05', surgery_name: 'Arthroscopic Knee Reconstruction', surgeon_name: 'Dr. Tushar Patel', charge: 45000, notes: 'Successful arthroscopic repair.' }
+    ],
+    total_paid_amount: 25000,
+    notes: 'Patient advised 3 days bed rest with cold compress.'
+  }
+];
+
+export const INITIAL_RECEIPTS: PaymentReceipt[] = [
+  {
+    id: 'rcpt-1001',
+    receipt_number: 'SKMH-REC-2026-1001',
+    patient_id: 'pat-1',
+    patient_name: 'Amitabh Sharma',
+    patient_code: 'SKMH-2026-PAT-101',
+    phone: '+91 98112 23344',
+    payment_date: '2026-08-08',
+    payment_mode: 'UPI (QR Code)',
+    transaction_ref: 'UPI/628193819283/OKHDFC',
+    items: [
+      { description: 'OPD Doctor Consultation Fee - Dr. Rajesh Krishna', category: 'Consultation', amount: 500 },
+      { description: 'Chest X-Ray Digital PA View', category: 'Radiology', amount: 450 }
+    ],
+    subtotal: 950,
+    tax: 0,
+    discount: 50,
+    total_paid: 900,
+    collected_by: 'OPD Receptionist'
+  }
+];
+
+export const INITIAL_ACCOUNTING: AccountingEntry[] = [
+  { id: 'acc-1', date: '2026-08-08', type: 'Income', source_category: 'OPD Consultation', department: 'Cardiology', doctor_name: 'Dr. Rajesh Krishna', amount: 500, payment_mode: 'UPI', description: 'OPD Fee - Amitabh Sharma', receipt_ref: 'SKMH-REC-2026-1001' },
+  { id: 'acc-2', date: '2026-08-08', type: 'Income', source_category: 'X-Ray & Radiology', department: 'Radiology', doctor_name: 'Dr. Rajesh Krishna', amount: 450, payment_mode: 'UPI', description: 'Chest X-Ray', receipt_ref: 'SKMH-REC-2026-1001' },
+  { id: 'acc-3', date: '2026-08-07', type: 'Income', source_category: 'IPD Admission', department: 'Orthopedics', doctor_name: 'Dr. Tushar Patel', amount: 25000, payment_mode: 'Card', description: 'IPD Advance Deposit - Amitabh Sharma' },
+  { id: 'acc-4', date: '2026-08-06', type: 'Expense', source_category: 'Supplies Purchase', department: 'Pharmacy', amount: 12500, payment_mode: 'Net Banking', description: 'Bulk purchase of Saline and Surgical Gloves' }
+];
+
+export const INITIAL_STAMP_CONFIG: HospitalStampConfig = {
+  stamp_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=300',
+  signature_url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&q=80&w=300',
+  authorized_doctor_name: 'Dr. Rajesh Krishna',
+  registration_number: 'GMC-SILVASSA-REG-2012-8841',
+  designation: 'Medical Superintendent & Senior Cardiologist'
+};
+
+export const INITIAL_POLICIES: HospitalPolicy = {
+  privacy_policy: `SHREE KRISHNA MULTISPECIALTY HOSPITAL - PRIVACY POLICY & EHR DATA PROTECTION
+1. Data Privacy: All electronic health records (EHR), patient vitals, diagnostic test reports, and prescriptions stored at Shree Krishna Multispecialty Hospital are protected under National Healthcare Data Security Guidelines.
+2. Confidentiality: Patient medical information shall only be accessible by authorized medical officers, assigned consulting doctors, nursing staff, and the patient via their authenticated portal.
+3. Patient Consent: Medical reports and diagnostic results will not be shared with external third parties without explicit written consent from the patient or legal guardian, except when mandated by statutory health authorities.`,
+  terms_of_service: `SHREE KRISHNA MULTISPECIALTY HOSPITAL - TERMS OF SERVICE & OPD POLICY
+1. Appointment Timings: Patients are requested to report to the OPD Reception Counter 15 minutes prior to their scheduled slot.
+2. Emergency Priorities: Emergency surgical and critical trauma cases will be prioritized over routine OPD appointments.
+3. Payment Terms: Consultation fees and diagnostic test charges must be settled at the OPD Cash Counter prior to consultation or sample collection. Payment receipts must be retained for hospital records.`,
+  patients_charter: `SHREE KRISHNA MULTISPECIALTY HOSPITAL - PATIENTS' CHARTER OF RIGHTS
+1. Right to Information: Patients have the right to receive full explanation regarding their medical diagnosis, recommended surgical options, potential risks, and estimated treatment costs.
+2. Right to Privacy & Dignity: Every patient is entitled to respectful care, privacy during physical examinations, and protection of personal dignity.
+3. Right to Emergency Medical Care: Immediate medical stabilization will be provided to all emergency patients regardless of financial background.`
 };
 
 
@@ -863,6 +992,189 @@ export const api = {
     const filtered = designations.filter(d => d.id !== id);
     setStored(STORAGE_KEYS.STAFF_DESIGNATIONS, filtered);
     return true;
+  },
+
+  // --- MEDICINE INVENTORY API ---
+  async getMedicines(): Promise<MedicineItem[]> {
+    return getStored<MedicineItem[]>(STORAGE_KEYS.MEDICINES, INITIAL_MEDICINES);
+  },
+
+  async addMedicine(medicine: Omit<MedicineItem, 'id'>): Promise<MedicineItem> {
+    const medicines = await this.getMedicines();
+    const newMed: MedicineItem = { ...medicine, id: `med-${Date.now()}` };
+    const updated = [newMed, ...medicines];
+    setStored(STORAGE_KEYS.MEDICINES, updated);
+    return newMed;
+  },
+
+  async updateMedicine(medicine: MedicineItem): Promise<MedicineItem> {
+    const medicines = await this.getMedicines();
+    const updated = medicines.map(m => m.id === medicine.id ? medicine : m);
+    setStored(STORAGE_KEYS.MEDICINES, updated);
+    return medicine;
+  },
+
+  async deleteMedicine(id: string): Promise<boolean> {
+    const medicines = await this.getMedicines();
+    const filtered = medicines.filter(m => m.id !== id);
+    setStored(STORAGE_KEYS.MEDICINES, filtered);
+    return true;
+  },
+
+  // --- DIAGNOSTIC TESTS MASTER API ---
+  async getDiagnosticTests(): Promise<DiagnosticTestItem[]> {
+    return getStored<DiagnosticTestItem[]>(STORAGE_KEYS.DIAGNOSTIC_TESTS, INITIAL_DIAGNOSTIC_TESTS);
+  },
+
+  async addDiagnosticTest(test: Omit<DiagnosticTestItem, 'id'>): Promise<DiagnosticTestItem> {
+    const tests = await this.getDiagnosticTests();
+    const newTest: DiagnosticTestItem = { ...test, id: `test-${Date.now()}` };
+    const updated = [newTest, ...tests];
+    setStored(STORAGE_KEYS.DIAGNOSTIC_TESTS, updated);
+    return newTest;
+  },
+
+  async updateDiagnosticTest(test: DiagnosticTestItem): Promise<DiagnosticTestItem> {
+    const tests = await this.getDiagnosticTests();
+    const updated = tests.map(t => t.id === test.id ? test : t);
+    setStored(STORAGE_KEYS.DIAGNOSTIC_TESTS, updated);
+    return test;
+  },
+
+  async deleteDiagnosticTest(id: string): Promise<boolean> {
+    const tests = await this.getDiagnosticTests();
+    const filtered = tests.filter(t => t.id !== id);
+    setStored(STORAGE_KEYS.DIAGNOSTIC_TESTS, filtered);
+    return true;
+  },
+
+  // --- HOSPITAL CHARGE CATEGORIES MASTER API ---
+  async getChargeCategories(): Promise<HospitalChargeCategory[]> {
+    return getStored<HospitalChargeCategory[]>(STORAGE_KEYS.CHARGE_CATEGORIES, INITIAL_CHARGE_CATEGORIES);
+  },
+
+  async addChargeCategory(chg: Omit<HospitalChargeCategory, 'id'>): Promise<HospitalChargeCategory> {
+    const list = await this.getChargeCategories();
+    const newChg: HospitalChargeCategory = { ...chg, id: `chg-${Date.now()}` };
+    const updated = [newChg, ...list];
+    setStored(STORAGE_KEYS.CHARGE_CATEGORIES, updated);
+    return newChg;
+  },
+
+  async updateChargeCategory(chg: HospitalChargeCategory): Promise<HospitalChargeCategory> {
+    const list = await this.getChargeCategories();
+    const updated = list.map(c => c.id === chg.id ? chg : c);
+    setStored(STORAGE_KEYS.CHARGE_CATEGORIES, updated);
+    return chg;
+  },
+
+  async deleteChargeCategory(id: string): Promise<boolean> {
+    const list = await this.getChargeCategories();
+    const filtered = list.filter(c => c.id !== id);
+    setStored(STORAGE_KEYS.CHARGE_CATEGORIES, filtered);
+    return true;
+  },
+
+  // --- ADMITTED PATIENTS (IPD) API ---
+  async getAdmittedPatients(): Promise<AdmittedPatientRecord[]> {
+    return getStored<AdmittedPatientRecord[]>(STORAGE_KEYS.IPD_PATIENTS, INITIAL_IPD_PATIENTS);
+  },
+
+  async addAdmittedPatient(ipd: Omit<AdmittedPatientRecord, 'id'>): Promise<AdmittedPatientRecord> {
+    const list = await this.getAdmittedPatients();
+    const newIpd: AdmittedPatientRecord = { ...ipd, id: `ipd-2026-${100 + list.length + 1}` };
+    const updated = [newIpd, ...list];
+    setStored(STORAGE_KEYS.IPD_PATIENTS, updated);
+    return newIpd;
+  },
+
+  async updateAdmittedPatient(ipd: AdmittedPatientRecord): Promise<AdmittedPatientRecord> {
+    const list = await this.getAdmittedPatients();
+    const updated = list.map(p => p.id === ipd.id ? ipd : p);
+    setStored(STORAGE_KEYS.IPD_PATIENTS, updated);
+    return ipd;
+  },
+
+  async deleteAdmittedPatient(id: string): Promise<boolean> {
+    const list = await this.getAdmittedPatients();
+    const filtered = list.filter(p => p.id !== id);
+    setStored(STORAGE_KEYS.IPD_PATIENTS, filtered);
+    return true;
+  },
+
+  // --- PAYMENT RECEIPTS API ---
+  async getPaymentReceipts(): Promise<PaymentReceipt[]> {
+    return getStored<PaymentReceipt[]>(STORAGE_KEYS.RECEIPTS, INITIAL_RECEIPTS);
+  },
+
+  async addPaymentReceipt(rcpt: Omit<PaymentReceipt, 'id' | 'receipt_number'>): Promise<PaymentReceipt> {
+    const receipts = await this.getPaymentReceipts();
+    const newRcpt: PaymentReceipt = {
+      ...rcpt,
+      id: `rcpt-${Date.now()}`,
+      receipt_number: `SKMH-REC-2026-${1000 + receipts.length + 1}`
+    };
+    const updated = [newRcpt, ...receipts];
+    setStored(STORAGE_KEYS.RECEIPTS, updated);
+
+    // Also auto-record into accounting entry for financial tracking
+    await this.addAccountingEntry({
+      date: rcpt.payment_date,
+      type: 'Income',
+      source_category: rcpt.items[0]?.category as any || 'OPD Consultation',
+      department: 'OPD / Billing Counter',
+      amount: rcpt.total_paid,
+      payment_mode: rcpt.payment_mode,
+      description: `Payment Receipt ${newRcpt.receipt_number} - ${rcpt.patient_name}`,
+      receipt_ref: newRcpt.receipt_number
+    });
+
+    return newRcpt;
+  },
+
+  // --- ACCOUNTING ENTRIES API ---
+  async getAccountingEntries(): Promise<AccountingEntry[]> {
+    return getStored<AccountingEntry[]>(STORAGE_KEYS.ACCOUNTING, INITIAL_ACCOUNTING);
+  },
+
+  async addAccountingEntry(entry: Omit<AccountingEntry, 'id'>): Promise<AccountingEntry> {
+    const entries = await this.getAccountingEntries();
+    const newEntry: AccountingEntry = { ...entry, id: `acc-${Date.now()}` };
+    const updated = [newEntry, ...entries];
+    setStored(STORAGE_KEYS.ACCOUNTING, updated);
+    return newEntry;
+  },
+
+  // --- STAMP & SIGNATURE CONFIG API ---
+  async getHospitalStampConfig(): Promise<HospitalStampConfig> {
+    return getStored<HospitalStampConfig>(STORAGE_KEYS.STAMP_CONFIG, INITIAL_STAMP_CONFIG);
+  },
+
+  async saveHospitalStampConfig(config: HospitalStampConfig): Promise<HospitalStampConfig> {
+    setStored(STORAGE_KEYS.STAMP_CONFIG, config);
+    return config;
+  },
+
+  // --- HOSPITAL POLICIES API ---
+  async getHospitalPolicies(): Promise<HospitalPolicy> {
+    return getStored<HospitalPolicy>(STORAGE_KEYS.POLICIES, INITIAL_POLICIES);
+  },
+
+  async saveHospitalPolicies(policies: HospitalPolicy): Promise<HospitalPolicy> {
+    setStored(STORAGE_KEYS.POLICIES, policies);
+    return policies;
+  },
+
+  // --- VISITOR COUNT API ---
+  async getVisitorCount(): Promise<number> {
+    return getStored<number>(STORAGE_KEYS.VISITOR_COUNT, 14280);
+  },
+
+  async incrementVisitorCount(): Promise<number> {
+    const current = await this.getVisitorCount();
+    const updated = current + 1;
+    setStored(STORAGE_KEYS.VISITOR_COUNT, updated);
+    return updated;
   }
 };
 

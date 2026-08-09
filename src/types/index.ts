@@ -1,4 +1,4 @@
-export type UserRole = 'patient' | 'doctor' | 'staff' | 'admin' | 'super_admin';
+export type UserRole = 'patient' | 'doctor' | 'staff' | 'admin' | 'super_admin' | 'receptionist';
 
 export interface User {
   id: string;
@@ -109,6 +109,145 @@ export interface PatientVitals {
   temperature?: string;
   spo2?: string;
   weight_kg?: string;
+  fasting_sugar?: string;
+  pp_sugar?: string;
+  random_sugar?: string;
+}
+
+export interface MedicineItem {
+  id: string;
+  name: string;
+  category: 'Tablet' | 'Capsule' | 'Syrup' | 'Injection' | 'Ointment' | 'Saline' | 'Drops' | 'Other';
+  stock_count: number;
+  min_threshold: number;
+  unit: string; // e.g. "Nos", "ml", "Vials", "Packs"
+  expiry_date: string;
+  unit_price: number;
+  location?: string; // e.g. "Pharmacy Shelf B-3"
+}
+
+export interface DiagnosticTestItem {
+  id: string;
+  test_name: string;
+  category: 'Pathology / Lab' | 'Radiology / X-Ray' | 'Ultrasound / Scan' | 'Cardiology / ECG' | 'Other';
+  price: number;
+  turnaround_time: string; // e.g. "2 Hours", "Same Day"
+  description?: string;
+  is_active: boolean;
+}
+
+export interface HospitalChargeCategory {
+  id: string;
+  category_name: string; // e.g. "Consultation", "Ward Stay", "X-Ray", "Surgery", "Nursing"
+  service_name: string;
+  charge_amount: number;
+  department: string;
+  doctor_id?: string;
+  doctor_name?: string;
+  description?: string;
+}
+
+export interface IPDDailyRoutineCheckup {
+  id: string;
+  date: string;
+  time: string;
+  bp: string;
+  pulse: string;
+  temp: string;
+  sugar: string;
+  notes: string;
+  doctor_or_nurse: string;
+}
+
+export interface IPDDailyDose {
+  id: string;
+  date: string;
+  time: string;
+  medicine_name: string;
+  dose_amount: string;
+  type: 'Medicine' | 'Saline' | 'Injection' | 'Drop' | 'Other';
+  given_by: string;
+}
+
+export interface IPDSurgeryRecord {
+  id: string;
+  date: string;
+  surgery_name: string;
+  surgeon_name: string;
+  charge: number;
+  notes?: string;
+}
+
+export interface AdmittedPatientRecord {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  patient_code: string;
+  phone: string;
+  doctor_id: string;
+  doctor_name: string;
+  department: string;
+  ward_type: 'Deluxe Ward' | 'Super Deluxe Suite' | 'General Ward' | 'ICU Critical Care';
+  bed_number: string;
+  admission_date: string;
+  discharge_date?: string;
+  status: 'Admitted' | 'Discharged' | 'Transferred';
+  diagnosis_at_admission: string;
+  daily_bed_charge: number;
+  daily_routine_checkups: IPDDailyRoutineCheckup[];
+  daily_doses: IPDDailyDose[];
+  surgeries_performed: IPDSurgeryRecord[];
+  total_paid_amount: number;
+  notes?: string;
+}
+
+export interface PaymentReceipt {
+  id: string;
+  receipt_number: string;
+  patient_id: string;
+  patient_name: string;
+  patient_code: string;
+  phone: string;
+  email?: string;
+  appointment_id?: string;
+  admitted_patient_id?: string;
+  payment_date: string;
+  payment_mode: 'Cash' | 'UPI (QR Code)' | 'Card' | 'Net Banking';
+  transaction_ref?: string;
+  items: { description: string; category: string; amount: number }[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total_paid: number;
+  collected_by: string; // Receptionist / Accountant name
+  notes?: string;
+}
+
+export interface AccountingEntry {
+  id: string;
+  date: string;
+  type: 'Income' | 'Expense';
+  source_category: 'OPD Consultation' | 'IPD Admission' | 'X-Ray & Radiology' | 'Diagnostic Lab' | 'Pharmacy' | 'Surgery / OT' | 'Staff Salary' | 'Supplies Purchase' | 'Utilities / Other';
+  department: string;
+  doctor_name?: string;
+  amount: number;
+  payment_mode: string;
+  description: string;
+  receipt_ref?: string;
+}
+
+export interface HospitalStampConfig {
+  stamp_url: string;
+  signature_url: string;
+  authorized_doctor_name: string;
+  registration_number: string;
+  designation: string;
+}
+
+export interface HospitalPolicy {
+  privacy_policy: string;
+  terms_of_service: string;
+  patients_charter: string;
 }
 
 export interface ClinicalObservation {

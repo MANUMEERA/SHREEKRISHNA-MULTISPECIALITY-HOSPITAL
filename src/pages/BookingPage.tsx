@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Doctor, Department, Appointment } from '../types';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, CheckCircle2, ChevronRight, ChevronLeft, ShieldCheck, Star, Sparkles, X, Download, AlertTriangle, ShieldAlert, Siren } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, CheckCircle2, ChevronRight, ChevronLeft, ShieldCheck, Star, Sparkles, X, Download, AlertTriangle, ShieldAlert, Siren, Printer } from 'lucide-react';
 import { HospitalLogo } from '../components/common/HospitalLogo';
 
 interface BookingPageProps {
