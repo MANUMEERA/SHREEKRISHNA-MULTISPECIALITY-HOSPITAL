@@ -1399,10 +1399,10 @@ export const AdminDashboardPage: React.FC = () => {
                                   value={apt.status}
                                   onChange={(e) => handleUpdateAppointmentStatus(apt.id, e.target.value as any)}
                                   className="px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 bg-white cursor-pointer hover:border-slate-300 focus:outline-none focus:border-emerald-600"
+                                  title="Receptionist Permission: Confirm or Cancel appointments only. Consultation completion is reserved for attending Doctor."
                                 >
-                                  <option value="pending">Pending</option>
+                                  {apt.status === 'pending' && <option value="pending">Pending</option>}
                                   <option value="confirmed">Confirm</option>
-                                  <option value="completed">Complete</option>
                                   <option value="cancelled">Cancel</option>
                                 </select>
                               )}
@@ -1641,8 +1641,9 @@ export const AdminDashboardPage: React.FC = () => {
                       {filteredDoctors.map((doc) => {
                         const status = doc.availability_status || 'Available';
                         let statusBadgeStyle = 'bg-emerald-50 text-emerald-800 border-emerald-300';
-                        if (status === 'In OPD') statusBadgeStyle = 'bg-blue-50 text-blue-800 border-blue-300';
-                        else if (status === 'In OT / Surgery') statusBadgeStyle = 'bg-rose-50 text-rose-800 border-rose-300';
+                        if (status === 'Not Available') statusBadgeStyle = 'bg-rose-50 text-rose-800 border-rose-300';
+                        else if (status === 'In OPD') statusBadgeStyle = 'bg-blue-50 text-blue-800 border-blue-300';
+                        else if (status === 'In OT / Surgery') statusBadgeStyle = 'bg-purple-50 text-purple-800 border-purple-300';
                         else if (status === 'On Leave') statusBadgeStyle = 'bg-amber-50 text-amber-800 border-amber-300';
                         else if (status === 'Off Duty') statusBadgeStyle = 'bg-slate-100 text-slate-700 border-slate-300';
 
@@ -1685,8 +1686,9 @@ export const AdminDashboardPage: React.FC = () => {
                                   title="Change Live Status (Instantly updates 24/7 AI Chatbot)"
                                 >
                                   <option value="Available">🟢 Available (On Desk)</option>
+                                  <option value="Not Available">🔴 Not Available</option>
                                   <option value="In OPD">🔵 In OPD (Consulting)</option>
-                                  <option value="In OT / Surgery">🔴 In OT / Surgery</option>
+                                  <option value="In OT / Surgery">🩺 In OT / Surgery</option>
                                   <option value="On Leave">🟡 On Leave Today</option>
                                   <option value="Off Duty">⚪ Off Duty</option>
                                 </select>
@@ -2645,8 +2647,9 @@ export const AdminDashboardPage: React.FC = () => {
                   className="w-full p-2.5 rounded-xl border border-slate-200 text-xs bg-white font-extrabold text-teal-900"
                 >
                   <option value="Available">🟢 Available (On Desk)</option>
+                  <option value="Not Available">🔴 Not Available</option>
                   <option value="In OPD">🔵 In OPD (Consulting)</option>
-                  <option value="In OT / Surgery">🔴 In OT / Surgery</option>
+                  <option value="In OT / Surgery">🩺 In OT / Surgery</option>
                   <option value="On Leave">🟡 On Leave Today</option>
                   <option value="Off Duty">⚪ Off Duty</option>
                 </select>

@@ -724,6 +724,31 @@ export const api = {
     return apt;
   },
 
+  async updateAppointmentDetails(id: string, updates: Partial<Appointment>): Promise<Appointment> {
+    const appointments = getStored<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
+    const idx = appointments.findIndex(a => a.id === id);
+    if (idx === -1) throw new Error('Appointment not found');
+    
+    appointments[idx] = {
+      ...appointments[idx],
+      ...updates
+    };
+    setStored(STORAGE_KEYS.APPOINTMENTS, appointments);
+
+    // If status is completed, notify user
+    if (updates.status === 'completed') {
+      const apt = appointments[idx];
+      await this.addNotification({
+        user_id: apt.user_id,
+        title: `OPD Consultation Completed 🎉`,
+        message: `Dr. ${apt.doctor_name} has completed your consultation and uploaded your prescription & OPD summary slip.`,
+        type: 'appointment'
+      });
+    }
+
+    return appointments[idx];
+  },
+
   async deleteAppointment(id: string): Promise<void> {
     const appointments = getStored<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
     const filtered = appointments.filter(a => a.id !== id);

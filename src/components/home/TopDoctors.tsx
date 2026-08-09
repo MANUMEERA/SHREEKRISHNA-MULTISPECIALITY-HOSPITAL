@@ -123,14 +123,16 @@ export const TopDoctors: React.FC<TopDoctorsProps> = ({ setActiveTab, onSelectDo
                     </span>
 
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border shadow-xs ${
+                      doc.availability_status === 'Not Available' ? 'bg-rose-50 text-rose-800 border-rose-200' :
                       doc.availability_status === 'In OPD' ? 'bg-blue-50 text-blue-800 border-blue-200' :
-                      doc.availability_status === 'In OT / Surgery' ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                      doc.availability_status === 'In OT / Surgery' ? 'bg-purple-50 text-purple-800 border-purple-200' :
                       doc.availability_status === 'On Leave' ? 'bg-amber-50 text-amber-800 border-amber-200' :
                       doc.availability_status === 'Off Duty' ? 'bg-slate-100 text-slate-600 border-slate-200' :
                       'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}>
+                      {doc.availability_status === 'Not Available' && '🔴 Not Available'}
                       {doc.availability_status === 'In OPD' && '🔵 In OPD'}
-                      {doc.availability_status === 'In OT / Surgery' && '🔴 In OT / Surgery'}
+                      {doc.availability_status === 'In OT / Surgery' && '🩺 In OT / Surgery'}
                       {doc.availability_status === 'On Leave' && '🟡 On Leave'}
                       {doc.availability_status === 'Off Duty' && '⚪ Off Duty'}
                       {(doc.availability_status === 'Available' || !doc.availability_status) && '🟢 Available'}

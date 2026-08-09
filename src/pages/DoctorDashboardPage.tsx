@@ -58,7 +58,7 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'pending' | 'confirmed' | 'completed' | 'all' | 'cancelled'>('active');
 
   // Clinical Observation Modal State
   const [obsModalOpen, setObsModalOpen] = useState(false);
@@ -112,6 +112,45 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
   const knownAptIdsRef = useRef<Set<string>>(new Set());
   const initialDataLoadedRef = useRef(false);
 
+  // Synthesize pleasant 2-note hospital reception chime sound (E5 -> B5)
+  const playNotificationChimeSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      const now = ctx.currentTime;
+      
+      // Note 1: E5 (659.25 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(659.25, now);
+      gain1.gain.setValueAtTime(0.25, now);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Note 2: B5 (987.77 Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(987.77, now + 0.12);
+      gain2.gain.setValueAtTime(0.35, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.60);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.60);
+    } catch (e) {
+      console.warn("Notification sound alert error:", e);
+    }
+  };
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -140,7 +179,7 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
         const allReports = await api.getReports(undefined, 'admin');
         setReports(allReports);
 
-        // Check for newly assigned patients to currentDoc by receptionist/desk
+        // Check for newly assigned or confirmed patients to currentDoc by receptionist/desk
         if (currentDoc) {
           const docApts = allApts.filter(apt => {
             return apt.doctor_id === currentDoc.id || 
@@ -149,14 +188,14 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
           });
 
           if (!initialDataLoadedRef.current) {
-            // Register initial appointment IDs
-            docApts.forEach(a => knownAptIdsRef.current.add(a.id));
+            // Register initial appointment IDs and status
+            docApts.forEach(a => knownAptIdsRef.current.add(`${a.id}-${a.status}`));
             initialDataLoadedRef.current = true;
           } else {
-            // Find newly assigned appointments since last check
-            const newAssigned = docApts.filter(a => !knownAptIdsRef.current.has(a.id));
+            // Find newly assigned or confirmed appointments since last check
+            const newAssigned = docApts.filter(a => !knownAptIdsRef.current.has(`${a.id}-${a.status}`));
             if (newAssigned.length > 0) {
-              newAssigned.forEach(a => knownAptIdsRef.current.add(a.id));
+              newAssigned.forEach(a => knownAptIdsRef.current.add(`${a.id}-${a.status}`));
               const latest = newAssigned[0];
               const notifItem = {
                 id: latest.id,
@@ -171,6 +210,7 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
               };
               setAssignedNotifs(prev => [notifItem, ...prev]);
               setActiveAssignmentBanner(notifItem);
+              playNotificationChimeSound();
             }
           }
         }
@@ -278,6 +318,9 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
     await logout();
     setIsDoctorLoggedIn(false);
     setSelectedDoctor(null);
+    if (setActiveTab) {
+      setActiveTab('home');
+    }
   };
 
   // Refresh appointments
@@ -297,7 +340,10 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
   // Apply search and status filter
   const filteredConsultations = doctorConsultations.filter(apt => {
-    const matchesStatus = statusFilter === 'all' || apt.status === statusFilter;
+    const matchesStatus = 
+      statusFilter === 'active' ? (apt.status === 'pending' || apt.status === 'confirmed') :
+      statusFilter === 'all' ? true : 
+      apt.status === statusFilter;
     const q = searchQuery.toLowerCase();
     const matchesQuery = 
       apt.user_name.toLowerCase().includes(q) ||
@@ -308,6 +354,34 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
       apt.id.toLowerCase().includes(q);
     return matchesStatus && matchesQuery;
   });
+
+  // Handle Receptionist Notification Accept & Open Consultation Entry
+  const handleAcceptAndStartConsultation = async (notifItem: { id: string; patientName: string }) => {
+    let targetApt = appointments.find(a => a.id === notifItem.id || a.user_name.toLowerCase() === notifItem.patientName.toLowerCase());
+    if (!targetApt) {
+      const freshApts = await api.getAppointments(undefined, 'admin');
+      setAppointments(freshApts);
+      targetApt = freshApts.find(a => a.id === notifItem.id || a.user_name.toLowerCase() === notifItem.patientName.toLowerCase());
+    }
+
+    if (targetApt) {
+      if (targetApt.status === 'pending') {
+        await api.updateAppointmentStatus(targetApt.id, 'confirmed');
+        await refreshAppointments();
+      }
+      setDoctorSubTab('queue');
+      setStatusFilter('active');
+      setSelectedObsApt(targetApt);
+      setObsModalOpen(true);
+      setActiveAssignmentBanner(null);
+      setShowNotifMenu(false);
+    } else {
+      setDoctorSubTab('queue');
+      setSearchQuery(notifItem.patientName);
+      setActiveAssignmentBanner(null);
+      setShowNotifMenu(false);
+    }
+  };
 
   // Doctor Action: Open Clinical Observation Editor (Allowed to ADD/MODIFY)
   const handleOpenClinicalObs = (apt: Appointment) => {
@@ -775,19 +849,15 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                         <div className="text-[11px] text-slate-300">
                           Assigned for <strong>{n.reason}</strong> on {n.date} at {n.timeSlot}
                         </div>
-                        <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center justify-between pt-1 gap-2">
                           <span className="text-[10px] bg-slate-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-900/50 font-mono">
                             {n.patientCode}
                           </span>
                           <button
-                            onClick={() => {
-                              setDoctorSubTab('queue');
-                              setSearchQuery(n.patientName);
-                              setShowNotifMenu(false);
-                            }}
-                            className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]"
+                            onClick={() => handleAcceptAndStartConsultation(n)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] shadow cursor-pointer flex items-center gap-1"
                           >
-                            Jump to Queue
+                            <Stethoscope className="w-3 h-3" /> Accept & Consult
                           </button>
                         </div>
                       </div>
@@ -836,14 +906,20 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
               <button
+                onClick={() => handleAcceptAndStartConsultation(activeAssignmentBanner)}
+                className="px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs shadow-lg cursor-pointer flex items-center gap-1.5 animate-pulse"
+              >
+                <Stethoscope className="w-4 h-4" /> Accept & Start Consultation
+              </button>
+              <button
                 onClick={() => {
                   setDoctorSubTab('queue');
                   setSearchQuery(activeAssignmentBanner.patientName);
                   setActiveAssignmentBanner(null);
                 }}
-                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow cursor-pointer flex items-center gap-1.5"
+                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs cursor-pointer flex items-center gap-1"
               >
-                <Eye className="w-4 h-4" /> View in Queue
+                <Eye className="w-3.5 h-3.5" /> View Queue
               </button>
               <button
                 onClick={() => setActiveAssignmentBanner(null)}
@@ -906,10 +982,55 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                   <span>{selectedDoctor?.specialization}</span> • <span className="text-emerald-300 font-semibold">{selectedDoctor?.department}</span>
                 </p>
 
-                <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-2">
+                <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-2 flex-wrap">
                   <span>OPD Fee: <strong className="text-emerald-400">₹{selectedDoctor?.consultation_fee || 750}</strong></span>
                   <span>•</span>
                   <span>OPD Hours: <strong className="text-white">{selectedDoctor?.opd_timings || '09:00 AM - 02:00 PM'}</strong></span>
+                </div>
+
+                {/* DOCTOR LIVE PRESENCE / AVAILABILITY STATUS TOGGLE CONTROL */}
+                <div className="mt-3 pt-2.5 border-t border-slate-700/60 flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1">
+                    <HeartPulse className="w-3.5 h-3.5 text-emerald-400" /> Live Presence Status:
+                  </span>
+                  <select
+                    value={selectedDoctor?.availability_status || 'Available'}
+                    onChange={async (e) => {
+                      const newStatus = e.target.value as any;
+                      if (selectedDoctor) {
+                        try {
+                          const updated = await api.updateDoctor(selectedDoctor.id, { availability_status: newStatus });
+                          setSelectedDoctor(updated);
+                          setDoctors(prev => prev.map(d => d.id === updated.id ? updated : d));
+                          setCompletedToast(`🟢 Your Presence Status updated to "${newStatus}". Live synced to Admin Panel & Booking Portal.`);
+                          setTimeout(() => setCompletedToast(null), 6000);
+                        } catch (err) {
+                          console.error('Status update error', err);
+                        }
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer focus:outline-none transition-all shadow-sm ${
+                      selectedDoctor?.availability_status === 'Available' || !selectedDoctor?.availability_status
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/30'
+                        : selectedDoctor?.availability_status === 'Not Available'
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 hover:bg-rose-500/30'
+                        : selectedDoctor?.availability_status === 'In OPD'
+                        ? 'bg-blue-500/20 text-blue-300 border-blue-500/50 hover:bg-blue-500/30'
+                        : selectedDoctor?.availability_status === 'In OT / Surgery'
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 hover:bg-purple-500/30'
+                        : selectedDoctor?.availability_status === 'On Leave'
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30'
+                        : 'bg-slate-700 text-slate-300 border-slate-600'
+                    }`}
+                    title="Change your real-time presence status (updates live in Admin Monitoring & Patient Booking Panel)"
+                  >
+                    <option value="Available" className="bg-slate-900 text-emerald-300">🟢 Available (Present / On Desk)</option>
+                    <option value="Not Available" className="bg-slate-900 text-rose-300">🔴 Not Available</option>
+                    <option value="In OPD" className="bg-slate-900 text-blue-300">🔵 In OPD (Consulting)</option>
+                    <option value="In OT / Surgery" className="bg-slate-900 text-purple-300">🩺 In OT / Surgery</option>
+                    <option value="On Leave" className="bg-slate-900 text-amber-300">🟡 On Leave Today</option>
+                    <option value="Off Duty" className="bg-slate-900 text-slate-300">⚪ Off Duty</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1078,7 +1199,7 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                   </span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Automatically fetched when a patient books a consultation selecting {selectedDoctor?.name}.
+                  Active Queue shows pending & confirmed OPD patients. Completed consultations automatically move to Tab 2 (Hospital Patients Details).
                 </p>
               </div>
 
@@ -1096,18 +1217,18 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                 </div>
 
                 {/* Status Filter Pills */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-                  {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map((st) => (
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl flex-wrap">
+                  {(['active', 'pending', 'confirmed', 'completed', 'all', 'cancelled'] as const).map((st) => (
                     <button
                       key={st}
                       onClick={() => setStatusFilter(st)}
                       className={`px-2.5 py-1 rounded-lg text-[11px] font-bold capitalize transition-all ${
                         statusFilter === st
-                          ? 'bg-white text-emerald-800 shadow-sm'
+                          ? 'bg-emerald-600 text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      {st}
+                      {st === 'active' ? 'Active Queue' : st}
                     </button>
                   ))}
                 </div>
@@ -1531,9 +1652,40 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
           isOpen={obsModalOpen}
           onClose={() => setObsModalOpen(false)}
           appointment={selectedObsApt}
-          onSave={async () => {
-            await refreshAppointments();
-            setObsModalOpen(false);
+          onSave={async (aptId, obsData) => {
+            try {
+              // Update appointment clinical details and set status to completed
+              await api.updateAppointmentDetails(aptId, {
+                ...obsData,
+                status: 'completed'
+              });
+
+              // Sync patient profile for Tab 2 "Hospital Patients Details"
+              const targetApt = appointments.find(a => a.id === aptId) || selectedObsApt;
+              if (targetApt) {
+                const pat = patients.find(p => p.id === targetApt.user_id || p.full_name.toLowerCase() === targetApt.user_name.toLowerCase());
+                if (pat) {
+                  const compLog = `[${new Date().toLocaleDateString()}] Completed Consultation by ${targetApt.doctor_name}. Diagnosis: ${obsData.diagnosis || targetApt.reason}. Status: Completed.`;
+                  const updatedHistory = pat.medical_history_notes ? `${pat.medical_history_notes}\n${compLog}` : compLog;
+                  await api.updatePatientProfile(pat.id, {
+                    medical_history_notes: updatedHistory,
+                    past_medical_history: updatedHistory
+                  });
+                }
+              }
+
+              await refreshAppointments();
+              const freshPatients = await api.getPatients();
+              setPatients(freshPatients);
+              setObsModalOpen(false);
+
+              setCompletedToast(`🎉 Consultation details saved for "${selectedObsApt.user_name}" & status set to COMPLETED! Moved to Hospital Patients Details (Tab 2) & live-synced for Receptionist Print.`);
+              setTimeout(() => setCompletedToast(null), 8000);
+            } catch (err) {
+              console.error('Failed to save consultation details:', err);
+              await refreshAppointments();
+              setObsModalOpen(false);
+            }
           }}
           readOnly={selectedObsApt.status === 'completed'}
           onOpenPrintSlip={(apt) => handleOpenSlip(apt)}

@@ -27,7 +27,7 @@ export interface User {
   medical_history_notes?: string;
 }
 
-export type DoctorAvailabilityStatus = 'Available' | 'In OPD' | 'In OT / Surgery' | 'On Leave' | 'Off Duty';
+export type DoctorAvailabilityStatus = 'Available' | 'Not Available' | 'In OPD' | 'In OT / Surgery' | 'On Leave' | 'Off Duty';
 
 export interface Doctor {
   id: string;

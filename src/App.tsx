@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { EmergencyHeader } from './components/layout/EmergencyHeader';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
@@ -16,11 +16,19 @@ import { Doctor } from './types';
 import { Bot, Sparkles, X } from 'lucide-react';
 
 export function AppContent() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('home');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [doctorSearchQuery, setDoctorSearchQuery] = useState<string>('');
   const [aiBotOpen, setAiBotOpen] = useState<boolean>(false);
+
+  // Automatically return to front-end Home page if logged out while on protected dashboard views
+  useEffect(() => {
+    if (!user && (activeTab === 'admin' || activeTab === 'doctor_panel' || activeTab === 'dashboard')) {
+      setActiveTab('home');
+    }
+  }, [user, activeTab]);
 
   const handleSelectDoctor = (doc: Doctor) => {
     setSelectedDoctor(doc);

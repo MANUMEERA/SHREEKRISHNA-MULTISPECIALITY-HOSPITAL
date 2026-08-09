@@ -309,9 +309,26 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                           className="w-16 h-16 rounded-xl object-cover border border-slate-200 flex-shrink-0"
                           referrerPolicy="no-referrer"
                         />
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-slate-900 text-xs sm:text-sm">{doc.name}</h4>
-                          <p className="text-[11px] text-slate-600">{doc.specialization}</p>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1 flex-wrap">
+                            <h4 className="font-bold text-slate-900 text-xs sm:text-sm truncate">{doc.name}</h4>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                              doc.availability_status === 'Available' || !doc.availability_status ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                              doc.availability_status === 'Not Available' ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                              doc.availability_status === 'In OPD' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                              doc.availability_status === 'In OT / Surgery' ? 'bg-purple-50 text-purple-800 border-purple-200' :
+                              doc.availability_status === 'On Leave' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                              'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}>
+                              {(doc.availability_status === 'Available' || !doc.availability_status) && '🟢 Available'}
+                              {doc.availability_status === 'Not Available' && '🔴 Not Available'}
+                              {doc.availability_status === 'In OPD' && '🔵 In OPD'}
+                              {doc.availability_status === 'In OT / Surgery' && '🩺 In OT'}
+                              {doc.availability_status === 'On Leave' && '🟡 On Leave'}
+                              {doc.availability_status === 'Off Duty' && '⚪ Off Duty'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 truncate">{doc.specialization}</p>
                           <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-800">
                             <span>₹{doc.consultation_fee} Fee</span>
                             <span>•</span>
@@ -348,17 +365,37 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
             {/* Doctor Selected Summary */}
             {selectedDoctor && (
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-4">
-                <img
-                  src={selectedDoctor.photo_url}
-                  alt={selectedDoctor.name}
-                  className="w-14 h-14 rounded-xl object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm">{selectedDoctor.name}</h4>
-                  <p className="text-xs text-slate-600">{selectedDoctor.department}</p>
-                  <p className="text-[11px] font-bold text-emerald-700 mt-0.5">Consultation Fee: ₹{selectedDoctor.consultation_fee}</p>
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={selectedDoctor.photo_url}
+                    alt={selectedDoctor.name}
+                    className="w-14 h-14 rounded-xl object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm">{selectedDoctor.name}</h4>
+                    <p className="text-xs text-slate-600">{selectedDoctor.department}</p>
+                    <p className="text-[11px] font-bold text-emerald-700 mt-0.5">Consultation Fee: ₹{selectedDoctor.consultation_fee}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end">
+                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                    selectedDoctor.availability_status === 'Available' || !selectedDoctor.availability_status ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                    selectedDoctor.availability_status === 'Not Available' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                    selectedDoctor.availability_status === 'In OPD' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                    selectedDoctor.availability_status === 'In OT / Surgery' ? 'bg-purple-100 text-purple-800 border-purple-300' :
+                    selectedDoctor.availability_status === 'On Leave' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                    'bg-slate-200 text-slate-800 border-slate-300'
+                  }`}>
+                    {(selectedDoctor.availability_status === 'Available' || !selectedDoctor.availability_status) && '🟢 Available On Desk'}
+                    {selectedDoctor.availability_status === 'Not Available' && '🔴 Not Available'}
+                    {selectedDoctor.availability_status === 'In OPD' && '🔵 Consulting in OPD'}
+                    {selectedDoctor.availability_status === 'In OT / Surgery' && '🩺 In OT / Surgery'}
+                    {selectedDoctor.availability_status === 'On Leave' && '🟡 On Leave Today'}
+                    {selectedDoctor.availability_status === 'Off Duty' && '⚪ Off Duty'}
+                  </span>
                 </div>
               </div>
             )}
