@@ -140,30 +140,30 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
         
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 print:pb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white font-black text-xl flex items-center justify-center shadow-md print:hidden">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white font-black text-xl flex items-center justify-center shadow-md shrink-0 print:hidden">
               <Building2 className="w-6 h-6" />
             </div>
-            <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight uppercase truncate">
                 SHREE KRISHNA MULTISPECIALTY HOSPITAL
               </h2>
-              <p className="text-xs text-slate-600 font-bold">
+              <p className="text-xs text-slate-600 font-bold truncate">
                 Official OPD & Clinical Payment Money Receipt • Silvassa (D&NH)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 print:hidden">
+          <div className="flex items-center gap-2 shrink-0 print:hidden ml-2">
             {receiptGenerated && (
               <button
                 onClick={handlePrint}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer transition-all"
               >
                 <Printer className="w-4 h-4 text-emerald-400" /> Print / Save PDF
               </button>
             )}
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700">
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -230,13 +230,13 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 
                 {/* Add from Master */}
-                <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2">
-                  <label className="block text-[10px] font-extrabold uppercase text-emerald-900">Add Standard Charge Master</label>
-                  <div className="flex gap-2">
+                <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2 min-w-0">
+                  <label className="block text-[10px] font-extrabold uppercase text-emerald-900 tracking-wider">Add Standard Charge Master</label>
+                  <div className="flex items-center gap-2 min-w-0">
                     <select
                       value={newChargeId}
                       onChange={(e) => setNewChargeId(e.target.value)}
-                      className="flex-1 p-2 rounded-xl border border-emerald-200 text-xs bg-white font-medium"
+                      className="flex-1 min-w-0 h-10 px-3 rounded-xl border border-emerald-200 text-xs bg-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 truncate"
                     >
                       <option value="">Select Charge Category / X-Ray / Lab...</option>
                       {availableCharges.map(c => (
@@ -248,37 +248,37 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                     <button
                       type="button"
                       onClick={handleAddChargeFromMaster}
-                      className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1 shadow cursor-pointer shrink-0"
+                      className="h-10 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1 shadow cursor-pointer shrink-0 transition-all active:scale-95"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Add
+                      <Plus className="w-4 h-4" /> Add
                     </button>
                   </div>
                 </div>
 
                 {/* Custom Item */}
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-700">Add Custom Charges</label>
-                  <div className="flex gap-2">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 min-w-0">
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-700 tracking-wider">Add Custom Charges</label>
+                  <div className="flex items-center gap-2 min-w-0">
                     <input
                       type="text"
                       placeholder="e.g. Dressing / Nebulization"
                       value={customItemDesc}
                       onChange={(e) => setCustomItemDesc(e.target.value)}
-                      className="flex-1 p-2 rounded-xl border border-slate-200 text-xs bg-white font-medium"
+                      className="flex-1 min-w-0 h-10 px-3 rounded-xl border border-slate-200 text-xs bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-400/20"
                     />
                     <input
                       type="number"
                       placeholder="Amount ₹"
                       value={customItemAmount}
                       onChange={(e) => setCustomItemAmount(e.target.value)}
-                      className="w-20 p-2 rounded-xl border border-slate-200 text-xs bg-white font-bold"
+                      className="w-24 shrink-0 h-10 px-2.5 rounded-xl border border-slate-200 text-xs bg-white font-bold text-right focus:outline-none focus:ring-2 focus:ring-slate-400/20"
                     />
                     <button
                       type="button"
                       onClick={handleAddCustomCharge}
-                      className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1 shadow cursor-pointer shrink-0"
+                      className="h-10 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1 shadow cursor-pointer shrink-0 transition-all active:scale-95"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Add
+                      <Plus className="w-4 h-4" /> Add
                     </button>
                   </div>
                 </div>
@@ -287,110 +287,112 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             </div>
 
             {/* Payment Method Selector & Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-4 border-t border-slate-200 items-stretch">
               
-              <div className="space-y-3">
-                <h3 className="text-xs font-black uppercase text-slate-800">Select Payment Mode *</h3>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode('UPI (QR Code)')}
-                    className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
-                      paymentMode === 'UPI (QR Code)'
-                        ? 'bg-emerald-800 text-white border-emerald-800 shadow-md scale-102'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <QrCode className="w-4 h-4" /> UPI (QR Code)
-                  </button>
+              <div className="space-y-3.5 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider mb-2.5">Select Payment Mode *</h3>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMode('UPI (QR Code)')}
+                      className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        paymentMode === 'UPI (QR Code)'
+                          ? 'bg-emerald-800 text-white border-emerald-800 shadow-md scale-[1.01]'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <QrCode className="w-4 h-4 shrink-0 text-emerald-400" /> UPI (QR Code)
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode('Cash')}
-                    className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
-                      paymentMode === 'Cash'
-                        ? 'bg-emerald-800 text-white border-emerald-800 shadow-md scale-102'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Banknote className="w-4 h-4" /> Cash Counter
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMode('Cash')}
+                      className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        paymentMode === 'Cash'
+                          ? 'bg-emerald-800 text-white border-emerald-800 shadow-md scale-[1.01]'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Banknote className="w-4 h-4 shrink-0 text-emerald-400" /> Cash Counter
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode('Card')}
-                    className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
-                      paymentMode === 'Card'
-                        ? 'bg-emerald-800 text-white border-emerald-800 shadow-md scale-102'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4" /> Debit / Credit Card
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMode('Card')}
+                      className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        paymentMode === 'Card'
+                          ? 'bg-emerald-800 text-white border-emerald-800 shadow-md scale-[1.01]'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4 shrink-0 text-emerald-400" /> Debit / Credit Card
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode('Net Banking')}
-                    className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
-                      paymentMode === 'Net Banking'
-                        ? 'bg-emerald-800 text-white border-emerald-800 shadow-md scale-102'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Building2 className="w-4 h-4" /> Net Banking
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMode('Net Banking')}
+                      className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        paymentMode === 'Net Banking'
+                          ? 'bg-emerald-800 text-white border-emerald-800 shadow-md scale-[1.01]'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Building2 className="w-4 h-4 shrink-0 text-emerald-400" /> Net Banking
+                    </button>
+                  </div>
                 </div>
 
                 {paymentMode === 'UPI (QR Code)' && (
-                  <div className="p-3 bg-slate-900 text-white rounded-2xl flex items-center gap-3">
-                    <div className="w-16 h-16 bg-white p-1 rounded-xl shrink-0 flex items-center justify-center">
-                      <QrCode className="w-12 h-12 text-slate-900" />
+                  <div className="p-3.5 bg-slate-900 text-white rounded-2xl flex items-center gap-3.5 border border-slate-800 shadow-sm">
+                    <div className="w-14 h-14 bg-white p-1 rounded-xl shrink-0 flex items-center justify-center shadow-inner">
+                      <QrCode className="w-11 h-11 text-slate-900" />
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold uppercase text-emerald-400 block">Scan Hospital UPI QR Code</span>
-                      <p className="text-xs font-mono font-bold">skmh.hospital@okhdfcbank</p>
-                      <p className="text-[10px] text-slate-300">Google Pay • PhonePe • Paytm • BHIM</p>
+                      <span className="text-[10px] font-extrabold uppercase text-emerald-400 block tracking-wider">Scan Hospital UPI QR Code</span>
+                      <p className="text-xs font-mono font-bold tracking-wide text-white">skmh.hospital@okhdfcbank</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Google Pay • PhonePe • Paytm • BHIM</p>
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">UPI Ref / Transaction Number</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 tracking-wider">UPI Ref / Transaction Number</label>
                   <input
                     type="text"
                     placeholder="e.g. UPI/629103910293 or Card Approval No"
                     value={transactionRef}
                     onChange={(e) => setTransactionRef(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold"
+                    className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
               </div>
 
               {/* Total Calculation Card */}
-              <div className="bg-slate-900 text-white p-5 rounded-3xl space-y-3 flex flex-col justify-between shadow-xl">
+              <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl space-y-4 flex flex-col justify-between shadow-xl border border-slate-800">
                 <div>
-                  <h4 className="text-xs font-black uppercase text-slate-400">Bill Calculation Summary</h4>
+                  <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Bill Calculation Summary</h4>
                   
-                  <div className="space-y-2 mt-3 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-300">Subtotal Charges:</span>
-                      <span className="font-bold">₹{subtotal.toLocaleString()}</span>
+                  <div className="space-y-3 mt-4 text-xs">
+                    <div className="flex justify-between items-center text-slate-300 font-semibold">
+                      <span>Subtotal Charges:</span>
+                      <span className="font-bold text-white text-sm">₹{subtotal.toLocaleString()}</span>
                     </div>
 
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-300">Discount Concession (₹):</span>
+                      <span className="text-slate-300 font-semibold">Discount Concession (₹):</span>
                       <input
                         type="number"
                         value={discount}
                         onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                        className="w-20 p-1 text-right bg-slate-800 text-emerald-300 rounded border border-slate-700 font-bold"
+                        className="w-24 p-1.5 text-right bg-slate-800 text-emerald-300 rounded-xl border border-slate-700 font-extrabold focus:outline-none focus:ring-2 focus:ring-emerald-400 text-xs"
                       />
                     </div>
 
                     <div className="border-t border-slate-800 pt-3 flex justify-between items-baseline">
-                      <span className="text-sm font-extrabold text-emerald-400">Total Net Amount Payable:</span>
-                      <span className="text-2xl font-black text-white">₹{totalPaid.toLocaleString()}</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-emerald-400">Total Net Amount Payable:</span>
+                      <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">₹{totalPaid.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -399,9 +401,9 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   type="button"
                   disabled={saving}
                   onClick={handleGenerateReceipt}
-                  className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
+                  className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 active:scale-95"
                 >
-                  <CheckCircle2 className="w-5 h-5" /> Confirm Payment & Produce Bill PDF
+                  <CheckCircle2 className="w-5 h-5 shrink-0" /> Confirm Payment & Produce Bill PDF
                 </button>
               </div>
 

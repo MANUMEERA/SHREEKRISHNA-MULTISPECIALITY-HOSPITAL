@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Appointment, PrescribedMedicine, HigherReference, PatientVitals } from '../types';
-import { X, Plus, Trash2, Stethoscope, Activity, Pill, FileCheck2, Share2, AlertCircle, Calendar, HeartPulse, User } from 'lucide-react';
+import { X, Plus, Trash2, Stethoscope, Activity, Pill, FileCheck2, Share2, AlertCircle, Calendar, HeartPulse, User, Lock, Printer, ShieldCheck, BedDouble } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface ClinicalObservationModalProps {
@@ -15,14 +15,21 @@ interface ClinicalObservationModalProps {
     higher_reference?: HigherReference;
     follow_up_date?: string;
     notes?: string;
+    recommend_admission?: boolean;
+    admission_reason?: string;
+    recommended_ward?: string;
   }) => Promise<void>;
+  readOnly?: boolean;
+  onOpenPrintSlip?: (apt: Appointment) => void;
 }
 
 export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> = ({
   isOpen,
   onClose,
   appointment,
-  onSave
+  onSave,
+  readOnly = false,
+  onOpenPrintSlip
 }) => {
   if (!isOpen || !appointment) return null;
 
@@ -101,6 +108,17 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
     appointment.notes || ''
   );
 
+  // Recommend Inpatient Ward Admission (IPD)
+  const [recommendAdmission, setRecommendAdmission] = useState<boolean>(
+    appointment.recommend_admission || false
+  );
+  const [admissionReason, setAdmissionReason] = useState<string>(
+    appointment.admission_reason || 'Inpatient admission recommended for continuous clinical observation & IV treatment.'
+  );
+  const [recommendedWard, setRecommendedWard] = useState<string>(
+    appointment.recommended_ward || 'Deluxe Ward'
+  );
+
   const [submitting, setSubmitting] = useState(false);
 
   const handleAddMedicine = () => {
@@ -149,7 +167,10 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
         recommended_tests: recommendedTests,
         higher_reference: hasHigherReferral ? referralData : undefined,
         follow_up_date: followUpDate,
-        notes
+        notes,
+        recommend_admission: recommendAdmission,
+        admission_reason: recommendAdmission ? admissionReason : undefined,
+        recommended_ward: recommendAdmission ? recommendedWard : undefined
       });
       onClose();
     } finally {
@@ -195,6 +216,28 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
           </button>
         </div>
 
+        {/* Read Only Notice Banner for Front Desk / Receptionist */}
+        {readOnly && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-950 font-bold">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0" />
+              <span>Digitally Authenticated Doctor Prescription • Read-Only View</span>
+            </div>
+            {onOpenPrintSlip && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenPrintSlip(appointment);
+                }}
+                className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-extrabold text-[11px] flex items-center gap-1.5 shadow transition-all cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5 text-emerald-300" /> Print Consultation Slip
+              </button>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* SECTION 1: PATIENT VITALS & OBSERVATION */}
@@ -208,10 +251,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                 <label className="block text-[10px] font-bold text-slate-500 uppercase">Blood Pressure</label>
                 <input
                   type="text"
+                  disabled={readOnly}
                   placeholder="120/80 mmHg"
                   value={vitals.blood_pressure}
                   onChange={(e) => setVitals({ ...vitals, blood_pressure: e.target.value })}
-                  className="w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                  className={`w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold ${readOnly ? 'bg-slate-100 text-slate-800 font-extrabold cursor-not-allowed' : 'bg-white'}`}
                 />
               </div>
 
@@ -219,10 +263,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                 <label className="block text-[10px] font-bold text-slate-500 uppercase">Pulse Rate</label>
                 <input
                   type="text"
+                  disabled={readOnly}
                   placeholder="72 bpm"
                   value={vitals.pulse_rate}
                   onChange={(e) => setVitals({ ...vitals, pulse_rate: e.target.value })}
-                  className="w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                  className={`w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold ${readOnly ? 'bg-slate-100 text-slate-800 font-extrabold cursor-not-allowed' : 'bg-white'}`}
                 />
               </div>
 
@@ -230,10 +275,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                 <label className="block text-[10px] font-bold text-slate-500 uppercase">Body Temp</label>
                 <input
                   type="text"
+                  disabled={readOnly}
                   placeholder="98.6 °F"
                   value={vitals.temperature}
                   onChange={(e) => setVitals({ ...vitals, temperature: e.target.value })}
-                  className="w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                  className={`w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold ${readOnly ? 'bg-slate-100 text-slate-800 font-extrabold cursor-not-allowed' : 'bg-white'}`}
                 />
               </div>
 
@@ -241,10 +287,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                 <label className="block text-[10px] font-bold text-slate-500 uppercase">SpO2 Level</label>
                 <input
                   type="text"
+                  disabled={readOnly}
                   placeholder="99%"
                   value={vitals.spo2}
                   onChange={(e) => setVitals({ ...vitals, spo2: e.target.value })}
-                  className="w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                  className={`w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold ${readOnly ? 'bg-slate-100 text-slate-800 font-extrabold cursor-not-allowed' : 'bg-white'}`}
                 />
               </div>
 
@@ -252,10 +299,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                 <label className="block text-[10px] font-bold text-slate-500 uppercase">Weight (Kg)</label>
                 <input
                   type="text"
+                  disabled={readOnly}
                   placeholder="68"
                   value={vitals.weight_kg}
                   onChange={(e) => setVitals({ ...vitals, weight_kg: e.target.value })}
-                  className="w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                  className={`w-full p-2 rounded-xl border border-slate-200 text-xs font-semibold ${readOnly ? 'bg-slate-100 text-slate-800 font-extrabold cursor-not-allowed' : 'bg-white'}`}
                 />
               </div>
 
@@ -264,10 +312,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                 <label className="block text-[10px] font-extrabold text-amber-900 uppercase">Fasting Sugar</label>
                 <input
                   type="text"
+                  disabled={readOnly}
                   placeholder="95 mg/dL"
                   value={vitals.fasting_sugar}
                   onChange={(e) => setVitals({ ...vitals, fasting_sugar: e.target.value })}
-                  className="w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold bg-white text-amber-950"
+                  className={`w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold text-amber-950 ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
                 />
               </div>
 
@@ -275,10 +324,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                 <label className="block text-[10px] font-extrabold text-amber-900 uppercase">PP Sugar</label>
                 <input
                   type="text"
+                  disabled={readOnly}
                   placeholder="135 mg/dL"
                   value={vitals.pp_sugar}
                   onChange={(e) => setVitals({ ...vitals, pp_sugar: e.target.value })}
-                  className="w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold bg-white text-amber-950"
+                  className={`w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold text-amber-950 ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
                 />
               </div>
 
@@ -286,10 +336,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                 <label className="block text-[10px] font-extrabold text-amber-900 uppercase">Random Sugar</label>
                 <input
                   type="text"
+                  disabled={readOnly}
                   placeholder="110 mg/dL"
                   value={vitals.random_sugar}
                   onChange={(e) => setVitals({ ...vitals, random_sugar: e.target.value })}
-                  className="w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold bg-white text-amber-950"
+                  className={`w-full p-1.5 rounded-lg border border-amber-200 text-xs font-bold text-amber-950 ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
                 />
               </div>
             </div>
@@ -303,10 +354,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
             <textarea
               rows={2}
               required
+              disabled={readOnly}
               placeholder="e.g. Acute Bronchitis with Wheezing / Grade II Knee Osteoarthritis with Joint Inflammation"
               value={diagnosis}
               onChange={(e) => setDiagnosis(e.target.value)}
-              className="w-full p-3 rounded-2xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-600 shadow-sm"
+              className={`w-full p-3 rounded-2xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-600 shadow-sm ${readOnly ? 'bg-slate-100 text-slate-900 font-bold cursor-not-allowed' : ''}`}
             />
           </div>
 
@@ -329,7 +381,7 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                       <th className="p-2.5">Frequency</th>
                       <th className="p-2.5">Duration</th>
                       <th className="p-2.5">Instructions</th>
-                      <th className="p-2.5 text-right">Remove</th>
+                      {!readOnly && <th className="p-2.5 text-right">Remove</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -340,15 +392,17 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                         <td className="p-2.5 font-semibold text-emerald-700">{m.frequency}</td>
                         <td className="p-2.5 text-slate-700">{m.duration}</td>
                         <td className="p-2.5 text-slate-500 italic">{m.instructions || '-'}</td>
-                        <td className="p-2.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveMedicine(m.id)}
-                            className="p-1 rounded bg-rose-50 text-rose-600 hover:bg-rose-100"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
+                        {!readOnly && (
+                          <td className="p-2.5 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMedicine(m.id)}
+                              className="p-1 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -358,102 +412,104 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
               <p className="text-xs text-slate-500 italic">No medicines prescribed yet.</p>
             )}
 
-            {/* Quick Add Medicine Form */}
-            <div className="space-y-2 pt-3 border-t border-emerald-200/60">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                <div className="sm:col-span-4">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Medicine Search / Name</label>
-                  <input
-                    type="text"
-                    list="medicine-suggestions"
-                    placeholder="Search Medicine (e.g. Tab. Paracetamol)..."
-                    value={newMedName}
-                    onChange={(e) => setNewMedName(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-emerald-600 font-bold"
-                  />
-                  <datalist id="medicine-suggestions">
-                    {availableMedicines.map((med, idx) => (
-                      <option key={idx} value={med} />
-                    ))}
-                  </datalist>
-                </div>
+            {/* Quick Add Medicine Form (Only for Doctor) */}
+            {!readOnly && (
+              <div className="space-y-2 pt-3 border-t border-emerald-200/60">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                  <div className="sm:col-span-4">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Medicine Search / Name</label>
+                    <input
+                      type="text"
+                      list="medicine-suggestions"
+                      placeholder="Search Medicine (e.g. Tab. Paracetamol)..."
+                      value={newMedName}
+                      onChange={(e) => setNewMedName(e.target.value)}
+                      className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-emerald-600 font-bold"
+                    />
+                    <datalist id="medicine-suggestions">
+                      {availableMedicines.map((med, idx) => (
+                        <option key={idx} value={med} />
+                      ))}
+                    </datalist>
+                  </div>
 
-                <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dosage</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 1/2 Nos or 5 ml"
-                    value={newMedDosage}
-                    onChange={(e) => setNewMedDosage(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white"
-                  />
-                  <div className="flex gap-1 mt-1">
-                    {['1/2 Nos', '1 Nos', '2 Nos', '5 ml'].map((doseVal) => (
-                      <button
-                        key={doseVal}
-                        type="button"
-                        onClick={() => setNewMedDosage(doseVal)}
-                        className="px-1.5 py-0.5 text-[9px] rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold"
-                      >
-                        {doseVal}
-                      </button>
-                    ))}
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dosage</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 1/2 Nos or 5 ml"
+                      value={newMedDosage}
+                      onChange={(e) => setNewMedDosage(e.target.value)}
+                      className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white"
+                    />
+                    <div className="flex gap-1 mt-1">
+                      {['1/2 Nos', '1 Nos', '2 Nos', '5 ml'].map((doseVal) => (
+                        <button
+                          key={doseVal}
+                          type="button"
+                          onClick={() => setNewMedDosage(doseVal)}
+                          className="px-1.5 py-0.5 text-[9px] rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold"
+                        >
+                          {doseVal}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Frequency</label>
+                    <select
+                      value={newMedFreq}
+                      onChange={(e) => setNewMedFreq(e.target.value)}
+                      className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white font-semibold"
+                    >
+                      <option value="1-0-1 (Twice Daily)">1-0-1 (Twice Daily)</option>
+                      <option value="1-1-1 (Thrice Daily)">1-1-1 (Thrice Daily)</option>
+                      <option value="1-0-0 (Once Daily Morning)">1-0-0 (Morning)</option>
+                      <option value="0-0-1 (Once Daily Night)">0-0-1 (Night)</option>
+                      <option value="SOS (As Needed)">SOS (As Needed)</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Duration</label>
+                    <input
+                      type="text"
+                      placeholder="5 Days"
+                      value={newMedDuration}
+                      onChange={(e) => setNewMedDuration(e.target.value)}
+                      className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 flex items-end">
+                    <button
+                      type="button"
+                      onClick={handleAddMedicine}
+                      className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" /> Add Rx
+                    </button>
                   </div>
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Frequency</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Instruction:</span>
                   <select
-                    value={newMedFreq}
-                    onChange={(e) => setNewMedFreq(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white font-semibold"
+                    value={newMedInstruct}
+                    onChange={(e) => setNewMedInstruct(e.target.value)}
+                    className="p-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-700 font-medium"
                   >
-                    <option value="1-0-1 (Twice Daily)">1-0-1 (Twice Daily)</option>
-                    <option value="1-1-1 (Thrice Daily)">1-1-1 (Thrice Daily)</option>
-                    <option value="1-0-0 (Once Daily Morning)">1-0-0 (Morning)</option>
-                    <option value="0-0-1 (Once Daily Night)">0-0-1 (Night)</option>
-                    <option value="SOS (As Needed)">SOS (As Needed)</option>
+                    <option value="After meals">After meals</option>
+                    <option value="Before meals">Before meals</option>
+                    <option value="With water">With water</option>
+                    <option value="At bedtime">At bedtime</option>
+                    <option value="On empty stomach">On empty stomach</option>
+                    <option value="Every 8 hours">Every 8 hours</option>
                   </select>
                 </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Duration</label>
-                  <input
-                    type="text"
-                    placeholder="5 Days"
-                    value={newMedDuration}
-                    onChange={(e) => setNewMedDuration(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white"
-                  />
-                </div>
-
-                <div className="sm:col-span-2 flex items-end">
-                  <button
-                    type="button"
-                    onClick={handleAddMedicine}
-                    className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" /> Add Rx
-                  </button>
-                </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase">Instruction:</span>
-                <select
-                  value={newMedInstruct}
-                  onChange={(e) => setNewMedInstruct(e.target.value)}
-                  className="p-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-700 font-medium"
-                >
-                  <option value="After meals">After meals</option>
-                  <option value="Before meals">Before meals</option>
-                  <option value="With water">With water</option>
-                  <option value="At bedtime">At bedtime</option>
-                  <option value="On empty stomach">On empty stomach</option>
-                  <option value="Every 8 hours">Every 8 hours</option>
-                </select>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* SECTION 4: RECOMMENDED DIAGNOSTIC TESTS */}
@@ -466,35 +522,40 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
               {recommendedTests.map((test, idx) => (
                 <span key={idx} className="px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 font-bold text-xs flex items-center gap-2">
                   {test}
-                  <button type="button" onClick={() => handleRemoveTest(test)} className="text-blue-500 hover:text-rose-600">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                  {!readOnly && (
+                    <button type="button" onClick={() => handleRemoveTest(test)} className="text-blue-500 hover:text-rose-600 cursor-pointer">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </span>
               ))}
+              {recommendedTests.length === 0 && <span className="text-xs text-slate-400 italic">None recommended</span>}
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                list="test-suggestions"
-                placeholder="Search or type diagnostic test (e.g. Complete Blood Count, Chest X-Ray PA View)..."
-                value={newTestInput}
-                onChange={(e) => setNewTestInput(e.target.value)}
-                className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs font-semibold"
-              />
-              <datalist id="test-suggestions">
-                {availableTestsMaster.map((tName, idx) => (
-                  <option key={idx} value={tName} />
-                ))}
-              </datalist>
-              <button
-                type="button"
-                onClick={handleAddTest}
-                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" /> Add Test
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  list="test-suggestions"
+                  placeholder="Search or type diagnostic test (e.g. Complete Blood Count, Chest X-Ray PA View)..."
+                  value={newTestInput}
+                  onChange={(e) => setNewTestInput(e.target.value)}
+                  className="flex-1 p-2.5 rounded-xl border border-slate-200 text-xs font-semibold"
+                />
+                <datalist id="test-suggestions">
+                  {availableTestsMaster.map((tName, idx) => (
+                    <option key={idx} value={tName} />
+                  ))}
+                </datalist>
+                <button
+                  type="button"
+                  onClick={handleAddTest}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add Test
+                </button>
+              </div>
+            )}
           </div>
 
           {/* SECTION 5: HIGHER REFERENCE / TERTIARY CENTER REFERRAL */}
@@ -511,6 +572,7 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
+                  disabled={readOnly}
                   checked={hasHigherReferral}
                   onChange={(e) => setHasHigherReferral(e.target.checked)}
                   className="sr-only peer"
@@ -527,11 +589,12 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                     <label className="block text-[10px] font-bold uppercase text-amber-900 mb-1">Referred Hospital / Center Name</label>
                     <input
                       type="text"
+                      disabled={readOnly}
                       required={hasHigherReferral}
                       placeholder="e.g. AIIMS New Delhi / Civil Hospital Surat"
                       value={referralData.referred_to_hospital}
                       onChange={(e) => setReferralData({ ...referralData, referred_to_hospital: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-amber-300 text-xs font-bold bg-white text-slate-900"
+                      className={`w-full p-2.5 rounded-xl border border-amber-300 text-xs font-bold text-slate-900 ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
                     />
                   </div>
 
@@ -539,10 +602,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                     <label className="block text-[10px] font-bold uppercase text-amber-900 mb-1">Department / Specialist Center</label>
                     <input
                       type="text"
+                      disabled={readOnly}
                       placeholder="e.g. Advanced Cardiothoracic & Cath Lab Unit"
                       value={referralData.specialist_center}
                       onChange={(e) => setReferralData({ ...referralData, specialist_center: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-amber-300 text-xs bg-white"
+                      className={`w-full p-2.5 rounded-xl border border-amber-300 text-xs ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
                     />
                   </div>
                 </div>
@@ -552,24 +616,86 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                     <label className="block text-[10px] font-bold uppercase text-amber-900 mb-1">Clinical Reason for Referral</label>
                     <input
                       type="text"
+                      disabled={readOnly}
                       required={hasHigherReferral}
                       placeholder="e.g. Emergency coronary intervention & angiography required"
                       value={referralData.referral_reason}
                       onChange={(e) => setReferralData({ ...referralData, referral_reason: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-amber-300 text-xs bg-white"
+                      className={`w-full p-2.5 rounded-xl border border-amber-300 text-xs ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
                     />
                   </div>
 
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-amber-900 mb-1">Urgency Level</label>
                     <select
+                      disabled={readOnly}
                       value={referralData.urgency}
                       onChange={(e) => setReferralData({ ...referralData, urgency: e.target.value as any })}
-                      className="w-full p-2.5 rounded-xl border border-amber-300 text-xs font-bold bg-white text-amber-900"
+                      className={`w-full p-2.5 rounded-xl border border-amber-300 text-xs font-bold text-amber-900 ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
                     >
                       <option value="Routine">Routine</option>
                       <option value="Urgent">Urgent</option>
                       <option value="Emergency Higher Referral">Emergency Higher Referral</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 5.5: INPATIENT ADMISSION PRESCRIBED (IPD) */}
+          <div className="p-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BedDouble className="w-5 h-5 text-indigo-700" />
+                <div>
+                  <h3 className="font-extrabold text-indigo-950 text-xs uppercase">Prescribe Inpatient Ward Admission (IPD)</h3>
+                  <p className="text-[11px] text-indigo-800">Recommend hospital room admission for round-the-clock monitoring & treatment</p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  disabled={readOnly}
+                  checked={recommendAdmission}
+                  onChange={(e) => setRecommendAdmission(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <span className="ml-2 text-xs font-bold text-indigo-950">{recommendAdmission ? 'Admission Advised' : 'No Admission'}</span>
+              </label>
+            </div>
+
+            {recommendAdmission && (
+              <div className="space-y-3 pt-3 border-t border-indigo-200/80 animate-in fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-bold uppercase text-indigo-900 mb-1">Doctor's Clinical Reason for Admission *</label>
+                    <input
+                      type="text"
+                      disabled={readOnly}
+                      required={recommendAdmission}
+                      placeholder="e.g. Requires continuous IV fluids, oxygen support & post-op monitoring"
+                      value={admissionReason}
+                      onChange={(e) => setAdmissionReason(e.target.value)}
+                      className={`w-full p-2.5 rounded-xl border border-indigo-300 text-xs font-semibold text-slate-900 ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-indigo-900 mb-1">Recommended Ward Type</label>
+                    <select
+                      disabled={readOnly}
+                      value={recommendedWard}
+                      onChange={(e) => setRecommendedWard(e.target.value)}
+                      className={`w-full p-2.5 rounded-xl border border-indigo-300 text-xs font-bold text-indigo-950 ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'}`}
+                    >
+                      <option value="General Ward">General Ward Bed (₹1,000/day)</option>
+                      <option value="Semi-Private Room">Semi-Private Room (₹1,800/day)</option>
+                      <option value="Deluxe Ward">Deluxe AC Ward Room (₹2,500/day)</option>
+                      <option value="Super Deluxe Suite">Super Deluxe Suite (₹4,500/day)</option>
+                      <option value="ICU Critical Care">ICU Critical Care Unit (₹6,000/day)</option>
                     </select>
                   </div>
                 </div>
@@ -583,9 +709,10 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">Recommended Follow-up OPD Date</label>
               <input
                 type="date"
+                disabled={readOnly}
                 value={followUpDate}
                 onChange={(e) => setFollowUpDate(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800"
+                className={`w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 ${readOnly ? 'bg-slate-100 cursor-not-allowed' : ''}`}
               />
             </div>
 
@@ -593,10 +720,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">General Advice & Dietary Instructions</label>
               <input
                 type="text"
+                disabled={readOnly}
                 placeholder="e.g. Avoid heavy lifting, drink 3L water daily, salt restriction"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-xs"
+                className={`w-full p-2.5 rounded-xl border border-slate-200 text-xs ${readOnly ? 'bg-slate-100 text-slate-900 font-bold cursor-not-allowed' : ''}`}
               />
             </div>
           </div>
@@ -606,17 +734,32 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
             >
-              Cancel
+              Close
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2"
-            >
-              <Stethoscope className="w-4 h-4" /> Save Prescription & Observation Record
-            </button>
+            {readOnly ? (
+              onOpenPrintSlip && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenPrintSlip(appointment);
+                  }}
+                  className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow-lg flex items-center gap-2 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-emerald-300" /> View & Print Prescription Slip
+                </button>
+              )
+            ) : (
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer"
+              >
+                <Stethoscope className="w-4 h-4" /> Save Prescription & Observation Record
+              </button>
+            )}
           </div>
 
         </form>

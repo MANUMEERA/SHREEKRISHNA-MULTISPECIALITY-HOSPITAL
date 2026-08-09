@@ -65,7 +65,15 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
         setLoading(false);
       }
     }
+
     loadData();
+
+    // Auto refresh every 5 seconds
+    const interval = setInterval(() => {
+      loadData();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [user, role]);
 
   const handleCancelAppointment = async (id: string) => {
@@ -385,15 +393,22 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-                        <button
-                          onClick={() => {
-                            setSelectedSlipAppointment(apt);
-                            setPrintableSlipModalOpen(true);
-                          }}
-                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow flex items-center gap-1.5 transition-colors"
-                        >
-                          <Printer className="w-3.5 h-3.5" /> Print OPD Slip
-                        </button>
+                        {apt.status === 'completed' ? (
+                          <button
+                            onClick={() => {
+                              setSelectedSlipAppointment(apt);
+                              setPrintableSlipModalOpen(true);
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow flex items-center gap-1.5 transition-all cursor-pointer"
+                            title="Print Doctor OPD Prescription Slip"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-emerald-300" /> Print OPD Slip
+                          </button>
+                        ) : (
+                          <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-[11px] font-bold border border-slate-200 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" /> Slip available after doctor completion
+                          </span>
+                        )}
 
                         {(apt.status === 'pending' || apt.status === 'confirmed') && (
                           <button

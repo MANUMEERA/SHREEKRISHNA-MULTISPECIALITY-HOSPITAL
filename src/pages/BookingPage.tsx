@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Doctor, Department, Appointment } from '../types';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, CheckCircle2, ChevronRight, ChevronLeft, ShieldCheck, Star, Sparkles, X, Download, AlertTriangle, ShieldAlert, Siren, Printer } from 'lucide-react';
+import { PatientForgotPasswordModal } from '../components/PatientForgotPasswordModal';
+import { 
+  Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, CheckCircle2, 
+  ChevronRight, ChevronLeft, ShieldCheck, Star, Sparkles, X, Download, AlertTriangle, 
+  ShieldAlert, Siren, Printer, Lock, KeyRound, AlertCircle, UserPlus, LogIn, UserCheck
+} from 'lucide-react';
 import { HospitalLogo } from '../components/common/HospitalLogo';
 
 interface BookingPageProps {
@@ -16,7 +21,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   preselectedDoctor,
   preselectedDepartment
 }) => {
-  const { user } = useAuth();
+  const { user, login, signup, logout } = useAuth();
 
   const [step, setStep] = useState(1);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -30,10 +35,26 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
   // Patient Info
   const [patientName, setPatientName] = useState(user?.full_name || '');
-  const [patientPhone, setPatientPhone] = useState(user?.phone || '+91 98112 23344');
-  const [patientEmail, setPatientEmail] = useState(user?.email || 'patient@skmh.org');
+  const [patientPhone, setPatientPhone] = useState(user?.phone || '');
+  const [patientEmail, setPatientEmail] = useState(user?.email || '');
   const [visitReason, setVisitReason] = useState('Routine health checkup and consultation.');
   const [medicalRecordFile, setMedicalRecordFile] = useState<File | null>(null);
+
+  // Authentication requirement states for non-logged-in users
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  
+  const [regFullName, setRegFullName] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regAge, setRegAge] = useState('32');
+  const [regGender, setRegGender] = useState<'Male' | 'Female' | 'Other'>('Male');
+
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Completed appointment confirmation slip modal state
   const [confirmedAppointment, setConfirmedAppointment] = useState<Appointment | null>(null);
@@ -51,10 +72,86 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
   useEffect(() => {
     if (user) {
-      if (!patientName) setPatientName(user.full_name);
-      if (!patientEmail) setPatientEmail(user.email);
+      setPatientName(user.full_name);
+      setPatientEmail(user.email);
+      setPatientPhone(user.phone || '+91 98112 23344');
     }
   }, [user]);
+
+  const handlePatientLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    if (!loginIdentifier.trim()) {
+      setAuthError('Please enter your Mobile number or Email address.');
+      return;
+    }
+    if (!loginPassword) {
+      setAuthError('Please enter your password.');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const users = await api.getUsers();
+      const q = loginIdentifier.trim().toLowerCase();
+      
+      const found = users.find(u => 
+        u.role === 'patient' && (
+          u.email.toLowerCase() === q ||
+          (u.phone && u.phone.replaceAll(' ', '').includes(q.replaceAll(' ', ''))) ||
+          (u.patient_code && u.patient_code.toLowerCase() === q)
+        )
+      );
+
+      const emailToUse = found ? found.email : loginIdentifier.includes('@') ? loginIdentifier : `patient.${loginIdentifier.replace(/[^0-9]/g, '')}@skmh.org`;
+      const loggedIn = await login(emailToUse, 'patient');
+      setPatientName(loggedIn.full_name);
+      setPatientEmail(loggedIn.email);
+      setPatientPhone(loggedIn.phone || '+91 98112 23344');
+    } catch (err) {
+      setAuthError('Invalid credentials. Please verify your Mobile / Email or Register a new account.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handlePatientRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    if (!regFullName.trim()) {
+      setAuthError('Please enter your Full Name.');
+      return;
+    }
+    if (!regPhone.trim()) {
+      setAuthError('Please enter your Mobile Phone Number.');
+      return;
+    }
+    if (!regEmail.trim()) {
+      setAuthError('Please enter a valid Email Address.');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const createdUser = await signup({
+        full_name: regFullName.trim(),
+        phone: regPhone.trim(),
+        email: regEmail.trim(),
+        password: regPassword || 'Patient@123',
+        age: Number(regAge) || 30,
+        gender: regGender,
+        role: 'patient'
+      });
+
+      setPatientName(createdUser.full_name);
+      setPatientEmail(createdUser.email);
+      setPatientPhone(createdUser.phone);
+    } catch (err) {
+      setAuthError('Failed to complete registration. Please check inputs.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const availableDoctors = doctors.filter(
     (d) => d.department.toLowerCase() === selectedDeptName.toLowerCase() || selectedDeptName === 'all'
@@ -353,115 +450,348 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
         {/* Step 3: Patient Information & Final Submission */}
         {step === 3 && (
-          <form onSubmit={handleFinalBookingSubmit} className="bg-white rounded-3xl border border-slate-200/90 shadow-xl p-6 sm:p-8 space-y-6">
-            <h2 className="text-xl font-extrabold text-slate-900 border-b border-slate-100 pb-3">
-              Step 3: Patient Information & Record
+          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl p-6 sm:p-8 space-y-6">
+            <h2 className="text-xl font-extrabold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
+              <span>Step 3: Patient Account & Consultation Details</span>
+              {user && (
+                <span className="text-xs font-bold px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                  <UserCheck className="w-3.5 h-3.5" /> Patient Logged In
+                </span>
+              )}
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* MANDATORY PATIENT AUTHENTICATION CHECK */}
+            {!user ? (
+              <div className="p-6 rounded-3xl bg-slate-900 text-white shadow-xl space-y-5 border border-slate-800">
+                <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-[10px] uppercase tracking-wider border border-emerald-500/30">
+                      Login Required
+                    </span>
+                    <h3 className="text-lg font-black text-white mt-1">
+                      Patient Account Verification Required
+                    </h3>
+                    <p className="text-xs text-slate-300">
+                      Existing patients must log in to proceed. If you are a first-time patient, register below.
+                    </p>
+                  </div>
+                  <Lock className="w-6 h-6 text-emerald-400 shrink-0" />
+                </div>
+
+                {/* Authentication Sub-Tabs */}
+                <div className="flex rounded-2xl bg-slate-800/90 p-1 border border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('login'); setAuthError(''); }}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      authTab === 'login' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <LogIn className="w-3.5 h-3.5" /> Existing Patient Log In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('register'); setAuthError(''); }}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      authTab === 'register' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> Register New Patient
+                  </button>
+                </div>
+
+                {authError && (
+                  <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                {authTab === 'login' ? (
+                  <form onSubmit={handlePatientLogin} className="space-y-4">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                        Registered Mobile Number or Email Address
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. +91 98112 23344 or patient@skmh.org"
+                        value={loginIdentifier}
+                        onChange={(e) => setLoginIdentifier(e.target.value)}
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                          Account Password
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setForgotPasswordOpen(true)}
+                          className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer flex items-center gap-1"
+                        >
+                          <KeyRound className="w-3 h-3" /> Forgot Password?
+                        </button>
+                      </div>
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 cursor-pointer transition-all flex items-center justify-center gap-2"
+                    >
+                      {authLoading ? 'Authenticating...' : 'Log In Existing Patient & Continue'}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handlePatientRegister} className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                          Full Name
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Rajesh Kumar"
+                          value={regFullName}
+                          onChange={(e) => setRegFullName(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                          Mobile Number
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="+91 98765 43210"
+                          value={regPhone}
+                          onChange={(e) => setRegPhone(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="patient@gmail.com"
+                          value={regEmail}
+                          onChange={(e) => setRegEmail(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                          Create Password
+                        </label>
+                        <input
+                          type="password"
+                          required
+                          placeholder="••••••••"
+                          value={regPassword}
+                          onChange={(e) => setRegPassword(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                          Gender
+                        </label>
+                        <select
+                          value={regGender}
+                          onChange={(e) => setRegGender(e.target.value as any)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-500"
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                          Age (Years)
+                        </label>
+                        <input
+                          type="number"
+                          value={regAge}
+                          onChange={(e) => setRegAge(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 cursor-pointer transition-all flex items-center justify-center gap-2 mt-2"
+                    >
+                      {authLoading ? 'Registering Account...' : 'Register New Patient Account & Continue'}
+                    </button>
+                  </form>
+                )}
+
+              </div>
+            ) : (
+              /* LOGGED IN PATIENT CONFIRMATION CARD */
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-emerald-600 text-white font-black">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-slate-900 text-sm">{user.full_name}</h4>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-200 text-emerald-950 font-extrabold text-[10px]">
+                        {user.patient_code || 'PATIENT'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 font-medium">{user.email} • {user.phone}</p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="text-xs text-rose-600 hover:text-rose-700 font-bold underline cursor-pointer"
+                >
+                  Switch Patient Account
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleFinalBookingSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Patient Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600 bg-slate-50/50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Contact Mobile Number
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={patientPhone}
+                    onChange={(e) => setPatientPhone(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600 bg-slate-50/50"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Patient Full Name
+                  Notification Email Address
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
+                  value={patientEmail}
+                  onChange={(e) => setPatientEmail(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600 bg-slate-50/50"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Contact Mobile Number
+                  Primary Symptoms / Reason for Visit
                 </label>
-                <input
-                  type="tel"
+                <textarea
+                  rows={3}
                   required
-                  value={patientPhone}
-                  onChange={(e) => setPatientPhone(e.target.value)}
+                  value={visitReason}
+                  onChange={(e) => setVisitReason(e.target.value)}
                   className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
+                  placeholder="Briefly describe your health issue or purpose of consultation..."
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Notification Email Address
-              </label>
-              <input
-                type="email"
-                required
-                value={patientEmail}
-                onChange={(e) => setPatientEmail(e.target.value)}
-                className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Primary Symptoms / Reason for Visit
-              </label>
-              <textarea
-                rows={3}
-                required
-                value={visitReason}
-                onChange={(e) => setVisitReason(e.target.value)}
-                className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
-                placeholder="Briefly describe your health issue or purpose of consultation..."
-              />
-            </div>
-
-            {/* Optional Medical Record Attachment */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Attach Existing Medical Report / X-Ray (Optional)
-              </label>
-              <input
-                type="file"
-                accept=".pdf,.png,.jpeg,.jpg"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setMedicalRecordFile(e.target.files[0]);
-                  }
-                }}
-                className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-              />
-            </div>
-
-            {/* Final Booking Summary Box */}
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2 text-xs">
-              <h4 className="font-bold text-emerald-900 uppercase tracking-wider">Booking Overview</h4>
-              <div className="flex justify-between text-slate-700">
-                <span>Doctor:</span> <span className="font-bold text-slate-900">{selectedDoctor?.name}</span>
+              {/* Optional Medical Record Attachment */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Attach Existing Medical Report / X-Ray (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.png,.jpeg,.jpg"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setMedicalRecordFile(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                />
               </div>
-              <div className="flex justify-between text-slate-700">
-                <span>Department:</span> <span className="font-semibold">{selectedDoctor?.department}</span>
-              </div>
-              <div className="flex justify-between text-slate-700">
-                <span>Schedule:</span> <span className="font-bold text-emerald-800">{appointmentDate} at {timeSlot}</span>
-              </div>
-            </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1"
-              >
-                <ChevronLeft className="w-4 h-4" /> Back
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 transition-all flex items-center gap-2"
-              >
-                {isSubmitting ? 'Confirming Appointment...' : 'Confirm & Book Appointment'}
-              </button>
-            </div>
+              {/* Final Booking Summary Box */}
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2 text-xs">
+                <h4 className="font-bold text-emerald-900 uppercase tracking-wider">Booking Overview</h4>
+                <div className="flex justify-between text-slate-700">
+                  <span>Doctor:</span> <span className="font-bold text-slate-900">{selectedDoctor?.name}</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Department:</span> <span className="font-semibold">{selectedDoctor?.department}</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Schedule:</span> <span className="font-bold text-emerald-800">{appointmentDate} at {timeSlot}</span>
+                </div>
+              </div>
 
-          </form>
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !user}
+                  title={!user ? 'Please Log In or Register above to complete booking' : ''}
+                  className={`px-8 py-3.5 rounded-xl text-white font-extrabold text-xs sm:text-sm shadow-xl transition-all flex items-center gap-2 ${
+                    !user
+                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-emerald-600/30 cursor-pointer'
+                  }`}
+                >
+                  {isSubmitting ? 'Confirming Appointment...' : 'Confirm & Book Appointment'}
+                </button>
+              </div>
+
+            </form>
+          </div>
         )}
 
       </div>
@@ -570,6 +900,12 @@ export const BookingPage: React.FC<BookingPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* Forgot Password Recovery Modal */}
+      <PatientForgotPasswordModal
+        isOpen={forgotPasswordOpen}
+        onClose={() => setForgotPasswordOpen(false)}
+      />
 
     </div>
   );

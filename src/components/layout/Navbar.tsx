@@ -28,13 +28,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-emerald-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3 xl:gap-6">
         
         {/* Brand Logo on Left Side */}
-        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+        <div className="flex items-center flex-shrink-0 mr-2 xl:mr-4">
           <button 
             onClick={() => setActiveTab('home')}
-            className="flex items-center gap-3 group text-left focus:outline-none flex-shrink-0"
+            className="flex items-center gap-3 group text-left focus:outline-none flex-shrink-0 cursor-pointer"
           >
             <HospitalLogo size="md" variant="full" theme="light" />
           </button>
@@ -42,17 +42,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
 
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-2 flex-shrink-0">
           {navLinks.map((link) => {
             const isActive = activeTab === link.id;
             return (
               <button
                 key={link.id}
                 onClick={() => setActiveTab(link.id)}
-                className={`group relative px-3.5 py-2 rounded-xl text-xs xl:text-sm font-bold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                className={`group relative px-2.5 xl:px-3.5 py-2 rounded-xl text-xs xl:text-sm font-bold transition-all duration-200 flex items-center gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0 ${
                   isActive
-                    ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-md shadow-emerald-600/25 scale-[1.03]'
-                    : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/90 hover:shadow-sm hover:scale-[1.03] active:scale-95'
+                    ? 'text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-md shadow-emerald-600/25 scale-[1.02]'
+                    : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/90 hover:shadow-sm hover:scale-[1.02] active:scale-95'
                 }`}
               >
                 <span>{link.label}</span>
@@ -71,7 +71,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
         </nav>
 
         {/* Action Controls & User Menu */}
-        <div className="hidden sm:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2 xl:gap-3 flex-shrink-0">
           
           {/* Notifications Dropdown */}
           <div className="relative">
@@ -198,7 +198,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
           {onOpenAiBot && (
             <button
               onClick={onOpenAiBot}
-              className="px-3.5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer border border-teal-700 transition-all hover:scale-105 active:scale-95"
+              className="px-3 xl:px-3.5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer border border-teal-700 transition-all hover:scale-105 active:scale-95 whitespace-nowrap flex-shrink-0"
               title="Open 24/7 AI Desk Assistant"
             >
               <Bot className="w-4 h-4 text-emerald-300 animate-pulse" />
@@ -209,7 +209,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
           {/* Book Appointment CTA */}
           <button
             onClick={() => setActiveTab('booking')}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-teal-500 hover:via-emerald-500 hover:to-teal-600 text-white font-black text-xs shadow-md shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center gap-2"
+            className="px-3.5 xl:px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-teal-500 hover:via-emerald-500 hover:to-teal-600 text-white font-black text-xs shadow-md shadow-emerald-600/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center gap-2 whitespace-nowrap flex-shrink-0"
           >
             <Calendar className="w-4 h-4" /> Book Appointment
           </button>

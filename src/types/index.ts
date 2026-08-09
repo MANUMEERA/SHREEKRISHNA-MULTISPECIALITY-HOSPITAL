@@ -50,6 +50,14 @@ export interface Doctor {
   is_on_call?: boolean;
   consultant_type?: 'Resident Consultant' | 'Visiting / On-Call';
   availability_status?: DoctorAvailabilityStatus;
+  
+  // Authorised Signatory & Digital Signature Details
+  signature_url?: string;
+  stamp_url?: string;
+  registration_number?: string;
+  designation?: string;
+  is_authorised_signatory?: boolean;
+
   education?: string[];
   achievements?: string[];
   
@@ -189,14 +197,18 @@ export interface AdmittedPatientRecord {
   phone: string;
   doctor_id: string;
   doctor_name: string;
+  doctor_specialty?: string;
   department: string;
-  ward_type: 'Deluxe Ward' | 'Super Deluxe Suite' | 'General Ward' | 'ICU Critical Care';
+  ward_type: 'Deluxe Ward' | 'Super Deluxe Suite' | 'General Ward' | 'ICU Critical Care' | 'Semi-Private Room';
   bed_number: string;
   admission_date: string;
   discharge_date?: string;
   status: 'Admitted' | 'Discharged' | 'Transferred';
   diagnosis_at_admission: string;
   daily_bed_charge: number;
+  extra_services?: { name: string; daily_charge: number }[];
+  is_locked?: boolean; // Locked after admission - no edits permissible
+  appointment_id?: string;
   daily_routine_checkups: IPDDailyRoutineCheckup[];
   daily_doses: IPDDailyDose[];
   surgeries_performed: IPDSurgeryRecord[];
@@ -298,6 +310,12 @@ export interface Appointment {
   recommended_tests?: string[];
   higher_reference?: HigherReference;
   follow_up_date?: string;
+
+  // Doctor IPD Admission Recommendation
+  recommend_admission?: boolean;
+  admission_reason?: string;
+  recommended_ward?: string;
+  admitted_patient_id?: string;
 }
 
 export type ReportCategory = 'Blood Test' | 'Radiology / X-Ray' | 'MRI Scan' | 'Prescription' | 'Discharge Summary' | 'Lab Result' | 'Other';
@@ -351,9 +369,10 @@ export interface StaffDesignation {
   id: string;
   title: string;
   category_id: string;
-  category_name: string;
+  category_name?: string;
   department: string;
   photo_url?: string;
+  photograph_url?: string;
   qualification: string;
   responsibilities: string;
   pay_grade?: string;
@@ -361,5 +380,7 @@ export interface StaffDesignation {
   is_active: boolean;
   contact_phone?: string;
   email?: string;
+  contact_email?: string;
+  staff_count?: number;
 }
 

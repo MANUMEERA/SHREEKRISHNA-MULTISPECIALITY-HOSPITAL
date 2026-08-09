@@ -121,7 +121,7 @@ export const HospitalLogo: React.FC<HospitalLogoProps> = ({
     : "text-[11px]";
 
   return (
-    <div className={`inline-flex items-center gap-3.5 ${className}`}>
+    <div className={`inline-flex items-center gap-3 sm:gap-3.5 flex-shrink-0 ${className}`}>
       {/* Icon Emblem */}
       <HospitalLogoIcon 
         className={iconClass} 
@@ -130,14 +130,14 @@ export const HospitalLogo: React.FC<HospitalLogoProps> = ({
 
       {/* Brand Typography */}
       {variant === 'full' && (
-        <div className="text-left">
-          <div className={`font-black tracking-tight leading-none ${
+        <div className="text-left flex-shrink-0 whitespace-nowrap">
+          <div className={`font-black tracking-tight leading-none whitespace-nowrap ${
             theme === 'dark' ? 'text-white' : 'text-slate-900'
           } ${titleClass}`}>
             SHREE KRISHNA
           </div>
           {showSubtitle && (
-            <div className={`font-extrabold tracking-wider uppercase leading-snug mt-1 ${
+            <div className={`font-extrabold tracking-wider uppercase leading-snug mt-1 whitespace-nowrap ${
               theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'
             } ${subClass}`}>
               MULTISPECIALTY HOSPITAL

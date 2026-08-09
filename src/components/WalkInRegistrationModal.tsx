@@ -120,6 +120,17 @@ export const WalkInRegistrationModal: React.FC<WalkInRegistrationModalProps> = (
 
       // Auto-confirm the walk-in appointment since patient is physically at the hospital desk
       await api.updateAppointmentStatus(newApt.id, 'confirmed');
+
+      // Send real-time notification to the assigned doctor
+      if (currentSelectedDoctor) {
+        await api.addNotification({
+          user_id: currentSelectedDoctor.id,
+          title: '🔔 New Patient Assigned by Reception Desk!',
+          message: `Patient ${patientToUse.full_name} (${patientToUse.patient_code || 'SKMH-PAT-101'}) has been assigned to Dr. ${currentSelectedDoctor.name} for OPD consultation.`,
+          type: 'appointment'
+        });
+      }
+
       const confirmedApt = { ...newApt, status: 'confirmed' as const };
 
       onSuccess(confirmedApt, patientToUse);

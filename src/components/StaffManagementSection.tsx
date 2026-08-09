@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StaffCategory, StaffDesignation } from '../types';
 import { api } from '../lib/api';
 import { 
   Users, UserCheck, Plus, Edit, Trash2, Search, Image as ImageIcon, 
   Building2, Briefcase, Phone, Mail, Clock, Award, ShieldCheck, 
   Check, X, AlertTriangle, RefreshCw, Sparkles, Filter, ChevronRight,
-  Lock, KeyRound, Eye, EyeOff, Save, ShieldAlert
+  Lock, KeyRound, Eye, EyeOff, Save, ShieldAlert, Upload, Settings, Download, FileSpreadsheet
 } from 'lucide-react';
+import { parseCSV, downloadSampleCSV } from '../lib/csvHelper';
 
 const PRESET_STAFF_PHOTOS = [
   { label: 'Reception / Admin 1', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400' },
@@ -17,6 +18,37 @@ const PRESET_STAFF_PHOTOS = [
   { label: 'Pharmacist 1', url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400' },
   { label: 'IT / Systems Specialist', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400' },
   { label: 'Hospital Executive', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400' }
+];
+
+const STORAGE_KEYS_STAFF = {
+  SHIFTS: 'skmh_hospital_shifts_v1',
+  DEPARTMENTS: 'skmh_hospital_departments_v1'
+};
+
+const DEFAULT_SHIFTS = [
+  { id: 'sh-1', name: 'Morning Shift', timing: '08:00 AM - 04:00 PM' },
+  { id: 'sh-2', name: 'Evening Shift', timing: '04:00 PM - 12:00 AM' },
+  { id: 'sh-3', name: 'Night Duty Shift', timing: '12:00 AM - 08:00 AM' },
+  { id: 'sh-4', name: 'Full-Day OPD Shift', timing: '09:00 AM - 06:00 PM' },
+  { id: 'sh-5', name: 'Emergency / On-Call 24x7', timing: 'Flexible / Rotational' }
+];
+
+const DEFAULT_DEPARTMENTS = [
+  'Hospital Front Desk & OPD Entry',
+  'Orthopedics & Joint Replacement',
+  'Cardiology & Cardiac Care',
+  'General Medicine & Diabetology',
+  'General & Laparoscopic Surgery',
+  'Pediatrics & Neonatology',
+  'Gynecology & Obstetrics',
+  'Intensive Care Unit (ICU) & Critical Care',
+  'Inpatient Ward Management (IPD)',
+  'Emergency & Casualty',
+  'Laboratory & Pathology',
+  'Radiology & Imaging',
+  'Pharmacy & Drug Stores',
+  'Hospital Administration & Billing',
+  'IT & Medical Systems Specialist'
 ];
 
 export const StaffManagementSection: React.FC = () => {
@@ -38,6 +70,35 @@ export const StaffManagementSection: React.FC = () => {
   // Modal State - Designation Add/Edit with Photograph
   const [designationModalOpen, setDesignationModalOpen] = useState(false);
   const [editingDesignation, setEditingDesignation] = useState<StaffDesignation | null>(null);
+
+  // Shift & Department State
+  const [shifts, setShifts] = useState<{ id: string; name: string; timing: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS_STAFF.SHIFTS);
+      return saved ? JSON.parse(saved) : DEFAULT_SHIFTS;
+    } catch {
+      return DEFAULT_SHIFTS;
+    }
+  });
+
+  const [departmentList, setDepartmentList] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS_STAFF.DEPARTMENTS);
+      return saved ? JSON.parse(saved) : DEFAULT_DEPARTMENTS;
+    } catch {
+      return DEFAULT_DEPARTMENTS;
+    }
+  });
+
+  // Shift Management Modal
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
+  const [editingShift, setEditingShift] = useState<{ id: string; name: string; timing: string } | null>(null);
+  const [shiftNameInput, setShiftNameInput] = useState('');
+  const [shiftTimingInput, setShiftTimingInput] = useState('');
+
+  // Custom Department Input Mode
+  const [isCustomDept, setIsCustomDept] = useState(false);
+  const [customDeptInput, setCustomDeptInput] = useState('');
   
   // Designation Form Fields
   const [desigTitle, setDesigTitle] = useState('');
@@ -63,6 +124,13 @@ export const StaffManagementSection: React.FC = () => {
   const [showRecPass, setShowRecPass] = useState(false);
   const [recSuccessMsg, setRecSuccessMsg] = useState('');
   const [savingRec, setSavingRec] = useState(false);
+
+  // CSV Import State for Staff Designations
+  const [showStaffCsvModal, setShowStaffCsvModal] = useState(false);
+  const [parsedStaffPreview, setParsedStaffPreview] = useState<Partial<StaffDesignation>[]>([]);
+  const [staffCsvError, setStaffCsvError] = useState<string | null>(null);
+  const [importingStaff, setImportingStaff] = useState(false);
+  const staffFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadData();
@@ -92,6 +160,79 @@ export const StaffManagementSection: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB limit. Please choose a smaller image file.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        if (uploadEvent.target?.result) {
+          setDesigPhotoUrl(uploadEvent.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveShift = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shiftNameInput.trim()) return;
+
+    let updatedShifts;
+    if (editingShift) {
+      updatedShifts = shifts.map(s => s.id === editingShift.id ? { ...s, name: shiftNameInput.trim(), timing: shiftTimingInput.trim() || 'Flexible Hours' } : s);
+    } else {
+      const newShift = {
+        id: `sh-${Date.now()}`,
+        name: shiftNameInput.trim(),
+        timing: shiftTimingInput.trim() || 'Flexible Hours'
+      };
+      updatedShifts = [...shifts, newShift];
+    }
+
+    setShifts(updatedShifts);
+    localStorage.setItem(STORAGE_KEYS_STAFF.SHIFTS, JSON.stringify(updatedShifts));
+    
+    // Automatically select newly created/updated shift if designation modal is open
+    const shiftStr = `${shiftNameInput.trim()} (${shiftTimingInput.trim() || 'Flexible Hours'})`;
+    setDesigShiftTiming(shiftStr);
+
+    setEditingShift(null);
+    setShiftNameInput('');
+    setShiftTimingInput('');
+  };
+
+  const handleDeleteShift = (shiftId: string) => {
+    if (shifts.length <= 1) {
+      alert('At least one shift schedule must be maintained in the hospital system.');
+      return;
+    }
+    const updated = shifts.filter(s => s.id !== shiftId);
+    setShifts(updated);
+    localStorage.setItem(STORAGE_KEYS_STAFF.SHIFTS, JSON.stringify(updated));
+    if (editingShift && editingShift.id === shiftId) {
+      setEditingShift(null);
+      setShiftNameInput('');
+      setShiftTimingInput('');
+    }
+  };
+
+  const handleAddCustomDepartment = () => {
+    if (!customDeptInput.trim()) return;
+    const newDept = customDeptInput.trim();
+    if (!departmentList.includes(newDept)) {
+      const updated = [...departmentList, newDept];
+      setDepartmentList(updated);
+      localStorage.setItem(STORAGE_KEYS_STAFF.DEPARTMENTS, JSON.stringify(updated));
+    }
+    setDesigDepartment(newDept);
+    setIsCustomDept(false);
+    setCustomDeptInput('');
   };
 
   const handleSaveReceptionistCredentials = async (e: React.FormEvent) => {
@@ -155,20 +296,128 @@ export const StaffManagementSection: React.FC = () => {
     }
   };
 
+  // Staff CSV Handlers
+  const handleDownloadStaffTemplate = () => {
+    downloadSampleCSV(
+      'SKMH_Staff_Designations_Import_Template.csv',
+      ['Title', 'Category Code', 'Department', 'Qualifications', 'Role Description', 'Shift Timing', 'Phone', 'Email', 'Pay Grade', 'Staff Count'],
+      [
+        ['Senior ICU Charge Nurse', 'NUR', 'Intensive Care Unit (ICU) & Critical Care', 'B.Sc Nursing, Critical Care Cert', 'Supervises ICU night shifts and ventilator operations', 'Night Duty Shift (12:00 AM - 08:00 AM)', '+91 98765 22001', 'icu.nurse@skmh.org', 'Grade R-3', '12'],
+        ['Senior Radiography Technologist', 'PAR', 'Radiology & Imaging', 'DMRIT / B.Sc Radiology', 'Operates MRI 1.5T & CT Scan 128-slice suites', 'Full-Day OPD Shift (09:00 AM - 06:00 PM)', '+91 98765 22002', 'radiology.tech@skmh.org', 'Grade R-2', '6'],
+        ['Hospital Front Desk Executive', 'ADM', 'Hospital Front Desk & OPD Entry', 'B.Com / Healthcare Admin', 'Manages OPD queue and walk-in patient registrations', 'Morning Shift (08:00 AM - 04:00 PM)', '+91 98765 22003', 'frontdesk@skmh.org', 'Grade R-1', '8'],
+        ['Senior Clinical Pharmacist', 'PHA', 'Pharmacy & Drug Stores', 'M.Pharm / B.Pharm', 'Inventory stock tracking & IPD medicine dispensing', 'Evening Shift (04:00 PM - 12:00 AM)', '+91 98765 22004', 'pharmacy.lead@skmh.org', 'Grade R-2', '5']
+      ]
+    );
+  };
+
+  const handleStaffFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setStaffCsvError(null);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const { rows } = parseCSV(text);
+
+        if (rows.length === 0) {
+          setStaffCsvError('The uploaded CSV file is empty or missing content.');
+          return;
+        }
+
+        const items: Partial<StaffDesignation>[] = [];
+        for (const row of rows) {
+          const title = row['title'] || row['designation title'] || row['designation'] || row['name'] || row['role'];
+          if (!title) continue;
+
+          // Find category by code or default
+          const catCodeInput = (row['category code'] || row['category'] || 'NUR').toUpperCase();
+          const matchedCat = categories.find(c => c.code.toUpperCase() === catCodeInput || c.name.toLowerCase().includes(catCodeInput.toLowerCase())) || categories[0];
+
+          items.push({
+            title,
+            category_id: matchedCat ? matchedCat.id : (categories[0]?.id || 'cat-1'),
+            department: row['department'] || row['dept'] || matchedCat?.name || 'Hospital Operations',
+            qualification: row['qualifications'] || row['qualification'] || row['education'] || 'Degree / Diploma',
+            responsibilities: row['role description'] || row['description'] || row['responsibilities'] || 'General operational duties',
+            shift_timing: row['shift timing'] || row['shift'] || 'Morning Shift (08:00 AM - 04:00 PM)',
+            contact_phone: row['phone'] || row['contact phone'] || '+91 98765 00000',
+            contact_email: row['email'] || row['contact email'] || 'staff@skmh.org',
+            pay_grade: row['pay grade'] || row['grade'] || 'Grade R-1',
+            staff_count: parseInt(row['staff count'] || row['count'] || '1', 10),
+            is_active: true,
+            photograph_url: PRESET_STAFF_PHOTOS[items.length % PRESET_STAFF_PHOTOS.length].url
+          });
+        }
+
+        if (items.length === 0) {
+          setStaffCsvError('No valid staff designation rows found. Please make sure "Title" column exists.');
+          return;
+        }
+
+        setParsedStaffPreview(items);
+        setShowStaffCsvModal(true);
+      } catch (err: any) {
+        setStaffCsvError(`Error parsing CSV file: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleConfirmStaffImport = async () => {
+    if (parsedStaffPreview.length === 0) return;
+    setImportingStaff(true);
+    try {
+      const addedList: StaffDesignation[] = [];
+      for (const item of parsedStaffPreview) {
+        const created = await api.addStaffDesignation({
+          title: item.title || 'Staff Role',
+          category_id: item.category_id || categories[0]?.id || 'cat-1',
+          category_name: categories.find(c => c.id === (item.category_id || categories[0]?.id))?.name || 'Hospital Staff & Operations',
+          department: item.department || 'Hospital Operations',
+          qualification: item.qualification || 'Degree',
+          responsibilities: item.responsibilities || 'Hospital duties',
+          shift_timing: item.shift_timing || 'Morning Shift',
+          contact_phone: item.contact_phone || '+91 98765 00000',
+          contact_email: item.contact_email || 'staff@skmh.org',
+          pay_grade: item.pay_grade || 'Grade R-1',
+          staff_count: item.staff_count || 1,
+          is_active: true,
+          photograph_url: item.photograph_url || PRESET_STAFF_PHOTOS[0].url
+        });
+        addedList.push(created);
+      }
+
+      setDesignations(prev => [...addedList, ...prev]);
+      setShowStaffCsvModal(false);
+      setParsedStaffPreview([]);
+    } catch (err) {
+      console.error('Failed to import staff designations', err);
+      setStaffCsvError('Failed to save imported staff records into database.');
+    } finally {
+      setImportingStaff(false);
+    }
+  };
+
   // Open Add Designation Modal
   const handleOpenAddDesignation = () => {
     setEditingDesignation(null);
     setDesigTitle('');
     setDesigCategoryId(categories.length > 0 ? categories[0].id : '');
-    setDesigDepartment('Hospital Front Desk & OPD Entry');
+    setDesigDepartment(departmentList[0] || 'Hospital Front Desk & OPD Entry');
     setDesigPhotoUrl(PRESET_STAFF_PHOTOS[0].url);
     setDesigQualification('B.A. / B.Sc Healthcare Administration');
     setDesigResponsibilities('Managing patient registrations, doctor assignment, desk counter billing, and hospital inquiries.');
     setDesigPayGrade('Grade R-1');
-    setDesigShiftTiming('Morning Shift (08:00 AM - 04:00 PM)');
+    const defaultShiftStr = shifts.length > 0 ? `${shifts[0].name} (${shifts[0].timing})` : 'Morning Shift (08:00 AM - 04:00 PM)';
+    setDesigShiftTiming(defaultShiftStr);
     setDesigIsActive(true);
     setDesigPhone('+91 98765 12345');
     setDesigEmail('staff.desk@skmh.org');
+    setIsCustomDept(false);
+    setCustomDeptInput('');
     setDesignationModalOpen(true);
   };
 
@@ -182,10 +431,12 @@ export const StaffManagementSection: React.FC = () => {
     setDesigQualification(desig.qualification);
     setDesigResponsibilities(desig.responsibilities);
     setDesigPayGrade(desig.pay_grade || 'Grade R-1');
-    setDesigShiftTiming(desig.shift_timing || 'Morning Shift (08:00 AM - 04:00 PM)');
+    setDesigShiftTiming(desig.shift_timing || (shifts.length > 0 ? `${shifts[0].name} (${shifts[0].timing})` : 'Morning Shift (08:00 AM - 04:00 PM)'));
     setDesigIsActive(desig.is_active);
     setDesigPhone(desig.contact_phone || '');
     setDesigEmail(desig.email || '');
+    setIsCustomDept(false);
+    setCustomDeptInput('');
     setDesignationModalOpen(true);
   };
 
@@ -562,9 +813,36 @@ export const StaffManagementSection: React.FC = () => {
               ))}
             </select>
 
+            {/* Hidden Staff CSV File Input */}
+            <input
+              type="file"
+              ref={staffFileInputRef}
+              accept=".csv,.txt"
+              onChange={handleStaffFileChange}
+              className="hidden"
+            />
+
+            <button
+              onClick={handleDownloadStaffTemplate}
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Download Sample CSV Template for Staff Designations"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <span>Sample CSV</span>
+            </button>
+
+            <button
+              onClick={() => staffFileInputRef.current?.click()}
+              className="px-3.5 py-2 rounded-xl bg-indigo-900 hover:bg-indigo-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+              title="Import Staff Designations & Personnel from CSV or Excel file"
+            >
+              <Upload className="w-3.5 h-3.5 text-indigo-300" />
+              <span>Import Staff CSV</span>
+            </button>
+
             <button
               onClick={handleOpenAddDesignation}
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow flex items-center gap-1.5 whitespace-nowrap"
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add Designation
             </button>
@@ -787,37 +1065,54 @@ export const StaffManagementSection: React.FC = () => {
                     <ImageIcon className="w-4 h-4 text-emerald-600" />
                     <span>Official Profile Photograph *</span>
                   </label>
-                  <span className="text-[10px] text-slate-400 font-medium">Select preset or enter photo URL</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Upload photo file, paste URL, or pick preset</span>
                 </div>
 
                 <div className="flex items-center gap-4">
                   <img 
                     src={desigPhotoUrl || PRESET_STAFF_PHOTOS[0].url} 
                     alt="Preview" 
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-600 shadow flex-shrink-0"
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-600 shadow flex-shrink-0 bg-white"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="flex-1 space-y-1">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Paste Photograph Image URL..."
-                      value={desigPhotoUrl}
-                      onChange={(e) => setDesigPhotoUrl(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-[11px] focus:outline-none focus:border-emerald-600"
-                    />
-                    <p className="text-[10px] text-slate-500">Live preview shown on left. Or choose a preset thumbnail below:</p>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                      <label 
+                        htmlFor="photo-file-upload-input"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow cursor-pointer transition-all shrink-0"
+                      >
+                        <Upload className="w-3.5 h-3.5" /> Upload Photo File
+                      </label>
+                      <input 
+                        type="file" 
+                        id="photo-file-upload-input" 
+                        accept="image/*" 
+                        onChange={handlePhotoFileUpload} 
+                        className="hidden" 
+                      />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Or paste photograph image URL..."
+                        value={desigPhotoUrl}
+                        onChange={(e) => setDesigPhotoUrl(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-[11px] focus:outline-none focus:border-emerald-600"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500">
+                      Upload an official photograph file from your device, or select a preset avatar thumbnail below:
+                    </p>
                   </div>
                 </div>
 
                 {/* Preset Thumbnails */}
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-200/60">
                   {PRESET_STAFF_PHOTOS.map((p, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setDesigPhotoUrl(p.url)}
-                      className={`p-1 rounded-xl border flex items-center gap-1.5 transition-all text-[10px] font-bold ${
+                      className={`p-1 rounded-xl border flex items-center gap-1.5 transition-all text-[10px] font-bold cursor-pointer ${
                         desigPhotoUrl === p.url
                           ? 'border-emerald-600 bg-emerald-100 text-emerald-900 shadow-xs'
                           : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
@@ -858,16 +1153,67 @@ export const StaffManagementSection: React.FC = () => {
                   </select>
                 </div>
 
+                {/* DEPARTMENT DROPDOWN */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Hospital Department *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Hospital Front Desk & OPD Entry"
-                    value={desigDepartment}
-                    onChange={(e) => setDesigDepartment(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Hospital Department *</label>
+                    {!isCustomDept && (
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomDept(true)}
+                        className="text-[10px] text-emerald-600 font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" /> Custom Dept
+                      </button>
+                    )}
+                  </div>
+
+                  {isCustomDept ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Enter Custom Dept Name..."
+                        value={customDeptInput}
+                        onChange={(e) => setCustomDeptInput(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-emerald-500 font-semibold text-xs focus:outline-none bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomDepartment}
+                        className="px-3 py-2 bg-emerald-600 text-white font-extrabold rounded-xl text-[11px] cursor-pointer hover:bg-emerald-500"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomDept(false)}
+                        className="px-2.5 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl text-[11px] cursor-pointer hover:bg-slate-200"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={desigDepartment}
+                      onChange={(e) => {
+                        if (e.target.value === '__add_custom__') {
+                          setIsCustomDept(true);
+                        } else {
+                          setDesigDepartment(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-emerald-600 bg-white"
+                    >
+                      {departmentList.map((dept, idx) => (
+                        <option key={idx} value={dept}>{dept}</option>
+                      ))}
+                      {!departmentList.includes(desigDepartment) && desigDepartment && (
+                        <option value={desigDepartment}>{desigDepartment}</option>
+                      )}
+                      <option value="__add_custom__">+ Add Custom Department...</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>
@@ -893,15 +1239,36 @@ export const StaffManagementSection: React.FC = () => {
                   />
                 </div>
 
+                {/* SHIFT SCHEDULE DROPDOWN WITH MANAGEMENT TRIGGER */}
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Shift Schedule</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Morning Shift (08:00 AM - 04:00 PM)"
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Shift Schedule *</label>
+                    <button
+                      type="button"
+                      onClick={() => setShiftModalOpen(true)}
+                      className="text-[10px] text-emerald-600 font-extrabold hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Settings className="w-3 h-3 text-emerald-600" /> Manage Shifts (+/Edit/Del)
+                    </button>
+                  </div>
+
+                  <select
                     value={desigShiftTiming}
                     onChange={(e) => setDesigShiftTiming(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-600"
-                  />
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 font-semibold focus:outline-none focus:border-emerald-600 bg-white"
+                  >
+                    {shifts.map((s) => {
+                      const shiftStr = `${s.name} (${s.timing})`;
+                      return (
+                        <option key={s.id} value={shiftStr}>
+                          {shiftStr}
+                        </option>
+                      );
+                    })}
+                    {!shifts.some(s => `${s.name} (${s.timing})` === desigShiftTiming) && (
+                      <option value={desigShiftTiming}>{desigShiftTiming}</option>
+                    )}
+                  </select>
                 </div>
 
                 <div>
@@ -973,6 +1340,132 @@ export const StaffManagementSection: React.FC = () => {
         </div>
       )}
 
+      {/* ================= MODAL: SHIFT MANAGEMENT FACILITY (ADD, MODIFY, DELETE SHIFTS) ================= */}
+      {shiftModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-emerald-600" />
+                <span>Hospital Staff Shift Management</span>
+              </h3>
+              <button
+                onClick={() => setShiftModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* ADD / EDIT SHIFT FORM */}
+            <form onSubmit={handleSaveShift} className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-3">
+              <h4 className="text-xs font-black text-emerald-950 uppercase flex items-center gap-1.5">
+                {editingShift ? <Edit className="w-3.5 h-3.5 text-emerald-700" /> : <Plus className="w-3.5 h-3.5 text-emerald-700" />}
+                <span>{editingShift ? 'Modify Existing Shift' : 'Add New Hospital Shift'}</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Shift Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Night Duty Shift"
+                    value={shiftNameInput}
+                    onChange={(e) => setShiftNameInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Timings *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 12:00 AM - 08:00 AM"
+                    value={shiftTimingInput}
+                    onChange={(e) => setShiftTimingInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                {editingShift && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingShift(null);
+                      setShiftNameInput('');
+                      setShiftTimingInput('');
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 bg-white hover:bg-slate-50"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow cursor-pointer"
+                >
+                  {editingShift ? 'Save Shift Changes' : 'Add Shift'}
+                </button>
+              </div>
+            </form>
+
+            {/* LIST OF CURRENT SHIFTS WITH MODIFY & DELETE */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">Configured Hospital Shifts ({shifts.length})</label>
+              <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                {shifts.map((s) => (
+                  <div
+                    key={s.id}
+                    className="p-3 rounded-2xl border border-slate-200 bg-white flex items-center justify-between text-xs hover:border-emerald-300 transition-all shadow-2xs"
+                  >
+                    <div>
+                      <span className="font-extrabold text-slate-900 block">{s.name}</span>
+                      <span className="text-[11px] text-emerald-700 font-semibold">{s.timing}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingShift(s);
+                          setShiftNameInput(s.name);
+                          setShiftTimingInput(s.timing);
+                        }}
+                        className="p-1.5 rounded-xl bg-slate-100 hover:bg-emerald-100 text-slate-600 hover:text-emerald-800 transition-colors cursor-pointer"
+                        title="Modify / Edit Shift"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteShift(s.id)}
+                        className="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 transition-colors cursor-pointer"
+                        title="Delete Shift"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShiftModalOpen(false)}
+                className="px-5 py-2 rounded-xl bg-slate-900 text-white font-extrabold text-xs cursor-pointer hover:bg-slate-800"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ================= MODAL 3: DELETE CONFIRMATION DIALOG ================= */}
       {deleteConfirmTarget && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1003,6 +1496,93 @@ export const StaffManagementSection: React.FC = () => {
               >
                 Yes, Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL 4: STAFF CSV IMPORT PREVIEW MODAL ================= */}
+      {showStaffCsvModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200">
+            <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-600 rounded-2xl">
+                  <FileSpreadsheet className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base">Import Staff Personnel & Designations via CSV</h3>
+                  <p className="text-xs text-slate-400">Preview {parsedStaffPreview.length} staff designation records parsed from uploaded spreadsheet</p>
+                </div>
+              </div>
+              <button onClick={() => setShowStaffCsvModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
+              {staffCsvError && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{staffCsvError}</span>
+                </div>
+              )}
+
+              <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-100 font-extrabold text-slate-700 border-b border-slate-200">
+                    <tr>
+                      <th className="p-2.5">#</th>
+                      <th className="p-2.5">Designation Title</th>
+                      <th className="p-2.5">Department</th>
+                      <th className="p-2.5">Qualifications</th>
+                      <th className="p-2.5">Shift Schedule</th>
+                      <th className="p-2.5">Phone / Email</th>
+                      <th className="p-2.5">Count</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                    {parsedStaffPreview.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50">
+                        <td className="p-2.5 text-slate-400 font-mono">{idx + 1}</td>
+                        <td className="p-2.5 font-bold text-slate-900">{item.title}</td>
+                        <td className="p-2.5 text-slate-600">{item.department}</td>
+                        <td className="p-2.5 text-emerald-800 font-semibold">{item.qualification}</td>
+                        <td className="p-2.5 font-mono text-slate-600">{item.shift_timing}</td>
+                        <td className="p-2.5 text-[11px] font-mono text-slate-500">
+                          <div>{item.contact_phone}</div>
+                          <div className="text-slate-400">{item.contact_email}</div>
+                        </td>
+                        <td className="p-2.5 font-bold text-slate-900">{item.staff_count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold text-slate-500">
+                Ready to import <strong className="text-slate-900">{parsedStaffPreview.length}</strong> staff designations into Hospital Staff Master.
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStaffCsvModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-bold text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmStaffImport}
+                  disabled={importingStaff}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold flex items-center gap-2 shadow-md disabled:opacity-50"
+                >
+                  <Check className="w-4 h-4" />
+                  {importingStaff ? 'Importing Staff...' : `Confirm Import (${parsedStaffPreview.length} Designations)`}
+                </button>
+              </div>
             </div>
           </div>
         </div>

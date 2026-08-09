@@ -833,6 +833,10 @@ export const api = {
     return users[idx];
   },
 
+  async updatePatientProfile(id: string, data: Partial<User>): Promise<User> {
+    return this.updatePatient(id, data);
+  },
+
   async deletePatient(id: string): Promise<void> {
     const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
     const filtered = users.filter(u => u.id !== id);

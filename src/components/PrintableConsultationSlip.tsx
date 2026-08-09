@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Appointment, User } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Appointment, User, Doctor, HospitalStampConfig } from '../types';
+import { api } from '../lib/api';
 import { Printer, X, HeartPulse, Stethoscope, Pill, FileCheck2, Share2, Building2, Calendar, Phone, Mail, MapPin, Download, Send, CheckCircle2, MessageSquare } from 'lucide-react';
 import { HospitalLogo } from './common/HospitalLogo';
 
@@ -17,6 +18,27 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
   patient
 }) => {
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [matchedDoc, setMatchedDoc] = useState<Doctor | null>(null);
+  const [stampConfig, setStampConfig] = useState<HospitalStampConfig | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      api.getHospitalStampConfig().then(setStampConfig).catch(console.error);
+      api.getDoctors().then(docs => {
+        if (appointment) {
+          const docNameLower = appointment.doctor_name.toLowerCase();
+          const found = docs.find(d => 
+            d.name.toLowerCase() === docNameLower || 
+            d.name.toLowerCase().includes(docNameLower) ||
+            docNameLower.includes(d.name.toLowerCase().replace('dr.', '').trim())
+          );
+          if (found) {
+            setMatchedDoc(found);
+          }
+        }
+      }).catch(console.error);
+    }
+  }, [isOpen, appointment]);
 
   if (!isOpen || !appointment) return null;
 
@@ -53,18 +75,30 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto print:p-0 print:bg-white print:static print:inset-auto">
-      <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-8 print:shadow-none print:m-0 print:p-4 print:max-w-none print:w-full border border-slate-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md overflow-y-auto pt-8 sm:pt-14 pb-16 px-3 sm:px-6 print:p-0 print:bg-white print:static print:inset-auto">
+      <div className="bg-white rounded-3xl max-w-3xl w-full mx-auto p-5 sm:p-8 shadow-2xl space-y-6 print:shadow-none print:m-0 print:p-4 print:max-w-none print:w-full border border-slate-200 relative">
         
-        {/* Action Bar (Hidden when printing) */}
-        <div className="space-y-3 border-b border-slate-200 pb-4 print:hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Printer className="w-4 h-4 text-emerald-600" /> OPD Consultation & Prescription Slip Gateway
-            </span>
+        {/* Action Bar & Controls Header (Hidden when printing) */}
+        <div className="space-y-3 border-b border-slate-200 pb-4 print:hidden sticky top-0 bg-white/95 backdrop-blur-xs z-20 pt-1 -mt-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800">
+                <Printer className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+                  OPD Consultation & Prescription Slip
+                </h3>
+                <p className="text-[11px] text-emerald-800 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Authorized Doctor Prescription Record
+                </p>
+              </div>
+            </div>
+
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+              className="p-2.5 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 transition-all cursor-pointer border border-slate-200 shadow-sm shrink-0"
+              title="Close Modal"
             >
               <X className="w-5 h-5" />
             </button>
@@ -78,33 +112,40 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
           )}
 
           {/* Action Toolbar Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
             <button
               onClick={handlePrint}
-              className="py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+              className="py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
             >
-              <Printer className="w-4 h-4" /> Print OPD Slip
+              <Printer className="w-4 h-4 text-emerald-300" /> Print OPD Slip
             </button>
 
             <button
               onClick={handleExportPDF}
-              className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+              className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
             >
               <Download className="w-4 h-4 text-amber-400" /> Export PDF
             </button>
 
             <button
               onClick={handleSendWhatsApp}
-              className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+              className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
             >
-              <MessageSquare className="w-4 h-4 text-emerald-200 fill-emerald-200" /> Send WhatsApp
+              <MessageSquare className="w-4 h-4 text-emerald-200 fill-emerald-200" /> WhatsApp
             </button>
 
             <button
               onClick={handleSendEmail}
-              className="py-2.5 px-3 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-black text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+              className="py-2.5 px-3 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-extrabold text-xs shadow flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
             >
-              <Mail className="w-4 h-4 text-teal-200" /> Send Email
+              <Mail className="w-4 h-4 text-teal-200" /> Email
+            </button>
+
+            <button
+              onClick={onClose}
+              className="col-span-2 sm:col-span-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+            >
+              <X className="w-4 h-4 text-slate-500" /> Close
             </button>
           </div>
         </div>
@@ -274,7 +315,7 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
           )}
 
           {/* Follow up & Doctor Sign */}
-          <div className="pt-4 border-t border-slate-200 flex items-end justify-between text-xs">
+          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-end justify-between gap-4 text-xs">
             <div>
               {appointment.follow_up_date && (
                 <div className="p-2 rounded-lg bg-slate-100 text-slate-800 font-bold text-xs inline-block">
@@ -284,15 +325,72 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
               {appointment.notes && (
                 <p className="text-[11px] text-slate-500 italic mt-1 max-w-sm">Advice: {appointment.notes}</p>
               )}
+              <div className="mt-2 text-[10px] text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Digitally Verified & Authenticated Doctor Prescription</span>
+              </div>
             </div>
 
-            <div className="text-center pt-8 border-t border-slate-300 w-48">
-              <div className="text-xs font-bold text-emerald-900">{appointment.doctor_name}</div>
-              <div className="text-[10px] text-slate-500 font-medium">Authorized Signature & Seal</div>
+            <div className="text-right flex items-center gap-3">
+              {/* Doctor / Hospital OPD Stamp Image */}
+              {(matchedDoc?.stamp_url || stampConfig?.stamp_url) && (
+                <div className="text-center">
+                  <img
+                    src={matchedDoc?.stamp_url || stampConfig?.stamp_url}
+                    alt="OPD Seal Stamp"
+                    className="w-16 h-16 object-contain mx-auto opacity-85"
+                  />
+                  <span className="text-[9px] text-slate-400 font-bold uppercase block mt-0.5">OPD Seal</span>
+                </div>
+              )}
+
+              {/* Doctor Signature & GMC Details Box */}
+              <div className="text-center pt-2 border-t border-slate-300 w-52">
+                {(matchedDoc?.signature_url || stampConfig?.signature_url) ? (
+                  <img
+                    src={matchedDoc?.signature_url || stampConfig?.signature_url}
+                    alt={`${appointment.doctor_name} Digital Signature`}
+                    className="h-12 object-contain mx-auto mb-1"
+                  />
+                ) : (
+                  <div className="h-10 text-[10px] text-slate-400 italic flex items-center justify-center">[Digitally Signed]</div>
+                )}
+
+                <div className="text-xs font-black text-slate-900">{matchedDoc?.name || appointment.doctor_name}</div>
+                <div className="text-[10px] text-emerald-900 font-bold">{matchedDoc?.designation || matchedDoc?.qualification || stampConfig?.designation || 'Consulting Specialist'}</div>
+                <div className="text-[9px] font-mono text-slate-500">
+                  GMC Reg: {matchedDoc?.registration_number || stampConfig?.registration_number || 'GMC-SILVASSA-REG-2008'}
+                </div>
+                <div className="text-[9px] text-slate-400 uppercase font-bold mt-0.5">Authorized Doctor Signature</div>
+              </div>
             </div>
           </div>
 
         </div>
+
+        {/* Bottom Modal Action Bar (Hidden when printing) */}
+        <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <div className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Print-ready 300DPI Medical Consultation & Prescription Record</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+            >
+              <Printer className="w-4 h-4 text-emerald-300" /> Print OPD Slip
+            </button>
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 cursor-pointer transition-all"
+            >
+              Close Window
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );

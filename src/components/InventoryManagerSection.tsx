@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MedicineItem } from '../types';
 import { api } from '../lib/api';
-import { Pill, AlertTriangle, Clock, Plus, Trash2, Edit, Search, CheckCircle2, ShieldAlert, PackageCheck } from 'lucide-react';
+import { Pill, AlertTriangle, Clock, Plus, Trash2, Edit, Search, CheckCircle2, ShieldAlert, PackageCheck, Upload, Download, FileSpreadsheet, X, Check } from 'lucide-react';
+import { parseCSV, downloadSampleCSV } from '../lib/csvHelper';
 
 export const InventoryManagerSection: React.FC = () => {
   const [medicines, setMedicines] = useState<MedicineItem[]>([]);
@@ -21,6 +22,13 @@ export const InventoryManagerSection: React.FC = () => {
     unit_price: 10,
     location: 'Pharmacy Shelf A-1'
   });
+
+  // CSV Import State
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [parsedMedPreview, setParsedMedPreview] = useState<Partial<MedicineItem>[]>([]);
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadInventory();
@@ -76,6 +84,110 @@ export const InventoryManagerSection: React.FC = () => {
     setShowAddModal(true);
   };
 
+  // CSV Import handlers
+  const handleDownloadTemplate = () => {
+    downloadSampleCSV(
+      'SKMH_Medicine_Stock_Import_Template.csv',
+      ['Medicine Name', 'Category', 'Stock Count', 'Min Threshold', 'Unit', 'Expiry Date', 'Unit Price', 'Location'],
+      [
+        ['Paracetamol 650mg Tab', 'Tablet', '1200', '200', 'Strips', '2028-06-30', '15', 'Shelf A-12'],
+        ['Amoxicillin 500mg Cap', 'Capsule', '800', '150', 'Strips', '2027-11-15', '42', 'Shelf B-04'],
+        ['Cefoperazone Injection 1g', 'Injection', '250', '50', 'Vials', '2027-09-20', '180', 'Cold Storage Bay 1'],
+        ['Pantoprazole IV 40mg', 'Injection', '400', '80', 'Vials', '2028-01-10', '65', 'Shelf C-02'],
+        ['Normal Saline 0.9% 500ml', 'Saline', '300', '100', 'Bottles', '2027-12-31', '48', 'Bulk Storage Rack 4']
+      ]
+    );
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCsvError(null);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const { rows } = parseCSV(text);
+
+        if (rows.length === 0) {
+          setCsvError('The selected CSV file appears to be empty or invalid.');
+          return;
+        }
+
+        const items: Partial<MedicineItem>[] = [];
+        for (const row of rows) {
+          const name = row['medicine name'] || row['name'] || row['item name'] || row['drug name'];
+          if (!name) continue;
+
+          const categoryRaw = row['category'] || 'Tablet';
+          let category: MedicineItem['category'] = 'Tablet';
+          if (/capsule/i.test(categoryRaw)) category = 'Capsule';
+          else if (/syrup/i.test(categoryRaw)) category = 'Syrup';
+          else if (/inject/i.test(categoryRaw)) category = 'Injection';
+          else if (/saline/i.test(categoryRaw)) category = 'Saline';
+          else if (/drop/i.test(categoryRaw)) category = 'Drops';
+          else if (/ointment/i.test(categoryRaw)) category = 'Ointment';
+          else if (/other/i.test(categoryRaw)) category = 'Other';
+
+          items.push({
+            name,
+            category,
+            stock_count: parseInt(row['stock count'] || row['stock'] || row['qty'] || '100', 10),
+            min_threshold: parseInt(row['min threshold'] || row['threshold'] || row['min_stock'] || '20', 10),
+            unit: row['unit'] || 'Nos',
+            expiry_date: row['expiry date'] || row['expiry'] || row['exp'] || '2028-12-31',
+            unit_price: parseFloat(row['unit price'] || row['price'] || row['rate'] || '10'),
+            location: row['location'] || row['rack location'] || row['shelf'] || 'Pharmacy Main Bay'
+          });
+        }
+
+        if (items.length === 0) {
+          setCsvError('No valid medicine records found. Please ensure column "Medicine Name" exists.');
+          return;
+        }
+
+        setParsedMedPreview(items);
+        setShowCsvModal(true);
+      } catch (err: any) {
+        setCsvError(`Failed to parse CSV file: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input
+    if (e.target) e.target.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    if (parsedMedPreview.length === 0) return;
+    setImporting(true);
+    try {
+      const addedList: MedicineItem[] = [];
+      for (const item of parsedMedPreview) {
+        const newMed = await api.addMedicine({
+          name: item.name || 'Imported Medicine',
+          category: item.category || 'Tablet',
+          stock_count: item.stock_count || 100,
+          min_threshold: item.min_threshold || 20,
+          unit: item.unit || 'Nos',
+          expiry_date: item.expiry_date || '2028-12-31',
+          unit_price: item.unit_price || 10,
+          location: item.location || 'Pharmacy'
+        });
+        addedList.push(newMed);
+      }
+
+      setMedicines(prev => [...addedList, ...prev]);
+      setShowCsvModal(false);
+      setParsedMedPreview([]);
+    } catch (err) {
+      console.error(err);
+      setCsvError('An error occurred while saving imported medicine stock into database.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const lowStockCount = medicines.filter(m => m.stock_count <= m.min_threshold).length;
 
   const filteredMedicines = medicines.filter(m => {
@@ -108,25 +220,54 @@ export const InventoryManagerSection: React.FC = () => {
           </h2>
         </div>
 
-        <button
-          onClick={() => {
-            setEditingMed(null);
-            setMedForm({
-              name: '',
-              category: 'Tablet',
-              stock_count: 500,
-              min_threshold: 100,
-              unit: 'Nos',
-              expiry_date: '2027-12-31',
-              unit_price: 10,
-              location: 'Pharmacy Shelf A-1'
-            });
-            setShowAddModal(true);
-          }}
-          className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add Medicine Stock Item
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".csv,.txt"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          <button
+            onClick={handleDownloadTemplate}
+            className="px-3 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Download Sample CSV Template for Medicine Stock Import"
+          >
+            <Download className="w-4 h-4 text-slate-500" />
+            <span>Sample CSV</span>
+          </button>
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-4 py-2.5 rounded-2xl bg-indigo-900 hover:bg-indigo-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+            title="Import Medicines from Excel or CSV file"
+          >
+            <Upload className="w-4 h-4 text-indigo-300" />
+            <span>Import CSV / Excel</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setEditingMed(null);
+              setMedForm({
+                name: '',
+                category: 'Tablet',
+                stock_count: 500,
+                min_threshold: 100,
+                unit: 'Nos',
+                expiry_date: '2027-12-31',
+                unit_price: 10,
+                location: 'Pharmacy Shelf A-1'
+              });
+              setShowAddModal(true);
+            }}
+            className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Add Stock Item
+          </button>
+        </div>
       </div>
 
       {/* Low Stock Warning Banner if any */}
@@ -327,6 +468,94 @@ export const InventoryManagerSection: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CSV IMPORT PREVIEW MODAL */}
+      {showCsvModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200">
+            <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-600 rounded-2xl">
+                  <FileSpreadsheet className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base">Import Medicine Stock via CSV / Excel</h3>
+                  <p className="text-xs text-slate-400">Review {parsedMedPreview.length} items parsed from uploaded file before committing to stock database</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCsvModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
+              {csvError && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{csvError}</span>
+                </div>
+              )}
+
+              <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-100 font-extrabold text-slate-700 border-b border-slate-200">
+                    <tr>
+                      <th className="p-2.5">#</th>
+                      <th className="p-2.5">Medicine Name</th>
+                      <th className="p-2.5">Category</th>
+                      <th className="p-2.5">Stock</th>
+                      <th className="p-2.5">Unit Price</th>
+                      <th className="p-2.5">Expiry</th>
+                      <th className="p-2.5">Location</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                    {parsedMedPreview.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50">
+                        <td className="p-2.5 text-slate-400 font-mono">{idx + 1}</td>
+                        <td className="p-2.5 font-bold text-slate-900">{item.name}</td>
+                        <td className="p-2.5">
+                          <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold text-[10px]">
+                            {item.category}
+                          </span>
+                        </td>
+                        <td className="p-2.5 font-mono text-emerald-700 font-bold">{item.stock_count} {item.unit}</td>
+                        <td className="p-2.5 font-mono">₹{item.unit_price}</td>
+                        <td className="p-2.5 font-mono text-slate-600">{item.expiry_date}</td>
+                        <td className="p-2.5 text-slate-500">{item.location}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold text-slate-500">
+                Ready to insert <strong className="text-slate-900">{parsedMedPreview.length}</strong> items into Pharmacy Master Stock.
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCsvModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-bold text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmImport}
+                  disabled={importing}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold flex items-center gap-2 shadow-md disabled:opacity-50"
+                >
+                  <Check className="w-4 h-4" />
+                  {importing ? 'Importing...' : `Confirm Import (${parsedMedPreview.length} Items)`}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
