@@ -1,12 +1,13 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
+import { GoogleGenAI } from '@google/genai';
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '15mb' }));
 
   // --- HEALTH & CONFIG ENDPOINTS ---
   app.get('/api/health', (_req, res) => {
@@ -14,8 +15,64 @@ async function startServer() {
       status: 'ok',
       hospital_name: 'Shree Krishna Multispecialty Hospital',
       timestamp: new Date().toISOString(),
-      supabase_configured: Boolean(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY)
+      supabase_configured: Boolean(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY),
+      gemini_configured: Boolean(process.env.GEMINI_API_KEY)
     });
+  });
+
+  // --- GEMINI CLINICAL AI ASSISTANT ENDPOINT ---
+  app.post('/api/gemini/clinical-assistant', async (req, res) => {
+    const { prompt, image, doctorName, department } = req.body;
+
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({
+          error: 'GEMINI_API_KEY not set',
+          useFallback: true
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const systemInstruction = `You are a clinical decision support assistant for Dr. ${doctorName || 'Doctor'} at Shree Krishna Multispecialty Hospital (${department || 'General Practice'}).
+Provide accurate, structured, medical recommendations regarding disease diagnosis, standard drug regimens, generic and brand names, dosages (adult and pediatric), contraindications, drug interactions, and medical image interpretation.
+Formatting: Use bold headers, bullet points, and clear structured sections for readability.`;
+
+      const contents: any[] = [];
+
+      if (image && typeof image === 'string') {
+        const matches = image.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const mimeType = matches[1];
+          const base64Data = matches[2];
+          contents.push({
+            inlineData: {
+              mimeType,
+              data: base64Data
+            }
+          });
+        }
+      }
+
+      contents.push(prompt || 'Analyze clinical presentation and suggest standard treatment protocol.');
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents,
+        config: {
+          systemInstruction,
+          temperature: 0.2
+        }
+      });
+
+      res.json({
+        success: true,
+        reply: response.text
+      });
+    } catch (err: any) {
+      console.error('Gemini API Error:', err);
+      res.status(500).json({ error: err?.message || 'Gemini processing failed', useFallback: true });
+    }
   });
 
   // --- AUTH ENDPOINTS ---

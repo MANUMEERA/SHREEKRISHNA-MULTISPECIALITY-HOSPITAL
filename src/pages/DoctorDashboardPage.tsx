@@ -6,12 +6,14 @@ import {
   Stethoscope, Calendar, Clock, User as UserIcon, Phone, FileText, CheckCircle2, 
   XCircle, Plus, Edit, Eye, EyeOff, Lock, ShieldAlert, HeartPulse, Pill, FilePlus, 
   Search, RefreshCw, Printer, AlertCircle, ChevronRight, Upload, X, ShieldCheck, Check,
-  UserPlus, FolderHeart, AlertTriangle, Building2, MapPin, LogOut, KeyRound, Bell, BellRing, Sparkles
+  UserPlus, FolderHeart, AlertTriangle, Building2, MapPin, LogOut, KeyRound, Bell, BellRing, Sparkles, Share2
 } from 'lucide-react';
 import { HospitalLogo } from '../components/common/HospitalLogo';
 import { ClinicalObservationModal } from '../components/ClinicalObservationModal';
 import { PrintableConsultationSlip } from '../components/PrintableConsultationSlip';
 import { WalkInRegistrationModal } from '../components/WalkInRegistrationModal';
+import { ReferDoctorModal } from '../components/ReferDoctorModal';
+import { DoctorGeminiClinicalBotModal } from '../components/DoctorGeminiClinicalBotModal';
 
 interface DoctorDashboardPageProps {
   setActiveTab?: (tab: string) => void;
@@ -55,6 +57,7 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
   // Walk-In Direct Hospital Registration Modal State
   const [walkInModalOpen, setWalkInModalOpen] = useState(false);
+  const [geminiBotOpen, setGeminiBotOpen] = useState(false);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,6 +86,10 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
   // State for Patient Order Restriction Warning Popup
   const [orderRestrictedModalOpen, setOrderRestrictedModalOpen] = useState(false);
+
+  // Doctor-to-Doctor Internal Referral Modal State
+  const [referModalOpen, setReferModalOpen] = useState(false);
+  const [referTargetApt, setReferTargetApt] = useState<Appointment | null>(null);
 
   // Receptionist Assignment Real-Time Notifications State
   const [assignedNotifs, setAssignedNotifs] = useState<Array<{
@@ -380,6 +387,43 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
       setSearchQuery(notifItem.patientName);
       setActiveAssignmentBanner(null);
       setShowNotifMenu(false);
+    }
+  };
+
+  // Handle Sending Referral to Specialist Doctor
+  const handleSendDoctorReferral = async (targetDoctor: Doctor, reason: string, urgency: string, notes: string) => {
+    if (!referTargetApt || !selectedDoctor) return;
+    try {
+      // Update appointment with referral info and assign to target doctor
+      await api.updateAppointmentDetails(referTargetApt.id, {
+        doctor_id: targetDoctor.id,
+        doctor_name: targetDoctor.name,
+        department: targetDoctor.department,
+        referred_from_doctor_id: selectedDoctor.id,
+        referred_from_doctor_name: selectedDoctor.name,
+        referred_to_doctor_id: targetDoctor.id,
+        referred_to_doctor_name: targetDoctor.name,
+        referral_reason: reason,
+        referral_date: new Date().toLocaleDateString(),
+        notes: notes ? `${referTargetApt.notes ? referTargetApt.notes + ' | ' : ''}Referral Notes (${selectedDoctor.name}): ${notes}` : referTargetApt.notes
+      });
+
+      // Send live notification for Receptionist Desk & Admin Panel
+      await api.addNotification({
+        user_id: 'admin',
+        title: `↪️ Patient Referral: Dr. ${selectedDoctor.name} ➔ Dr. ${targetDoctor.name}`,
+        message: `Patient ${referTargetApt.user_name} (${referTargetApt.patient_code || 'OPD'}) was referred by Dr. ${selectedDoctor.name} to Dr. ${targetDoctor.name} (${targetDoctor.department}). Reason: ${reason} [Urgency: ${urgency}].`,
+        type: 'appointment'
+      });
+
+      await refreshAppointments();
+      setReferModalOpen(false);
+      setReferTargetApt(null);
+
+      setCompletedToast(`🎉 Patient "${referTargetApt.user_name}" referred to Dr. ${targetDoctor.name}! Live notification sent & Receptionist Panel updated.`);
+      setTimeout(() => setCompletedToast(null), 8000);
+    } catch (err) {
+      console.error('Failed to send referral:', err);
     }
   };
 
@@ -1057,6 +1101,36 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                 </select>
               </div>
 
+              {/* REFER PATIENT TO OTHER DOCTOR BUTTON */}
+              <button
+                onClick={() => {
+                  if (filteredConsultations.length > 0) {
+                    setReferTargetApt(filteredConsultations[0]);
+                    setReferModalOpen(true);
+                  } else if (appointments.length > 0) {
+                    setReferTargetApt(appointments[0]);
+                    setReferModalOpen(true);
+                  } else {
+                    alert('No patients in OPD queue to refer currently.');
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                title="Refer patient in OPD queue to another specialist doctor in the hospital"
+              >
+                <Share2 className="w-4 h-4 text-purple-200" />
+                <span>↪️ Refer Patient to Other Doctor</span>
+              </button>
+
+              {/* GEMINI CLINICAL AI CONSULTANT BOT BUTTON */}
+              <button
+                onClick={() => setGeminiBotOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer border border-emerald-300 hover:scale-105 active:scale-95 shrink-0"
+                title="Open Gemini Clinical AI Consultant for Medical Images, Disease Diagnosis & Medication Reference Engine"
+              >
+                <Sparkles className="w-4 h-4 text-slate-950 animate-pulse" />
+                <span>🤖 Gemini Clinical AI Consultant</span>
+              </button>
+
               {/* DIRECT WALK-IN HOSPITAL CONSULTATION BUTTON */}
               <button
                 onClick={() => setWalkInModalOpen(true)}
@@ -1065,16 +1139,6 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
               >
                 <UserPlus className="w-4 h-4 text-slate-950" />
                 <span>➕ Direct Walk-In OPD Check-In</span>
-              </button>
-
-              {/* EXIT DOCTOR PORTAL BUTTON */}
-              <button
-                onClick={handleDoctorLogout}
-                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
-                title="Sign out of Doctor Workspace and return to Doctor Login Screen"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Exit / Logout</span>
               </button>
             </div>
 
@@ -1282,11 +1346,16 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                           {apt.user_name.charAt(0)}
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-extrabold text-slate-900 text-sm">{apt.user_name}</h3>
                             <span className="font-mono text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold border border-slate-200">
                               {apt.patient_code || patientObj?.patient_code || `PAT-${apt.id.replace(/\D/g, '')}`}
                             </span>
+                            {apt.referred_from_doctor_name && (
+                              <span className="font-extrabold text-[10px] bg-purple-100 text-purple-900 px-2.5 py-0.5 rounded-full border border-purple-300/80 flex items-center gap-1 shadow-xs">
+                                ↪️ Referred by Dr. {apt.referred_from_doctor_name}
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
                             <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-slate-400" /> {apt.user_phone}</span>
@@ -1424,10 +1493,28 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                         {/* Patient EHR Profile */}
                         <button
                           onClick={() => handleOpenEhr(apt)}
-                          className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-colors"
+                          className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <UserIcon className="w-3.5 h-3.5 text-teal-600" />
                           <span>View/Edit Patient EHR</span>
+                        </button>
+
+                        {/* Refer Patient to Other Doctor */}
+                        <button
+                          disabled={apt.status === 'cancelled'}
+                          onClick={() => {
+                            setReferTargetApt(apt);
+                            setReferModalOpen(true);
+                          }}
+                          className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all ${
+                            apt.status === 'cancelled'
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-50'
+                              : 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer hover:scale-105 active:scale-95'
+                          }`}
+                          title="Refer this patient to another specialist doctor in the hospital"
+                        >
+                          <Share2 className="w-3.5 h-3.5 text-purple-200" />
+                          <span>↪️ Refer to Doctor</span>
                         </button>
 
                         {/* Print Consultation Slip (Shown only after doctor completes consultation) */}
@@ -1923,6 +2010,26 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
           setSelectedSlipPatient(newPatient);
           setSlipModalOpen(true);
         }}
+      />
+
+      {/* ================= MODAL 7: DOCTOR REFERRAL MODAL ================= */}
+      <ReferDoctorModal
+        isOpen={referModalOpen}
+        onClose={() => {
+          setReferModalOpen(false);
+          setReferTargetApt(null);
+        }}
+        appointment={referTargetApt}
+        currentDoctor={selectedDoctor}
+        doctors={doctors}
+        onSendReferral={handleSendDoctorReferral}
+      />
+
+      {/* ================= MODAL 8: GEMINI CLINICAL AI CONSULTANT ================= */}
+      <DoctorGeminiClinicalBotModal
+        isOpen={geminiBotOpen}
+        onClose={() => setGeminiBotOpen(false)}
+        currentDoctor={selectedDoctor}
       />
 
     </div>

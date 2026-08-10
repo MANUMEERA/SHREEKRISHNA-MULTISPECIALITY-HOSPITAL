@@ -316,6 +316,14 @@ export interface Appointment {
   admission_reason?: string;
   recommended_ward?: string;
   admitted_patient_id?: string;
+
+  // Doctor-to-Doctor Internal Referral
+  referred_from_doctor_id?: string;
+  referred_from_doctor_name?: string;
+  referred_to_doctor_id?: string;
+  referred_to_doctor_name?: string;
+  referral_reason?: string;
+  referral_date?: string;
 }
 
 export type ReportCategory = 'Blood Test' | 'Radiology / X-Ray' | 'MRI Scan' | 'Prescription' | 'Discharge Summary' | 'Lab Result' | 'Other';
@@ -382,5 +390,16 @@ export interface StaffDesignation {
   email?: string;
   contact_email?: string;
   staff_count?: number;
+}
+
+export interface BotFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  keywords: string[];
+  category: 'OPD & Timings' | 'Billing & Insurance' | 'Emergency & Care' | 'Facilities & Admission' | 'General Info';
+  is_active: boolean;
+  click_count?: number;
+  created_at?: string;
 }
 

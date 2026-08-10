@@ -181,7 +181,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
                     }}
                     className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-100/80 hover:text-rose-800 transition-all flex items-center gap-2 mt-1 border-t border-slate-100 cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-rose-600" /> Sign Out
+                    <LogOut className="w-4 h-4 text-rose-600" /> LOGOUT / EXIT WORKSPACE
                   </button>
                 </div>
               )}
@@ -279,7 +279,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
                 }}
                 className="w-full py-3 rounded-xl bg-rose-50 text-rose-700 font-semibold text-xs flex items-center justify-center gap-2"
               >
-                <LogOut className="w-4 h-4" /> Sign Out
+                <LogOut className="w-4 h-4" /> LOGOUT / EXIT WORKSPACE
               </button>
             )}
 

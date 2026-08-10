@@ -245,11 +245,11 @@ export const AvailableFacilitiesBrochure: React.FC = () => {
   ];
 
   return (
-    <div className="bg-amber-50/40 py-12 px-4 sm:px-8 border-y border-amber-200/60 my-10 rounded-3xl shadow-sm">
+    <div className="bg-amber-50/40 py-12 px-4 sm:px-8 border-y border-amber-200/60 my-10 rounded-3xl shadow-sm fade-up">
       <div className="max-w-7xl mx-auto">
         
         {/* Header Pill Matching Brochure */}
-        <div className="flex items-center justify-center gap-4 mb-10">
+        <div className="flex items-center justify-center gap-4 mb-10 fade-up">
           <div className="hidden sm:block h-0.5 w-24 bg-gradient-to-r from-transparent to-slate-800" />
           <div className="bg-slate-900 text-white px-8 py-2.5 rounded-full shadow-lg border border-slate-800 text-center">
             <h3 className="text-xl sm:text-2xl font-black tracking-wide font-sans">
@@ -261,10 +261,11 @@ export const AvailableFacilitiesBrochure: React.FC = () => {
 
         {/* 5-Column Grid with Distinct Teal Vertical Dividers (Exact Replica of Printed Brochure) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-y-10 gap-x-2">
-          {facilities.map((item) => (
+          {facilities.map((item, idx) => (
             <div
               key={item.id}
-              className="flex flex-col items-center text-center px-3 relative group"
+              style={{ animationDelay: `${(idx % 10) * 50}ms` }}
+              className="flex flex-col items-center text-center px-3 relative group fade-up"
             >
               {/* Vertical Teal Divider Line on Right side (except last column on desktop) */}
               <div className="hidden lg:block absolute right-0 top-2 bottom-2 w-0.5 bg-teal-600/70" />

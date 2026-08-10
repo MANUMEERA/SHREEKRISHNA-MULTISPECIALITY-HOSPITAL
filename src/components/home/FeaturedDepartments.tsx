@@ -27,11 +27,11 @@ export const FeaturedDepartments: React.FC<FeaturedDepartmentsProps> = ({ setAct
   };
 
   return (
-    <section className="py-20 bg-slate-50">
+    <section className="py-20 bg-slate-50 fade-up">
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4 fade-up">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-3">
               Specialized Care
@@ -51,12 +51,13 @@ export const FeaturedDepartments: React.FC<FeaturedDepartmentsProps> = ({ setAct
 
         {/* Department Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {departments.slice(0, 6).map((dept) => {
+          {departments.slice(0, 6).map((dept, idx) => {
             const IconComponent = getIcon(dept.icon_name);
             return (
               <div
                 key={dept.id}
-                className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-xl transition-all group flex flex-col justify-between"
+                style={{ animationDelay: `${idx * 80}ms` }}
+                className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-xl transition-all group flex flex-col justify-between fade-up"
               >
                 <div>
                   {/* Department Banner Image */}

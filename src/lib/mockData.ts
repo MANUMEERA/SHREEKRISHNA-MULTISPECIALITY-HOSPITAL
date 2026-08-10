@@ -624,3 +624,61 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     created_at: '2026-08-02T10:31:00Z'
   }
 ];
+
+export const INITIAL_BOT_FAQS = [
+  {
+    id: 'faq-1',
+    question: 'What are the OPD consultation timings?',
+    answer: 'Our OPD runs Monday through Saturday from 09:00 AM to 08:30 PM. Emergency & Trauma services operate 24 hours a day, 7 days a week.',
+    keywords: ['opd', 'timing', 'time', 'hours', 'open', 'schedule'],
+    category: 'OPD & Timings' as const,
+    is_active: true,
+    click_count: 142
+  },
+  {
+    id: 'faq-2',
+    question: 'Where is Shree Krishna Multispecialty Hospital located?',
+    answer: 'We are located at: Opp. Horizon Tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa - 396230 (UT of Dadra & Nagar Haveli). Landmark: Opposite Horizon Tower.',
+    keywords: ['location', 'address', 'where', 'map', 'reach', 'silvassa', 'landmark'],
+    category: 'General Info' as const,
+    is_active: true,
+    click_count: 98
+  },
+  {
+    id: 'faq-3',
+    question: 'Which payment modes & insurance TPAs are accepted?',
+    answer: 'We accept Cash, Debit/Credit Cards, Google Pay/PhonePe UPI QR, and offer Cashless Mediclaim TPA support for all major health insurance providers (Star Health, ICICI Lombard, HDFC ERGO, SBI General, Care Health, Bajaj Allianz, etc.).',
+    keywords: ['payment', 'upi', 'insurance', 'tpa', 'cashless', 'card', 'mediclaim', 'policy'],
+    category: 'Billing & Insurance' as const,
+    is_active: true,
+    click_count: 115
+  },
+  {
+    id: 'faq-4',
+    question: 'What is the 24x7 Emergency Helpline Number?',
+    answer: 'In case of trauma or medical emergency, call our 24/7 Hotline: +91 90990 57219 or Landline Desk: (0260) 264-9999. Emergency ambulance dispatch is available round the clock.',
+    keywords: ['emergency', 'helpline', 'ambulance', 'phone', 'contact', 'call', 'number', 'urgent', 'trauma'],
+    category: 'Emergency & Care' as const,
+    is_active: true,
+    click_count: 205
+  },
+  {
+    id: 'faq-5',
+    question: 'What are the room tariffs & IPD bed charges?',
+    answer: 'General Ward Bed: ₹1,200/day | Semi-Private AC Room: ₹1,800/day | Deluxe AC Private Room: ₹2,500/day | Super Deluxe Suite: ₹4,500/day | Surgical ICU Bed with Monitor: ₹3,500/day.',
+    keywords: ['room', 'tariff', 'bed', 'charge', 'icu', 'ward', 'deluxe', 'rate', 'cost'],
+    category: 'Facilities & Admission' as const,
+    is_active: true,
+    click_count: 87
+  },
+  {
+    id: 'faq-6',
+    question: 'What are the patient visiting hours for wards & ICU?',
+    answer: 'General Ward Visiting Hours: Morning 10:00 AM - 12:00 PM and Evening 05:00 PM - 07:00 PM. Surgical ICU Visitor Entry: Strictly 05:00 PM - 06:00 PM (1 Pass per patient family).',
+    keywords: ['visit', 'visitor', 'hours', 'family', 'pass', 'icu entry', 'allowed'],
+    category: 'Facilities & Admission' as const,
+    is_active: true,
+    click_count: 64
+  }
+];
+

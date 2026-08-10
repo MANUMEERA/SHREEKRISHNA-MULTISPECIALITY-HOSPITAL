@@ -12,6 +12,7 @@ interface PaymentReceiptModalProps {
   patientEmail?: string;
   doctorName?: string;
   department?: string;
+  autoShowReceipt?: boolean;
   onPaymentSuccess?: (receipt: PaymentReceipt) => void;
 }
 
@@ -24,6 +25,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   patientEmail,
   doctorName,
   department,
+  autoShowReceipt = false,
   onPaymentSuccess
 }) => {
   if (!isOpen) return null;
@@ -36,7 +38,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   
   const [lineItems, setLineItems] = useState<{ description: string; category: string; amount: number }[]>([
     {
-      description: doctorName ? `OPD Consultation Fee - ${doctorName}` : 'Senior OPD Doctor Consultation Charge',
+      description: doctorName ? `OPD Consultation Fee - Dr. ${doctorName}` : 'Senior OPD Doctor Consultation Charge',
       category: 'Consultation',
       amount: 500
     }
@@ -54,7 +56,37 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   useEffect(() => {
     api.getChargeCategories().then(setAvailableCharges).catch(console.error);
     api.getHospitalStampConfig().then(setStampConfig).catch(console.error);
-  }, []);
+
+    if (isOpen && autoShowReceipt) {
+      const autoRcpt: PaymentReceipt = {
+        id: `rcpt-${Date.now()}`,
+        receipt_number: `SKMH/OPD/2026/${Math.floor(100000 + Math.random() * 900000)}`,
+        patient_id: `pat-${Date.now()}`,
+        patient_name: patientName,
+        patient_code: patientCode || 'SKMH-2026-PAT-OPD',
+        phone: patientPhone || '+91 98000 11122',
+        email: patientEmail,
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_mode: 'UPI (QR Code)',
+        transaction_ref: 'OPD-PAID-DESK-01',
+        items: [
+          {
+            description: doctorName ? `OPD Doctor Consultation Fee - Dr. ${doctorName}` : 'Senior OPD Consultation Fee',
+            category: 'Consultation',
+            amount: 500
+          }
+        ],
+        subtotal: 500,
+        tax: 0,
+        discount: 0,
+        total_paid: 500,
+        collected_by: 'OPD Desk Receptionist'
+      };
+      setReceiptGenerated(autoRcpt);
+    } else if (isOpen && !autoShowReceipt) {
+      setReceiptGenerated(null);
+    }
+  }, [isOpen, autoShowReceipt, patientName, patientCode, patientPhone, patientEmail, doctorName]);
 
   const handleAddChargeFromMaster = () => {
     if (!newChargeId) return;

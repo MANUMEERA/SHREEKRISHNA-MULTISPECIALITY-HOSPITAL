@@ -311,11 +311,11 @@ export const SupabaseSchemaModal: React.FC<SupabaseSchemaModalProps> = ({ isOpen
                 <h4 className="font-bold text-sm text-indigo-100 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-400" /> How to Connect Shree Krishna Hospital App to Supabase
                 </h4>
-                <ol className="list-decimal list-inside space-y-1 text-slate-300">
-                  <li>Create a free project at <strong>https://supabase.com</strong></li>
-                  <li>Go to <strong>Project Settings -&gt; API</strong> and copy your <code className="text-amber-300 font-mono">SUPABASE_URL</code> and <code className="text-amber-300 font-mono">SUPABASE_ANON_KEY</code>.</li>
-                  <li>In Supabase Dashboard, open <strong>SQL Editor</strong>, paste the complete DDL script from the "Complete SQL Script" tab, and click <strong>RUN</strong>.</li>
-                  <li>Install <code className="text-emerald-400 font-mono">@supabase/supabase-js</code> in your workspace.</li>
+                <ol className="list-decimal list-inside space-y-1.5 text-slate-300">
+                  <li>Your new Supabase credentials for project <code className="text-emerald-300 font-mono">zvvnpjlekfsfrxcdyexo</code> have been configured in the app!</li>
+                  <li>Open your project SQL Editor: <a href="https://supabase.com/dashboard/project/zvvnpjlekfsfrxcdyexo/editor" target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-bold underline">https://supabase.com/dashboard/project/zvvnpjlekfsfrxcdyexo/editor</a></li>
+                  <li>Click <strong>New Query</strong>, paste the complete DDL script from the <strong>"Complete SQL Script"</strong> tab above, and click <strong>RUN</strong>.</li>
+                  <li>All 19 tables will be created automatically, and newly registered patients & appointments will show up directly in your Supabase Table Editor!</li>
                 </ol>
               </div>
 

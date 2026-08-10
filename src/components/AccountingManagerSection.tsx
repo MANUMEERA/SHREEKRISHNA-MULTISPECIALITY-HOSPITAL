@@ -1,16 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AccountingEntry } from '../types';
+import { AccountingEntry, Doctor } from '../types';
 import { api } from '../lib/api';
-import { DollarSign, Printer, Download, Plus, Filter, Calendar, TrendingUp, TrendingDown, FileSpreadsheet, Building2, Search, FileText, Check, X, Clock, Upload, AlertTriangle } from 'lucide-react';
+import { DollarSign, Printer, Download, Plus, Filter, Calendar, TrendingUp, TrendingDown, FileSpreadsheet, Building2, Search, FileText, Check, X, Clock, Upload, AlertTriangle, Stethoscope, PieChart as PieChartIcon, BarChart3, UserCheck, Activity } from 'lucide-react';
 import { parseCSV, downloadSampleCSV } from '../lib/csvHelper';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 
 type DateFilterPreset = 'all' | 'today' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
+const COLORS = ['#059669', '#2563eb', '#7c3aed', '#d97706', '#dc2626', '#0891b2', '#4f46e5', '#ca8a04'];
+
 export const AccountingManagerSection: React.FC = () => {
   const [entries, setEntries] = useState<AccountingEntry[]>([]);
+  const [doctorsList, setDoctorsList] = useState<Doctor[]>([]);
   const [filterType, setFilterType] = useState<'All' | 'Income' | 'Expense'>('All');
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'ledger' | 'doctor_analytics' | 'charts'>('ledger');
 
   // CSV Import State for Ledger
   const [showLedgerCsvModal, setShowLedgerCsvModal] = useState(false);
@@ -20,7 +25,7 @@ export const AccountingManagerSection: React.FC = () => {
   const ledgerFileInputRef = useRef<HTMLInputElement>(null);
 
   // Date Filter State
-  const [datePreset, setDatePreset] = useState<DateFilterPreset>('all');
+  const [datePreset, setDatePreset] = useState<DateFilterPreset>('monthly');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
@@ -45,8 +50,12 @@ export const AccountingManagerSection: React.FC = () => {
 
   const loadAccountingData = async () => {
     try {
-      const data = await api.getAccountingEntries();
-      setEntries(data);
+      const [accData, docData] = await Promise.all([
+        api.getAccountingEntries(),
+        api.getDoctors()
+      ]);
+      setEntries(accData);
+      setDoctorsList(docData);
     } catch (err) {
       console.error(err);
     }
@@ -225,6 +234,72 @@ export const AccountingManagerSection: React.FC = () => {
   const totalExpense = filteredEntries.filter(e => e.type === 'Expense').reduce((acc, e) => acc + e.amount, 0);
   const netRevenue = totalIncome - totalExpense;
 
+  // ================= DOCTOR INCOME MATRIX CALCULATION =================
+  const doctorIncomeBreakdown = doctorsList.map(doc => {
+    const docEntries = filteredEntries.filter(e => e.doctor_name && e.doctor_name.toLowerCase().includes(doc.name.toLowerCase()));
+    
+    const opdIncome = docEntries
+      .filter(e => e.type === 'Income' && (e.source_category === 'OPD Consultation' || /opd/i.test(e.description)))
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const ipdIncome = docEntries
+      .filter(e => e.type === 'Income' && (e.source_category === 'IPD Admission' || /ipd|admit|ward/i.test(e.description)))
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const otIncome = docEntries
+      .filter(e => e.type === 'Income' && (e.source_category === 'Surgery / OT' || /surgery|ot|operation/i.test(e.description)))
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const otherIncome = docEntries
+      .filter(e => e.type === 'Income' && !['OPD Consultation', 'IPD Admission', 'Surgery / OT'].includes(e.source_category) && !/opd|ipd|surgery/i.test(e.description))
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const totalDocIncome = opdIncome + ipdIncome + otIncome + otherIncome;
+
+    return {
+      doctor_id: doc.id,
+      doctor_name: doc.name,
+      department: doc.department,
+      opd_income: opdIncome,
+      ipd_income: ipdIncome,
+      ot_income: otIncome,
+      other_income: otherIncome,
+      total_income: totalDocIncome
+    };
+  }).sort((a, b) => b.total_income - a.total_income);
+
+  // Chart Data Calculations
+  const departmentRevenueMap: Record<string, number> = {};
+  filteredEntries.filter(e => e.type === 'Income').forEach(e => {
+    departmentRevenueMap[e.department] = (departmentRevenueMap[e.department] || 0) + e.amount;
+  });
+  const departmentChartData = Object.entries(departmentRevenueMap).map(([dept, total]) => ({
+    department: dept,
+    Revenue: total
+  }));
+
+  const categoryRevenueMap: Record<string, number> = {};
+  filteredEntries.filter(e => e.type === 'Income').forEach(e => {
+    categoryRevenueMap[e.source_category] = (categoryRevenueMap[e.source_category] || 0) + e.amount;
+  });
+  const categoryPieData = Object.entries(categoryRevenueMap).map(([cat, total]) => ({
+    name: cat,
+    value: total
+  }));
+
+  // Daily Trend Data
+  const dateTrendMap: Record<string, { Income: number; Expense: number }> = {};
+  filteredEntries.forEach(e => {
+    if (!dateTrendMap[e.date]) dateTrendMap[e.date] = { Income: 0, Expense: 0 };
+    if (e.type === 'Income') dateTrendMap[e.date].Income += e.amount;
+    else dateTrendMap[e.date].Expense += e.amount;
+  });
+  const trendChartData = Object.keys(dateTrendMap).sort().map(date => ({
+    date,
+    Income: dateTrendMap[date].Income,
+    Expense: dateTrendMap[date].Expense
+  }));
+
   // Export CSV / Excel
   const exportCSV = () => {
     const headers = ['Entry ID,Date,Type,Source Category,Department,Doctor Name,Amount (INR),Payment Mode,Description'];
@@ -240,6 +315,21 @@ export const AccountingManagerSection: React.FC = () => {
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `SKMH_Financial_Ledger_Report_${datePreset}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportDoctorIncomeCSV = () => {
+    const headers = ['Doctor Name,Department,OPD Income (₹),IPD / Admitted Income (₹),OT / Surgery Income (₹),Other Income (₹),Total Doctor Revenue (₹)'];
+    const rows = doctorIncomeBreakdown.map(d => 
+      `"${d.doctor_name}","${d.department}","${d.opd_income}","${d.ipd_income}","${d.ot_income}","${d.other_income}","${d.total_income}"`
+    );
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers, ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `SKMH_Doctor_Income_Breakdown_${datePreset}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -280,7 +370,37 @@ export const AccountingManagerSection: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Hidden File Input */}
+          {/* View Toggles */}
+          <div className="flex bg-slate-100 p-1 rounded-2xl gap-1 mr-2">
+            <button
+              onClick={() => setActiveTab('ledger')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'ledger' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Financial Ledger</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('doctor_analytics')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'doctor_analytics' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Stethoscope className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Doctor Income</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('charts')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'charts' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
+              <span>Charts & Visuals</span>
+            </button>
+          </div>
+
           <input
             type="file"
             ref={ledgerFileInputRef}
@@ -295,7 +415,7 @@ export const AccountingManagerSection: React.FC = () => {
             title="Download Sample CSV Template for Accounting Ledger Import"
           >
             <Download className="w-4 h-4 text-slate-500" />
-            <span>Sample CSV</span>
+            <span className="hidden sm:inline">Sample CSV</span>
           </button>
 
           <button
@@ -304,7 +424,7 @@ export const AccountingManagerSection: React.FC = () => {
             title="Import Income & Expense Ledger Entries from CSV or Excel file"
           >
             <Upload className="w-4 h-4 text-indigo-300" />
-            <span>Import CSV / Excel</span>
+            <span className="hidden sm:inline">Import CSV</span>
           </button>
 
           <button
@@ -322,7 +442,7 @@ export const AccountingManagerSection: React.FC = () => {
             title="Print or Save Official Financial PDF Report"
           >
             <Printer className="w-4 h-4 text-slate-300" />
-            <span>Print / PDF Report</span>
+            <span>Print Report</span>
           </button>
 
           <button
@@ -409,7 +529,7 @@ export const AccountingManagerSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Custom Date Range Inputs (Visible when Custom is selected) */}
+        {/* Custom Date Range Inputs */}
         {datePreset === 'custom' && (
           <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 flex flex-wrap items-center gap-3 text-xs animate-in fade-in">
             <span className="font-extrabold text-indigo-950 uppercase text-[10px]">Select Start & End Date:</span>
@@ -485,7 +605,7 @@ export const AccountingManagerSection: React.FC = () => {
 
       </div>
 
-      {/* Dynamic Summary Cards for Active Selection */}
+      {/* Dynamic Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-emerald-900 text-white p-5 rounded-3xl shadow-md border border-emerald-800">
           <div className="flex justify-between items-center">
@@ -511,7 +631,7 @@ export const AccountingManagerSection: React.FC = () => {
 
         <div className="bg-slate-900 text-white p-5 rounded-3xl shadow-md border border-slate-800">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-300">Net Profit Margin</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-300">Net Operating Profit</span>
             <DollarSign className="w-5 h-5 text-amber-400" />
           </div>
           <strong className="text-2xl font-black block mt-2 text-amber-300">₹{netRevenue.toLocaleString()}</strong>
@@ -521,61 +641,214 @@ export const AccountingManagerSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Ledger Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
-        <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-700">
-          <span>Displaying Financial Ledger Entries</span>
-          <span className="text-[11px] font-mono text-slate-500">
-            {getDatePresetLabel()} • {filteredEntries.length} Records
-          </span>
-        </div>
+      {/* ================= TAB 1: FINANCIAL LEDGER TABLE ================= */}
+      {activeTab === 'ledger' && (
+        <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+          <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-700">
+            <span>Displaying Financial Ledger Entries</span>
+            <span className="text-[11px] font-mono text-slate-500">
+              {getDatePresetLabel()} • {filteredEntries.length} Records
+            </span>
+          </div>
 
-        <table className="w-full text-xs text-left">
-          <thead className="bg-slate-100/80 text-slate-700 font-extrabold border-b border-slate-200">
-            <tr>
-              <th className="p-3.5">Date</th>
-              <th className="p-3.5">Type</th>
-              <th className="p-3.5">Category</th>
-              <th className="p-3.5">Department / Doctor</th>
-              <th className="p-3.5">Description</th>
-              <th className="p-3.5">Payment Mode</th>
-              <th className="p-3.5 text-right">Amount (₹)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 font-medium">
-            {filteredEntries.length === 0 ? (
+          <table className="w-full text-xs text-left">
+            <thead className="bg-slate-100/80 text-slate-700 font-extrabold border-b border-slate-200">
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-500 italic">
-                  No accounting entries found matching the selected date range and filter criteria.
-                </td>
+                <th className="p-3.5">Date</th>
+                <th className="p-3.5">Type</th>
+                <th className="p-3.5">Category</th>
+                <th className="p-3.5">Department / Doctor</th>
+                <th className="p-3.5">Description</th>
+                <th className="p-3.5">Payment Mode</th>
+                <th className="p-3.5 text-right">Amount (₹)</th>
               </tr>
-            ) : (
-              filteredEntries.map((e) => (
-                <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="p-3.5 font-mono font-bold text-slate-800">{e.date}</td>
-                  <td className="p-3.5">
-                    <span className={`px-2.5 py-0.5 rounded-full font-black text-[10px] uppercase tracking-wider ${
-                      e.type === 'Income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {e.type}
-                    </span>
-                  </td>
-                  <td className="p-3.5 font-bold text-slate-900">{e.source_category}</td>
-                  <td className="p-3.5 text-slate-700">
-                    <strong>{e.department}</strong>
-                    {e.doctor_name && <span className="block text-[10px] text-slate-500">{e.doctor_name}</span>}
-                  </td>
-                  <td className="p-3.5 text-slate-800">{e.description}</td>
-                  <td className="p-3.5 font-semibold text-slate-600">{e.payment_mode}</td>
-                  <td className={`p-3.5 text-right font-black text-sm ${e.type === 'Income' ? 'text-emerald-700' : 'text-rose-700'}`}>
-                    {e.type === 'Income' ? '+' : '-'}₹{e.amount.toLocaleString()}
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {filteredEntries.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-500 italic">
+                    No accounting entries found matching the selected date range and filter criteria.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredEntries.map((e) => (
+                  <tr key={e.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-3.5 font-mono font-bold text-slate-800">{e.date}</td>
+                    <td className="p-3.5">
+                      <span className={`px-2.5 py-0.5 rounded-full font-black text-[10px] uppercase tracking-wider ${
+                        e.type === 'Income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {e.type}
+                      </span>
+                    </td>
+                    <td className="p-3.5 font-bold text-slate-900">{e.source_category}</td>
+                    <td className="p-3.5 text-slate-700">
+                      <strong>{e.department}</strong>
+                      {e.doctor_name && <span className="block text-[10px] text-slate-500">{e.doctor_name}</span>}
+                    </td>
+                    <td className="p-3.5 text-slate-800">{e.description}</td>
+                    <td className="p-3.5 font-semibold text-slate-600">{e.payment_mode}</td>
+                    <td className={`p-3.5 text-right font-black text-sm ${e.type === 'Income' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {e.type === 'Income' ? '+' : '-'}₹{e.amount.toLocaleString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ================= TAB 2: INDIVIDUAL DOCTOR INCOME BREAKDOWN ================= */}
+      {activeTab === 'doctor_analytics' && (
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex justify-between items-center">
+            <div>
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <Stethoscope className="w-5 h-5 text-indigo-600" />
+                Individual Doctor Income Breakdown (OPD / IPD Admitted / OT)
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Calculated dynamically for selected date range: <span className="font-bold text-indigo-700">{getDatePresetLabel()}</span>
+              </p>
+            </div>
+
+            <button
+              onClick={exportDoctorIncomeCSV}
+              className="px-4 py-2 rounded-2xl bg-indigo-900 hover:bg-indigo-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+              <span>Export Doctor Income CSV</span>
+            </button>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-100 text-slate-700 font-extrabold border-b border-slate-200">
+                <tr>
+                  <th className="p-3.5">Doctor Name</th>
+                  <th className="p-3.5">Department</th>
+                  <th className="p-3.5 text-right">OPD Consultation (₹)</th>
+                  <th className="p-3.5 text-right">IPD / Admitted (₹)</th>
+                  <th className="p-3.5 text-right">OT / Surgery (₹)</th>
+                  <th className="p-3.5 text-right">Other Income (₹)</th>
+                  <th className="p-3.5 text-right bg-slate-200/60 font-black">Total Revenue (₹)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {doctorIncomeBreakdown.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-500 italic">
+                      No doctor revenue records available for the selected period.
+                    </td>
+                  </tr>
+                ) : (
+                  doctorIncomeBreakdown.map((doc) => (
+                    <tr key={doc.doctor_id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-3.5 font-extrabold text-slate-900">{doc.doctor_name}</td>
+                      <td className="p-3.5 text-slate-600">
+                        <span className="px-2.5 py-0.5 rounded-full bg-slate-100 font-bold text-[10px]">
+                          {doc.department}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right font-mono font-bold text-emerald-700">
+                        ₹{doc.opd_income.toLocaleString()}
+                      </td>
+                      <td className="p-3.5 text-right font-mono font-bold text-blue-700">
+                        ₹{doc.ipd_income.toLocaleString()}
+                      </td>
+                      <td className="p-3.5 text-right font-mono font-bold text-purple-700">
+                        ₹{doc.ot_income.toLocaleString()}
+                      </td>
+                      <td className="p-3.5 text-right font-mono text-slate-600">
+                        ₹{doc.other_income.toLocaleString()}
+                      </td>
+                      <td className="p-3.5 text-right font-mono font-black text-slate-900 bg-slate-50 text-sm">
+                        ₹{doc.total_income.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ================= TAB 3: RECHARTS DATA VISUALIZATIONS ================= */}
+      {activeTab === 'charts' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Revenue by Department Bar Chart */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-emerald-600" />
+              Revenue Distribution by Medical Department (₹)
+            </h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={departmentChartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="department" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(value) => [`₹${value}`, 'Revenue']} />
+                  <Bar dataKey="Revenue" fill="#059669" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Revenue Categories Pie Chart */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <PieChartIcon className="w-4 h-4 text-purple-600" />
+              Revenue Share by Source Category (OPD / IPD / Lab / Pharmacy)
+            </h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryPieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    labelLine={false}
+                  >
+                    {categoryPieData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`₹${value}`, 'Amount']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Revenue Trend Area Chart */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 lg:col-span-2">
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-blue-600" />
+              Income vs. Expense Operational Cashflow Trend (₹)
+            </h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(value) => [`₹${value}`, 'Amount']} />
+                  <Legend />
+                  <Area type="monotone" dataKey="Income" stroke="#059669" fill="#10b981" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="Expense" stroke="#dc2626" fill="#f43f5e" fillOpacity={0.1} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+        </div>
+      )}
 
       {/* Add Modal */}
       {showAddModal && (
@@ -631,6 +904,17 @@ export const AccountingManagerSection: React.FC = () => {
                   <option value="Staff Salary">Staff Salary</option>
                   <option value="Utilities / Other">Utilities / Other</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 uppercase mb-1">Doctor Name (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dr. Rajesh Krishna"
+                  value={newEntryForm.doctor_name}
+                  onChange={(e) => setNewEntryForm({ ...newEntryForm, doctor_name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-white"
+                />
               </div>
 
               <div>
@@ -698,184 +982,81 @@ export const AccountingManagerSection: React.FC = () => {
                   <span className="px-3 py-1 bg-slate-900 text-white rounded-full font-black text-xs uppercase tracking-wider">
                     FINANCIAL REPORT
                   </span>
-                  <p className="text-[10px] font-mono font-bold text-slate-600 mt-1">
-                    Generated: {new Date().toLocaleString()}
-                  </p>
+                  <p className="text-[10px] font-mono text-slate-500 mt-2">Generated: {new Date().toLocaleDateString()}</p>
                 </div>
               </div>
 
-              {/* Report Parameters Banner */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="font-extrabold text-slate-900 uppercase">Report Period:</span>
-                  <strong className="text-emerald-700 font-black">{getDatePresetLabel()}</strong>
+              {/* Summary Metrics */}
+              <div className="grid grid-cols-3 gap-4 text-center py-2 bg-slate-50 rounded-2xl border border-slate-200">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-500">Gross Income</span>
+                  <strong className="text-lg font-black text-emerald-700 block">₹{totalIncome.toLocaleString()}</strong>
                 </div>
-                <div className="flex justify-between items-center text-slate-600 text-[11px]">
-                  <span>Applied Category Filter: <strong>{filterCategory}</strong></span>
-                  <span>Type Filter: <strong>{filterType}</strong></span>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-500">Total Expenses</span>
+                  <strong className="text-lg font-black text-rose-700 block">₹{totalExpense.toLocaleString()}</strong>
                 </div>
-              </div>
-
-              {/* Financial Executive Summary Cards */}
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200">
-                  <span className="text-[10px] font-black uppercase text-emerald-800">Total Income</span>
-                  <strong className="text-lg font-black text-emerald-900 block mt-0.5">₹{totalIncome.toLocaleString()}</strong>
-                </div>
-                <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200">
-                  <span className="text-[10px] font-black uppercase text-rose-800">Total Expenses</span>
-                  <strong className="text-lg font-black text-rose-900 block mt-0.5">₹{totalExpense.toLocaleString()}</strong>
-                </div>
-                <div className="p-3 bg-slate-100 rounded-2xl border border-slate-300">
-                  <span className="text-[10px] font-black uppercase text-slate-800">Net Profit Margin</span>
-                  <strong className="text-lg font-black text-slate-900 block mt-0.5">₹{netRevenue.toLocaleString()}</strong>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-500">Net Operating Margin</span>
+                  <strong className="text-lg font-black text-slate-900 block">₹{netRevenue.toLocaleString()}</strong>
                 </div>
               </div>
 
-              {/* Audit Table */}
-              <div className="space-y-2">
-                <h4 className="font-black text-xs uppercase border-b border-slate-300 pb-1 text-slate-900">
-                  Itemized Financial Transactions ({filteredEntries.length} Items)
-                </h4>
+              {/* Ledger Summary Table */}
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-slate-900 text-slate-900 font-extrabold uppercase">
+                    <th className="py-2">Date</th>
+                    <th className="py-2">Category</th>
+                    <th className="py-2">Department / Doctor</th>
+                    <th className="py-2 text-right">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredEntries.slice(0, 25).map((e) => (
+                    <tr key={e.id}>
+                      <td className="py-1.5 font-mono">{e.date}</td>
+                      <td className="py-1.5 font-bold">{e.source_category}</td>
+                      <td className="py-1.5">{e.department} {e.doctor_name ? `(${e.doctor_name})` : ''}</td>
+                      <td className={`py-1.5 text-right font-bold ${e.type === 'Income' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {e.type === 'Income' ? '+' : '-'}₹{e.amount.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-                <table className="w-full text-xs text-left border-collapse">
+              {/* Doctor Income Section in Print */}
+              <div className="pt-4 border-t-2 border-slate-900 space-y-2">
+                <h4 className="text-xs font-black uppercase text-slate-900">Doctor-wise Revenue Breakdown Summary</h4>
+                <table className="w-full text-xs text-left">
                   <thead>
-                    <tr className="border-b-2 border-slate-900 font-bold text-slate-900">
-                      <th className="py-2 px-1">Date</th>
-                      <th className="py-2 px-1">Type</th>
-                      <th className="py-2 px-1">Category</th>
-                      <th className="py-2 px-1">Department / Doctor</th>
-                      <th className="py-2 px-1">Description</th>
-                      <th className="py-2 px-1">Mode</th>
-                      <th className="py-2 px-1 text-right">Amount (₹)</th>
+                    <tr className="border-b border-slate-300 font-bold text-slate-700">
+                      <th className="py-1">Doctor Name</th>
+                      <th className="py-1">Department</th>
+                      <th className="py-1 text-right">OPD (₹)</th>
+                      <th className="py-1 text-right">IPD (₹)</th>
+                      <th className="py-1 text-right">OT (₹)</th>
+                      <th className="py-1 text-right">Total (₹)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 font-medium">
-                    {filteredEntries.map((e) => (
-                      <tr key={e.id}>
-                        <td className="py-2 px-1 font-mono">{e.date}</td>
-                        <td className="py-2 px-1 font-bold">{e.type}</td>
-                        <td className="py-2 px-1">{e.source_category}</td>
-                        <td className="py-2 px-1">{e.department} {e.doctor_name ? `(${e.doctor_name})` : ''}</td>
-                        <td className="py-2 px-1">{e.description}</td>
-                        <td className="py-2 px-1">{e.payment_mode}</td>
-                        <td className={`py-2 px-1 text-right font-extrabold ${e.type === 'Income' ? 'text-emerald-800' : 'text-rose-800'}`}>
-                          {e.type === 'Income' ? '+' : '-'}₹{e.amount.toLocaleString()}
-                        </td>
+                  <tbody>
+                    {doctorIncomeBreakdown.slice(0, 10).map((doc) => (
+                      <tr key={doc.doctor_id} className="border-b border-slate-100">
+                        <td className="py-1 font-bold">{doc.doctor_name}</td>
+                        <td className="py-1 text-slate-600">{doc.department}</td>
+                        <td className="py-1 text-right font-mono">₹{doc.opd_income}</td>
+                        <td className="py-1 text-right font-mono">₹{doc.ipd_income}</td>
+                        <td className="py-1 text-right font-mono">₹{doc.ot_income}</td>
+                        <td className="py-1 text-right font-mono font-bold">₹{doc.total_income}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Official Seal / Signature Footer */}
-              <div className="pt-8 flex justify-between items-end text-xs">
-                <div>
-                  <p className="text-[10px] text-slate-500 italic">This is a system-generated hospital financial audit statement.</p>
-                </div>
-                <div className="text-right">
-                  <div className="w-36 border-b-2 border-slate-900 mb-1 inline-block"></div>
-                  <p className="font-extrabold text-slate-900">Authorized Accountant / Auditor</p>
-                  <p className="text-[10px] text-slate-600">Shree Krishna Multispecialty Hospital</p>
-                </div>
-              </div>
-
             </div>
 
-          </div>
-        </div>
-      )}
-
-      {/* LEDGER CSV IMPORT PREVIEW MODAL */}
-      {showLedgerCsvModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200">
-            <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-600 rounded-2xl">
-                  <FileSpreadsheet className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-base">Import Accounting Ledger Transactions via CSV / Excel</h3>
-                  <p className="text-xs text-slate-400">Preview {parsedLedgerPreview.length} income & expense entries parsed from uploaded ledger sheet</p>
-                </div>
-              </div>
-              <button onClick={() => setShowLedgerCsvModal(false)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
-              {ledgerCsvError && (
-                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{ledgerCsvError}</span>
-                </div>
-              )}
-
-              <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-100 font-extrabold text-slate-700 border-b border-slate-200">
-                    <tr>
-                      <th className="p-2.5">#</th>
-                      <th className="p-2.5">Date</th>
-                      <th className="p-2.5">Type</th>
-                      <th className="p-2.5">Category</th>
-                      <th className="p-2.5">Department / Doctor</th>
-                      <th className="p-2.5">Description</th>
-                      <th className="p-2.5 text-right">Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                    {parsedLedgerPreview.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="p-2.5 text-slate-400 font-mono">{idx + 1}</td>
-                        <td className="p-2.5 font-mono text-slate-600">{item.date}</td>
-                        <td className="p-2.5">
-                          <span className={`px-2 py-0.5 rounded-full font-extrabold text-[10px] ${
-                            item.type === 'Income' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                          }`}>
-                            {item.type}
-                          </span>
-                        </td>
-                        <td className="p-2.5 font-bold text-slate-900">{item.source_category}</td>
-                        <td className="p-2.5 text-slate-600">{item.department} ({item.doctor_name})</td>
-                        <td className="p-2.5 text-slate-500">{item.description}</td>
-                        <td className={`p-2.5 text-right font-extrabold font-mono ${
-                          item.type === 'Income' ? 'text-emerald-700' : 'text-rose-700'
-                        }`}>
-                          {item.type === 'Income' ? '+' : '-'}₹{item.amount?.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
-              <div className="text-xs font-semibold text-slate-500">
-                Ready to commit <strong className="text-slate-900">{parsedLedgerPreview.length}</strong> transactions into Financial Audit Ledger.
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowLedgerCsvModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 font-bold text-slate-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmLedgerImport}
-                  disabled={importingLedger}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold flex items-center gap-2 shadow-md disabled:opacity-50"
-                >
-                  <Check className="w-4 h-4" />
-                  {importingLedger ? 'Importing Ledger...' : `Confirm Import (${parsedLedgerPreview.length} Entries)`}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -883,4 +1064,3 @@ export const AccountingManagerSection: React.FC = () => {
     </div>
   );
 };
-

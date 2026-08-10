@@ -47,13 +47,14 @@ export const QuickActionCards: React.FC<QuickActionCardsProps> = ({ setActiveTab
   ];
 
   return (
-    <div className="relative -mt-10 z-20 max-w-7xl mx-auto px-4 sm:px-8">
+    <div className="relative -mt-10 z-20 max-w-7xl mx-auto px-4 sm:px-8 fade-up">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {actions.map((act) => {
+        {actions.map((act, index) => {
           const Icon = act.icon;
           return (
             <div
               key={act.id}
+              style={{ animationDelay: `${index * 100}ms` }}
               onClick={() => {
                 if (act.isEmergency) {
                   window.location.href = 'tel:+919876543210';
@@ -61,7 +62,7 @@ export const QuickActionCards: React.FC<QuickActionCardsProps> = ({ setActiveTab
                   setActiveTab(act.id);
                 }
               }}
-              className={`bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xl hover:shadow-2xl transition-all cursor-pointer group ${act.border} transform hover:-translate-y-1`}
+              className={`bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xl hover:shadow-2xl transition-all cursor-pointer group ${act.border} transform hover:-translate-y-1 fade-up`}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className={`w-12 h-12 rounded-xl ${act.bg} text-white flex items-center justify-center shadow-md`}>

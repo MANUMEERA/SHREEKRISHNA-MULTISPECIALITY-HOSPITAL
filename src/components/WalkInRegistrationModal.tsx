@@ -10,6 +10,7 @@ interface WalkInRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultDoctorId?: string;
+  initialRegistrationType?: 'new' | 'existing';
   onSuccess: (newApt: Appointment, newPatient: User) => void;
 }
 
@@ -17,11 +18,12 @@ export const WalkInRegistrationModal: React.FC<WalkInRegistrationModalProps> = (
   isOpen,
   onClose,
   defaultDoctorId,
+  initialRegistrationType = 'new',
   onSuccess
 }) => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [existingPatients, setExistingPatients] = useState<User[]>([]);
-  const [registrationType, setRegistrationType] = useState<'new' | 'existing'>('new');
+  const [registrationType, setRegistrationType] = useState<'new' | 'existing'>(initialRegistrationType);
   const [searchPatientQuery, setSearchPatientQuery] = useState('');
   const [selectedExistingPatient, setSelectedExistingPatient] = useState<User | null>(null);
 
@@ -54,11 +56,12 @@ export const WalkInRegistrationModal: React.FC<WalkInRegistrationModalProps> = (
 
       const patients = await api.getPatients();
       setExistingPatients(patients);
+      setRegistrationType(initialRegistrationType);
     }
     if (isOpen) {
       loadInitialData();
     }
-  }, [isOpen, defaultDoctorId]);
+  }, [isOpen, defaultDoctorId, initialRegistrationType]);
 
   if (!isOpen) return null;
 

@@ -1,9 +1,10 @@
 import { 
   User, Doctor, Department, Appointment, MedicalReport, NotificationItem, AnalyticsStats, AppointmentStatus, UserRole, 
   DoctorLoginLog, StaffCategory, StaffDesignation, MedicineItem, DiagnosticTestItem, HospitalChargeCategory, 
-  AdmittedPatientRecord, PaymentReceipt, AccountingEntry, HospitalStampConfig, HospitalPolicy 
+  AdmittedPatientRecord, PaymentReceipt, AccountingEntry, HospitalStampConfig, HospitalPolicy, BotFaqItem 
 } from '../types';
-import { INITIAL_DEPARTMENTS, INITIAL_DOCTORS, INITIAL_USERS, INITIAL_APPOINTMENTS, INITIAL_REPORTS, INITIAL_NOTIFICATIONS } from './mockData';
+import { INITIAL_DEPARTMENTS, INITIAL_DOCTORS, INITIAL_USERS, INITIAL_APPOINTMENTS, INITIAL_REPORTS, INITIAL_NOTIFICATIONS, INITIAL_BOT_FAQS } from './mockData';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 const STORAGE_KEYS = {
   USERS: 'skmh_users_v2',
@@ -25,8 +26,10 @@ const STORAGE_KEYS = {
   ACCOUNTING: 'skmh_accounting_entries_v2',
   STAMP_CONFIG: 'skmh_stamp_config_v2',
   POLICIES: 'skmh_policies_v2',
-  VISITOR_COUNT: 'skmh_visitor_count_v2'
+  VISITOR_COUNT: 'skmh_visitor_count_v2',
+  BOT_FAQS: 'skmh_bot_faqs_v2'
 };
+
 
 export const INITIAL_MEDICINES: MedicineItem[] = [
   { id: 'med-1', name: 'Tab. Paracetamol (500mg)', category: 'Tablet', stock_count: 1200, min_threshold: 200, unit: 'Nos', expiry_date: '2027-11-30', unit_price: 3.5, location: 'Shelf A-1' },
@@ -368,14 +371,153 @@ if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
   setStored(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]); // Patient
 }
 
+let isSeedingSupabase = false;
+export async function seedSupabaseInitialData(): Promise<void> {
+  if (!isSupabaseConfigured || !supabase || isSeedingSupabase) return;
+  isSeedingSupabase = true;
+
+  try {
+    // 1. Seed Users if empty
+    const { count: usersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
+    if (usersCount === 0) {
+      const usersToInsert = INITIAL_USERS.map(u => ({
+        patient_code: u.patient_code || `SKMH-2026-PAT-${Math.floor(100 + Math.random() * 800)}`,
+        email: u.email,
+        password_hash: u.password || 'User@2026',
+        full_name: u.full_name,
+        role: u.role,
+        phone: u.phone,
+        gender: u.gender || 'Male',
+        age: u.age || 30,
+        blood_group: u.blood_group || 'O+',
+        allergies: u.allergies || [],
+        chronic_conditions: u.chronic_conditions || [],
+        emergency_contact: u.emergency_contact || '',
+        emergency_phone: u.emergency_phone || '',
+        address: u.address || 'Silvassa, Dadra & Nagar Haveli',
+        created_at: u.created_at || new Date().toISOString()
+      }));
+      await supabase.from('users').insert(usersToInsert);
+    }
+
+    // 2. Seed Doctors if empty
+    const { count: docsCount } = await supabase.from('doctors').select('*', { count: 'exact', head: true });
+    if (docsCount === 0) {
+      const docsToInsert = INITIAL_DOCTORS.map(d => ({
+        name: d.name,
+        department: d.department,
+        specialization: d.specialization,
+        qualification: d.qualification,
+        experience_years: d.experience_years,
+        consultation_fee: d.consultation_fee,
+        rating: d.rating,
+        reviews_count: d.reviews_count,
+        photo_url: d.photo_url,
+        bio: d.bio,
+        availability_days: d.availability_days,
+        time_slots: d.time_slots,
+        opd_timings: d.opd_timings,
+        phone: d.phone,
+        email: d.email,
+        is_active: d.is_active,
+        is_on_call: d.is_on_call,
+        consultant_type: d.consultant_type,
+        availability_status: d.availability_status,
+        signature_url: d.signature_url,
+        stamp_url: d.stamp_url,
+        registration_number: d.registration_number,
+        designation: d.designation,
+        is_authorised_signatory: d.is_authorised_signatory,
+        login_password: d.login_password || 'Doctor@2026'
+      }));
+      await supabase.from('doctors').insert(docsToInsert);
+    }
+
+    // 3. Seed Departments if empty
+    const { count: deptsCount } = await supabase.from('departments').select('*', { count: 'exact', head: true });
+    if (deptsCount === 0) {
+      const deptsToInsert = INITIAL_DEPARTMENTS.map(d => ({
+        name: d.name,
+        icon_name: d.icon_name,
+        description: d.description,
+        lead_doctor: d.lead_doctor,
+        total_doctors: d.total_doctors,
+        beds_count: d.beds_count,
+        equipment_highlights: d.equipment_highlights,
+        image_url: d.image_url,
+        common_conditions: d.common_conditions,
+        treatments: d.treatments
+      }));
+      await supabase.from('departments').insert(deptsToInsert);
+    }
+
+    // 4. Seed Medicines if empty
+    const { count: medsCount } = await supabase.from('medicines').select('*', { count: 'exact', head: true });
+    if (medsCount === 0) {
+      const medsToInsert = INITIAL_MEDICINES.map(m => ({
+        name: m.name,
+        category: m.category,
+        stock_count: m.stock_count,
+        min_threshold: m.min_threshold,
+        unit: m.unit,
+        expiry_date: m.expiry_date,
+        unit_price: m.unit_price,
+        location: m.location
+      }));
+      await supabase.from('medicines').insert(medsToInsert);
+    }
+
+    // 5. Seed Bot FAQs if empty
+    const { count: faqsCount } = await supabase.from('bot_faqs').select('*', { count: 'exact', head: true });
+    if (faqsCount === 0) {
+      const faqsToInsert = INITIAL_BOT_FAQS.map(f => ({
+        question: f.question,
+        answer: f.answer,
+        keywords: f.keywords || [],
+        category: f.category,
+        is_active: f.is_active,
+        click_count: f.click_count || 0
+      }));
+      await supabase.from('bot_faqs').insert(faqsToInsert);
+    }
+  } catch (e) {
+    console.warn('Supabase auto-seed warning:', e);
+  } finally {
+    isSeedingSupabase = false;
+  }
+}
+
+// Automatically attempt seeding if configured
+if (isSupabaseConfigured && supabase) {
+  seedSupabaseInitialData();
+}
+
 export const api = {
   // --- AUTH API ---
   async getUsers(): Promise<User[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          setStored(STORAGE_KEYS.USERS, data);
+          return data as User[];
+        } else if (!error && (!data || data.length === 0)) {
+          await seedSupabaseInitialData();
+          const { data: seededData } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+          if (seededData && seededData.length > 0) {
+            setStored(STORAGE_KEYS.USERS, seededData);
+            return seededData as User[];
+          }
+        }
+      } catch (e) {
+        console.warn('Supabase getUsers warning:', e);
+      }
+    }
     return getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
   },
 
   async getReceptionistUser(): Promise<User> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const users = await this.getUsers();
     let found = users.find(u => u.role === 'receptionist');
     if (!found) {
       found = {
@@ -390,6 +532,25 @@ export const api = {
         blood_group: 'O+',
         created_at: new Date().toISOString()
       };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: createdSupabase } = await supabase.from('users').insert([{
+            email: found.email,
+            password_hash: found.password,
+            full_name: found.full_name,
+            role: found.role,
+            phone: found.phone,
+            gender: found.gender,
+            age: found.age,
+            blood_group: found.blood_group
+          }]).select().single();
+          if (createdSupabase) {
+            found = { ...found, ...createdSupabase, id: createdSupabase.id };
+          }
+        } catch (e) {
+          console.warn('Supabase receptionist insert error:', e);
+        }
+      }
       users.push(found);
       setStored(STORAGE_KEYS.USERS, users);
     }
@@ -397,7 +558,7 @@ export const api = {
   },
 
   async updateReceptionistCredentials(email: string, password?: string, fullName?: string, phone?: string): Promise<User> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const users = await this.getUsers();
     let idx = users.findIndex(u => u.role === 'receptionist');
     if (idx === -1) {
       const rec = await this.getReceptionistUser();
@@ -405,7 +566,7 @@ export const api = {
       idx = users.length - 1;
     }
 
-    users[idx] = {
+    const updatedUser = {
       ...users[idx],
       email: email || users[idx].email,
       ...(password ? { password } : {}),
@@ -413,12 +574,26 @@ export const api = {
       ...(phone ? { phone } : {})
     };
 
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('users').update({
+          email: updatedUser.email,
+          ...(password ? { password_hash: password } : {}),
+          ...(fullName ? { full_name: fullName } : {}),
+          ...(phone ? { phone } : {})
+        }).eq('role', 'receptionist');
+      } catch (e) {
+        console.warn('Supabase update receptionist error:', e);
+      }
+    }
+
+    users[idx] = updatedUser;
     setStored(STORAGE_KEYS.USERS, users);
     return users[idx];
   },
 
   async resetPatientPassword(emailOrCode: string, newPassword: string): Promise<boolean> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const users = await this.getUsers();
     const q = emailOrCode.toLowerCase().trim();
     const idx = users.findIndex(u => 
       u.role === 'patient' && (
@@ -429,6 +604,13 @@ export const api = {
 
     if (idx !== -1) {
       users[idx] = { ...users[idx], password: newPassword };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase.from('users').update({ password_hash: newPassword }).eq('id', users[idx].id);
+        } catch (e) {
+          console.warn('Supabase reset password error:', e);
+        }
+      }
       setStored(STORAGE_KEYS.USERS, users);
       return true;
     }
@@ -444,7 +626,23 @@ export const api = {
   },
 
   async login(email: string, role?: UserRole): Promise<User> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: dbUser } = await supabase.from('users').select('*').ilike('email', email.trim()).maybeSingle();
+        if (dbUser) {
+          const userObj = dbUser as User;
+          setStored(STORAGE_KEYS.CURRENT_USER, userObj);
+          if (userObj.role === 'doctor') {
+            await this.recordDoctorLogin(userObj.email, userObj.full_name, 'Success');
+          }
+          return userObj;
+        }
+      } catch (e) {
+        console.warn('Supabase login lookup error:', e);
+      }
+    }
+
+    const users = await this.getUsers();
     let found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     
     if (!found) {
@@ -458,6 +656,21 @@ export const api = {
         phone: '+91 98000 12345',
         created_at: new Date().toISOString()
       };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: createdDb } = await supabase.from('users').insert([{
+            email: found.email,
+            full_name: found.full_name,
+            role: found.role,
+            phone: found.phone
+          }]).select().single();
+          if (createdDb) {
+            found = { ...found, ...createdDb, id: createdDb.id };
+          }
+        } catch (e) {
+          console.warn('Supabase auto login registration error:', e);
+        }
+      }
       users.push(found);
       setStored(STORAGE_KEYS.USERS, users);
     } else if (role && found.role !== role) {
@@ -476,9 +689,10 @@ export const api = {
   },
 
   async signup(data: Partial<User>): Promise<User> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const users = await this.getUsers();
     const patientCount = users.filter(u => u.role === 'patient').length;
-    const generatedPatientCode = data.patient_code || `SKMH-2026-PAT-${100 + patientCount + 1}`;
+    const generatedPatientCode = data.patient_code || `SKMH-2026-PAT-${100 + patientCount + 1}-${Math.floor(10 + Math.random() * 90)}`;
+    const userEmail = data.email ? data.email.trim() : `patient_${Date.now()}@skmh.org`;
 
     // Construct full address string if structured fields passed
     const addressFormatted = data.address || [
@@ -489,10 +703,14 @@ export const api = {
       data.pincode
     ].filter(Boolean).join(', ');
 
+    const userUuid = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0')}`;
+
     const newUser: User = {
-      id: `usr-patient-${Date.now()}`,
+      id: userUuid,
       patient_code: generatedPatientCode,
-      email: data.email || 'patient@skmh.org',
+      email: userEmail,
       full_name: data.full_name || 'Valued Patient',
       role: data.role || 'patient',
       phone: data.phone || '+91 98765 43210',
@@ -513,6 +731,107 @@ export const api = {
       medical_history_notes: data.medical_history_notes || data.past_medical_history || 'Self registered online via Patient Portal.',
       created_at: new Date().toISOString()
     };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const fullPayload: any = {
+          id: newUser.id,
+          patient_code: newUser.patient_code,
+          email: newUser.email,
+          password_hash: data.password || 'Patient@2026',
+          full_name: newUser.full_name,
+          role: newUser.role,
+          phone: newUser.phone,
+          gender: newUser.gender,
+          age: newUser.age,
+          blood_group: newUser.blood_group,
+          allergies: newUser.allergies,
+          chronic_conditions: newUser.chronic_conditions,
+          emergency_contact: newUser.emergency_contact,
+          emergency_phone: newUser.emergency_phone,
+          address: newUser.address,
+          street_address: newUser.street_address,
+          locality: newUser.locality,
+          city: newUser.city,
+          state: newUser.state,
+          pincode: newUser.pincode,
+          past_medical_history: newUser.past_medical_history,
+          medical_history_notes: newUser.medical_history_notes
+        };
+
+        // Strategy 1: Attempt upsert on email
+        let { data: dbData, error } = await supabase
+          .from('users')
+          .upsert([fullPayload], { onConflict: 'email' })
+          .select()
+          .maybeSingle();
+
+        // Strategy 2: If upsert by email fails, try direct insert
+        if (error) {
+          console.warn('Upsert by email warning, trying direct insert:', error.message);
+          const insertRes = await supabase
+            .from('users')
+            .insert([fullPayload])
+            .select()
+            .maybeSingle();
+          dbData = insertRes.data;
+          error = insertRes.error;
+        }
+
+        // Strategy 3: Try core payload upsert
+        if (error) {
+          console.warn('Full payload insert warning, trying core payload upsert:', error.message);
+          const corePayload: any = {
+            id: newUser.id,
+            patient_code: newUser.patient_code,
+            email: newUser.email,
+            password_hash: data.password || 'Patient@2026',
+            full_name: newUser.full_name,
+            role: newUser.role,
+            phone: newUser.phone,
+            gender: newUser.gender,
+            age: newUser.age,
+            blood_group: newUser.blood_group,
+            address: newUser.address
+          };
+          const coreRes = await supabase
+            .from('users')
+            .upsert([corePayload], { onConflict: 'email' })
+            .select()
+            .maybeSingle();
+          dbData = coreRes.data;
+          error = coreRes.error;
+        }
+
+        if (!error && dbData) {
+          const registeredSupabaseUser: User = {
+            ...newUser,
+            ...dbData,
+            id: dbData.id
+          };
+          users.unshift(registeredSupabaseUser);
+          setStored(STORAGE_KEYS.USERS, users);
+          setStored(STORAGE_KEYS.CURRENT_USER, registeredSupabaseUser);
+          return registeredSupabaseUser;
+        } else if (error) {
+          console.warn('Supabase user registration insert warning:', error.message || error);
+          if (error.code === '42P01' || error.message?.includes('does not exist') || error.message?.includes('relation')) {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('supabase-schema-needed', { 
+                detail: { message: 'Supabase table public.users does not exist yet.' } 
+              }));
+            }
+          }
+        }
+      } catch (e: any) {
+        console.warn('Supabase signup network/fetch issue, falling back to local storage:', e?.message || e);
+        if (typeof window !== 'undefined' && (e?.message?.includes('Failed to fetch') || e?.name === 'TypeError')) {
+          window.dispatchEvent(new CustomEvent('supabase-schema-needed', { 
+            detail: { message: 'Supabase project URL unreachable or SQL tables not created yet.' } 
+          }));
+        }
+      }
+    }
 
     users.unshift(newUser);
     setStored(STORAGE_KEYS.USERS, users);
@@ -579,6 +898,17 @@ export const api = {
 
   // --- DEPARTMENTS API ---
   async getDepartments(): Promise<Department[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('departments').select('*').order('name', { ascending: true });
+        if (!error && data && data.length > 0) {
+          setStored(STORAGE_KEYS.DEPARTMENTS, data);
+          return data as Department[];
+        }
+      } catch (e) {
+        console.warn('Supabase getDepartments warning:', e);
+      }
+    }
     const depts = getStored<Department[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
     if (!depts || depts.length === 0) {
       setStored(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
@@ -588,7 +918,7 @@ export const api = {
   },
 
   async createDepartment(data: Partial<Department>): Promise<Department> {
-    const depts = getStored<Department[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
+    const depts = await this.getDepartments();
     const newDept: Department = {
       id: `dept-${Date.now()}`,
       name: data.name || 'New Department',
@@ -602,74 +932,185 @@ export const api = {
       common_conditions: data.common_conditions || ['Emergency Care', 'Specialized Consultations'],
       treatments: data.treatments || ['Inpatient Care', 'OPD Consultations']
     };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: createdDb } = await supabase.from('departments').insert([{
+          name: newDept.name,
+          icon_name: newDept.icon_name,
+          description: newDept.description,
+          lead_doctor: newDept.lead_doctor,
+          total_doctors: newDept.total_doctors,
+          beds_count: newDept.beds_count,
+          equipment_highlights: newDept.equipment_highlights,
+          image_url: newDept.image_url,
+          common_conditions: newDept.common_conditions,
+          treatments: newDept.treatments
+        }]).select().single();
+        if (createdDb) {
+          const supabaseDept = { ...newDept, ...createdDb, id: createdDb.id };
+          depts.push(supabaseDept);
+          setStored(STORAGE_KEYS.DEPARTMENTS, depts);
+          return supabaseDept;
+        }
+      } catch (e) {
+        console.warn('Supabase createDepartment error:', e);
+      }
+    }
+
     depts.push(newDept);
     setStored(STORAGE_KEYS.DEPARTMENTS, depts);
     return newDept;
   },
 
   async updateDepartment(id: string, data: Partial<Department>): Promise<Department> {
-    const depts = getStored<Department[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
+    const depts = await this.getDepartments();
     const idx = depts.findIndex(d => d.id === id);
     if (idx === -1) throw new Error('Department not found');
     depts[idx] = { ...depts[idx], ...data };
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('departments').update(data).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updateDepartment error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.DEPARTMENTS, depts);
     return depts[idx];
   },
 
   async deleteDepartment(id: string): Promise<void> {
-    const depts = getStored<Department[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
+    const depts = await this.getDepartments();
     const filtered = depts.filter(d => d.id !== id);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('departments').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteDepartment error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.DEPARTMENTS, filtered);
   },
 
   // --- DOCTORS API ---
   async getDoctors(): Promise<Doctor[]> {
-    const doctors = getStored<Doctor[]>(STORAGE_KEYS.DOCTORS, INITIAL_DOCTORS);
-    const hasOldDoctor = doctors.some(d => 
-      d.name.includes('Rajesh') || 
-      d.name.includes('Ananya') || 
-      d.name.includes('Vikram') || 
-      d.name.includes('Deshmukh') || 
-      d.name.includes('Verma') || 
-      d.name.includes('Nair')
-    );
-    if (hasOldDoctor) {
-      setStored(STORAGE_KEYS.DOCTORS, INITIAL_DOCTORS);
-      return INITIAL_DOCTORS;
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('doctors').select('*').order('name', { ascending: true });
+        if (!error && data && data.length > 0) {
+          setStored(STORAGE_KEYS.DOCTORS, data);
+          return data as Doctor[];
+        }
+      } catch (e) {
+        console.warn('Supabase getDoctors warning:', e);
+      }
     }
+    const doctors = getStored<Doctor[]>(STORAGE_KEYS.DOCTORS, INITIAL_DOCTORS);
     return doctors;
   },
 
   async createDoctor(data: Omit<Doctor, 'id' | 'rating' | 'reviews_count'>): Promise<Doctor> {
-    const doctors = getStored<Doctor[]>(STORAGE_KEYS.DOCTORS, INITIAL_DOCTORS);
+    const doctors = await this.getDoctors();
     const newDoc: Doctor = {
       ...data,
       id: `doc-${Date.now()}`,
       rating: 5.0,
       reviews_count: 1
     };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: createdDb } = await supabase.from('doctors').insert([{
+          name: newDoc.name,
+          department: newDoc.department,
+          specialization: newDoc.specialization,
+          qualification: newDoc.qualification,
+          experience_years: newDoc.experience_years,
+          consultation_fee: newDoc.consultation_fee,
+          rating: newDoc.rating,
+          reviews_count: newDoc.reviews_count,
+          photo_url: newDoc.photo_url,
+          bio: newDoc.bio,
+          availability_days: newDoc.availability_days,
+          time_slots: newDoc.time_slots,
+          opd_timings: newDoc.opd_timings,
+          phone: newDoc.phone,
+          email: newDoc.email,
+          is_active: newDoc.is_active,
+          is_on_call: newDoc.is_on_call,
+          consultant_type: newDoc.consultant_type,
+          availability_status: newDoc.availability_status,
+          signature_url: newDoc.signature_url,
+          stamp_url: newDoc.stamp_url,
+          registration_number: newDoc.registration_number,
+          designation: newDoc.designation,
+          is_authorised_signatory: newDoc.is_authorised_signatory,
+          login_password: newDoc.login_password || 'Doctor@2026'
+        }]).select().single();
+        if (createdDb) {
+          const supabaseDoc = { ...newDoc, ...createdDb, id: createdDb.id };
+          doctors.unshift(supabaseDoc);
+          setStored(STORAGE_KEYS.DOCTORS, doctors);
+          return supabaseDoc;
+        }
+      } catch (e) {
+        console.warn('Supabase createDoctor error:', e);
+      }
+    }
+
     doctors.unshift(newDoc);
     setStored(STORAGE_KEYS.DOCTORS, doctors);
     return newDoc;
   },
 
   async updateDoctor(id: string, data: Partial<Doctor>): Promise<Doctor> {
-    const doctors = getStored<Doctor[]>(STORAGE_KEYS.DOCTORS, INITIAL_DOCTORS);
+    const doctors = await this.getDoctors();
     const idx = doctors.findIndex(d => d.id === id);
     if (idx === -1) throw new Error('Doctor not found');
     doctors[idx] = { ...doctors[idx], ...data };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('doctors').update(data).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updateDoctor error:', e);
+      }
+    }
+
     setStored(STORAGE_KEYS.DOCTORS, doctors);
     return doctors[idx];
   },
 
   async deleteDoctor(id: string): Promise<void> {
-    const doctors = getStored<Doctor[]>(STORAGE_KEYS.DOCTORS, INITIAL_DOCTORS);
+    const doctors = await this.getDoctors();
     const filtered = doctors.filter(d => d.id !== id);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('doctors').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteDoctor error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.DOCTORS, filtered);
   },
 
   // --- APPOINTMENTS API ---
   async getAppointments(userId?: string, role?: UserRole): Promise<Appointment[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        let query = supabase.from('appointments').select('*').order('created_at', { ascending: false });
+        if (userId && (role === 'patient' || role === 'doctor')) {
+          query = query.eq('user_id', userId);
+        }
+        const { data, error } = await query;
+        if (!error && data) {
+          setStored(STORAGE_KEYS.APPOINTMENTS, data);
+          return data as Appointment[];
+        }
+      } catch (e) {
+        console.warn('Supabase getAppointments warning:', e);
+      }
+    }
     const appointments = getStored<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
     if (role === 'admin' || role === 'staff' || role === 'super_admin') {
       return appointments;
@@ -681,13 +1122,51 @@ export const api = {
   },
 
   async createAppointment(data: Omit<Appointment, 'id' | 'created_at' | 'status'>): Promise<Appointment> {
-    const appointments = getStored<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
+    const appointments = await this.getAppointments();
     const newApt: Appointment = {
       ...data,
       id: `apt-${Math.floor(100 + Math.random() * 900)}`,
       status: 'pending',
       created_at: new Date().toISOString()
     };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: dbData, error } = await supabase.from('appointments').insert([{
+          user_id: data.user_id && data.user_id.length > 20 ? data.user_id : null,
+          patient_code: data.patient_code,
+          user_name: data.user_name,
+          user_phone: data.user_phone,
+          user_email: data.user_email,
+          doctor_id: data.doctor_id && data.doctor_id.length > 20 ? data.doctor_id : null,
+          doctor_name: data.doctor_name,
+          department: data.department,
+          appointment_date: data.appointment_date,
+          time_slot: data.time_slot,
+          status: 'pending',
+          reason: data.reason,
+          notes: data.notes
+        }]).select().single();
+
+        if (!error && dbData) {
+          const supabaseApt = { ...newApt, ...dbData, id: dbData.id };
+          appointments.unshift(supabaseApt);
+          setStored(STORAGE_KEYS.APPOINTMENTS, appointments);
+
+          await this.addNotification({
+            user_id: data.user_id,
+            title: 'Appointment Request Submitted! 🕒',
+            message: `Your appointment request with ${data.doctor_name} for ${data.appointment_date} at ${data.time_slot} is pending confirmation.`,
+            type: 'appointment'
+          });
+
+          return supabaseApt;
+        }
+      } catch (e) {
+        console.warn('Supabase createAppointment error:', e);
+      }
+    }
+
     appointments.unshift(newApt);
     setStored(STORAGE_KEYS.APPOINTMENTS, appointments);
 
@@ -703,12 +1182,24 @@ export const api = {
   },
 
   async updateAppointmentStatus(id: string, status: AppointmentStatus, notes?: string): Promise<Appointment> {
-    const appointments = getStored<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
+    const appointments = await this.getAppointments();
     const idx = appointments.findIndex(a => a.id === id);
     if (idx === -1) throw new Error('Appointment not found');
     
     appointments[idx].status = status;
     if (notes) appointments[idx].notes = notes;
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('appointments').update({
+          status,
+          ...(notes ? { notes } : {})
+        }).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updateAppointmentStatus error:', e);
+      }
+    }
+
     setStored(STORAGE_KEYS.APPOINTMENTS, appointments);
 
     // Create notification for user
@@ -725,7 +1216,7 @@ export const api = {
   },
 
   async updateAppointmentDetails(id: string, updates: Partial<Appointment>): Promise<Appointment> {
-    const appointments = getStored<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
+    const appointments = await this.getAppointments();
     const idx = appointments.findIndex(a => a.id === id);
     if (idx === -1) throw new Error('Appointment not found');
     
@@ -733,9 +1224,17 @@ export const api = {
       ...appointments[idx],
       ...updates
     };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('appointments').update(updates).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updateAppointmentDetails error:', e);
+      }
+    }
+
     setStored(STORAGE_KEYS.APPOINTMENTS, appointments);
 
-    // If status is completed, notify user
     if (updates.status === 'completed') {
       const apt = appointments[idx];
       await this.addNotification({
@@ -750,13 +1249,35 @@ export const api = {
   },
 
   async deleteAppointment(id: string): Promise<void> {
-    const appointments = getStored<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
+    const appointments = await this.getAppointments();
     const filtered = appointments.filter(a => a.id !== id);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('appointments').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteAppointment error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.APPOINTMENTS, filtered);
   },
 
   // --- MEDICAL REPORTS API ---
   async getReports(userId?: string, role?: UserRole): Promise<MedicalReport[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        let query = supabase.from('medical_reports').select('*').order('uploaded_at', { ascending: false });
+        if (userId && (role === 'patient')) {
+          query = query.eq('user_id', userId);
+        }
+        const { data, error } = await query;
+        if (!error && data) {
+          setStored(STORAGE_KEYS.REPORTS, data);
+          return data as MedicalReport[];
+        }
+      } catch (e) {
+        console.warn('Supabase getReports warning:', e);
+      }
+    }
     const reports = getStored<MedicalReport[]>(STORAGE_KEYS.REPORTS, INITIAL_REPORTS);
     if (role === 'admin' || role === 'staff' || role === 'super_admin') {
       return reports;
@@ -768,16 +1289,51 @@ export const api = {
   },
 
   async uploadReport(data: Omit<MedicalReport, 'id' | 'uploaded_at'>): Promise<MedicalReport> {
-    const reports = getStored<MedicalReport[]>(STORAGE_KEYS.REPORTS, INITIAL_REPORTS);
+    const reports = await this.getReports();
     const newReport: MedicalReport = {
       ...data,
       id: `rep-${Date.now()}`,
       uploaded_at: new Date().toISOString()
     };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: dbData, error } = await supabase.from('medical_reports').insert([{
+          user_id: data.user_id && data.user_id.length > 20 ? data.user_id : null,
+          user_name: data.user_name,
+          title: data.title,
+          category: data.category,
+          file_name: data.file_name,
+          file_url: data.file_url,
+          file_size: data.file_size,
+          doctor_notes: data.doctor_notes,
+          uploaded_by_role: data.uploaded_by_role
+        }]).select().single();
+
+        if (!error && dbData) {
+          const supabaseRep = { ...newReport, ...dbData, id: dbData.id };
+          reports.unshift(supabaseRep);
+          setStored(STORAGE_KEYS.REPORTS, reports);
+
+          if (data.uploaded_by_role !== 'patient') {
+            await this.addNotification({
+              user_id: data.user_id,
+              title: 'New Medical Report Available 📄',
+              message: `A new medical report "${data.title}" (${data.category}) has been uploaded to your record.`,
+              type: 'report'
+            });
+          }
+
+          return supabaseRep;
+        }
+      } catch (e) {
+        console.warn('Supabase uploadReport error:', e);
+      }
+    }
+
     reports.unshift(newReport);
     setStored(STORAGE_KEYS.REPORTS, reports);
 
-    // Notify user if uploaded by staff/doctor
     if (data.uploaded_by_role !== 'patient') {
       await this.addNotification({
         user_id: data.user_id,
@@ -791,13 +1347,30 @@ export const api = {
   },
 
   async deleteReport(id: string): Promise<void> {
-    const reports = getStored<MedicalReport[]>(STORAGE_KEYS.REPORTS, INITIAL_REPORTS);
+    const reports = await this.getReports();
     const filtered = reports.filter(r => r.id !== id);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('medical_reports').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteReport error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.REPORTS, filtered);
   },
 
   // --- NOTIFICATIONS API ---
   async getNotifications(userId: string): Promise<NotificationItem[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+        if (!error && data) {
+          return data as NotificationItem[];
+        }
+      } catch (e) {
+        console.warn('Supabase getNotifications warning:', e);
+      }
+    }
     const notifications = getStored<NotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
     return notifications.filter(n => n.user_id === userId);
   },
@@ -810,6 +1383,27 @@ export const api = {
       read: false,
       created_at: new Date().toISOString()
     };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: dbData } = await supabase.from('notifications').insert([{
+          user_id: data.user_id && data.user_id.length > 20 ? data.user_id : null,
+          title: data.title,
+          message: data.message,
+          type: data.type,
+          read: false
+        }]).select().single();
+        if (dbData) {
+          const supabaseNotif = { ...newNotif, ...dbData, id: dbData.id };
+          notifications.unshift(supabaseNotif);
+          setStored(STORAGE_KEYS.NOTIFICATIONS, notifications);
+          return supabaseNotif;
+        }
+      } catch (e) {
+        console.warn('Supabase addNotification error:', e);
+      }
+    }
+
     notifications.unshift(newNotif);
     setStored(STORAGE_KEYS.NOTIFICATIONS, notifications);
     return newNotif;
@@ -824,36 +1418,57 @@ export const api = {
     const idx = notifications.findIndex(n => n.id === id);
     if (idx !== -1) {
       notifications[idx].read = true;
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase.from('notifications').update({ read: true }).eq('id', id);
+        } catch (e) {
+          console.warn('Supabase markNotificationRead error:', e);
+        }
+      }
       setStored(STORAGE_KEYS.NOTIFICATIONS, notifications);
     }
   },
 
   // --- PATIENTS MANAGER API ---
   async getPatients(): Promise<User[]> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const users = await this.getUsers();
     return users.filter(u => u.role === 'patient');
   },
 
   async createPatient(data: Omit<User, 'id' | 'role' | 'created_at'>): Promise<User> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
-    const newPatientCode = data.patient_code || `SKMH-2026-PAT-${Math.floor(100 + users.filter(u => u.role === 'patient').length + 1)}`;
-    const newPatient: User = {
-      ...data,
-      patient_code: newPatientCode,
-      id: `usr-patient-${Date.now()}`,
-      role: 'patient',
-      created_at: new Date().toISOString()
-    };
-    users.unshift(newPatient);
-    setStored(STORAGE_KEYS.USERS, users);
-    return newPatient;
+    return this.signup({ ...data, role: 'patient' });
   },
 
   async updatePatient(id: string, data: Partial<User>): Promise<User> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const users = await this.getUsers();
     const idx = users.findIndex(u => u.id === id);
     if (idx === -1) throw new Error('Patient record not found');
     users[idx] = { ...users[idx], ...data };
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('users').update({
+          full_name: data.full_name,
+          phone: data.phone,
+          gender: data.gender,
+          age: data.age,
+          blood_group: data.blood_group,
+          allergies: data.allergies,
+          chronic_conditions: data.chronic_conditions,
+          emergency_contact: data.emergency_contact,
+          emergency_phone: data.emergency_phone,
+          address: data.address,
+          street_address: data.street_address,
+          locality: data.locality,
+          city: data.city,
+          state: data.state,
+          pincode: data.pincode,
+          past_medical_history: data.past_medical_history,
+          medical_history_notes: data.medical_history_notes
+        }).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updatePatient error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.USERS, users);
     return users[idx];
   },
@@ -863,8 +1478,15 @@ export const api = {
   },
 
   async deletePatient(id: string): Promise<void> {
-    const users = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const users = await this.getUsers();
     const filtered = users.filter(u => u.id !== id);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('users').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deletePatient error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.USERS, filtered);
   },
 
@@ -1025,12 +1647,47 @@ export const api = {
 
   // --- MEDICINE INVENTORY API ---
   async getMedicines(): Promise<MedicineItem[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('medicines').select('*').order('name', { ascending: true });
+        if (!error && data && data.length > 0) {
+          setStored(STORAGE_KEYS.MEDICINES, data);
+          return data as MedicineItem[];
+        }
+      } catch (e) {
+        console.warn('Supabase getMedicines warning:', e);
+      }
+    }
     return getStored<MedicineItem[]>(STORAGE_KEYS.MEDICINES, INITIAL_MEDICINES);
   },
 
   async addMedicine(medicine: Omit<MedicineItem, 'id'>): Promise<MedicineItem> {
     const medicines = await this.getMedicines();
     const newMed: MedicineItem = { ...medicine, id: `med-${Date.now()}` };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: dbData } = await supabase.from('medicines').insert([{
+          name: medicine.name,
+          category: medicine.category,
+          stock_count: medicine.stock_count,
+          min_threshold: medicine.min_threshold,
+          unit: medicine.unit,
+          expiry_date: medicine.expiry_date,
+          unit_price: medicine.unit_price,
+          location: medicine.location
+        }]).select().single();
+        if (dbData) {
+          const supabaseMed = { ...newMed, ...dbData, id: dbData.id };
+          const updated = [supabaseMed, ...medicines];
+          setStored(STORAGE_KEYS.MEDICINES, updated);
+          return supabaseMed;
+        }
+      } catch (e) {
+        console.warn('Supabase addMedicine error:', e);
+      }
+    }
+
     const updated = [newMed, ...medicines];
     setStored(STORAGE_KEYS.MEDICINES, updated);
     return newMed;
@@ -1039,6 +1696,13 @@ export const api = {
   async updateMedicine(medicine: MedicineItem): Promise<MedicineItem> {
     const medicines = await this.getMedicines();
     const updated = medicines.map(m => m.id === medicine.id ? medicine : m);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('medicines').update(medicine).eq('id', medicine.id);
+      } catch (e) {
+        console.warn('Supabase updateMedicine error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.MEDICINES, updated);
     return medicine;
   },
@@ -1046,6 +1710,13 @@ export const api = {
   async deleteMedicine(id: string): Promise<boolean> {
     const medicines = await this.getMedicines();
     const filtered = medicines.filter(m => m.id !== id);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('medicines').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteMedicine error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.MEDICINES, filtered);
     return true;
   },
@@ -1106,12 +1777,48 @@ export const api = {
 
   // --- ADMITTED PATIENTS (IPD) API ---
   async getAdmittedPatients(): Promise<AdmittedPatientRecord[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('admitted_patients').select('*').order('admission_date', { ascending: false });
+        if (!error && data) {
+          setStored(STORAGE_KEYS.IPD_PATIENTS, data);
+          return data as AdmittedPatientRecord[];
+        }
+      } catch (e) {
+        console.warn('Supabase getAdmittedPatients warning:', e);
+      }
+    }
     return getStored<AdmittedPatientRecord[]>(STORAGE_KEYS.IPD_PATIENTS, INITIAL_IPD_PATIENTS);
   },
 
   async addAdmittedPatient(ipd: Omit<AdmittedPatientRecord, 'id'>): Promise<AdmittedPatientRecord> {
     const list = await this.getAdmittedPatients();
     const newIpd: AdmittedPatientRecord = { ...ipd, id: `ipd-2026-${100 + list.length + 1}` };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: dbData } = await supabase.from('admitted_patients').insert([{
+          patient_name: ipd.patient_name,
+          patient_code: ipd.patient_code,
+          room_number: ipd.bed_number,
+          ward_type: ipd.ward_type,
+          attending_doctor: ipd.doctor_name,
+          admission_date: ipd.admission_date,
+          diagnosis: ipd.diagnosis_at_admission,
+          status: ipd.status,
+          billing_amount: ipd.daily_bed_charge
+        }]).select().single();
+        if (dbData) {
+          const supabaseIpd = { ...newIpd, ...dbData, id: dbData.id };
+          const updated = [supabaseIpd, ...list];
+          setStored(STORAGE_KEYS.IPD_PATIENTS, updated);
+          return supabaseIpd;
+        }
+      } catch (e) {
+        console.warn('Supabase addAdmittedPatient error:', e);
+      }
+    }
+
     const updated = [newIpd, ...list];
     setStored(STORAGE_KEYS.IPD_PATIENTS, updated);
     return newIpd;
@@ -1120,6 +1827,13 @@ export const api = {
   async updateAdmittedPatient(ipd: AdmittedPatientRecord): Promise<AdmittedPatientRecord> {
     const list = await this.getAdmittedPatients();
     const updated = list.map(p => p.id === ipd.id ? ipd : p);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('admitted_patients').update(ipd).eq('id', ipd.id);
+      } catch (e) {
+        console.warn('Supabase updateAdmittedPatient error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.IPD_PATIENTS, updated);
     return ipd;
   },
@@ -1127,12 +1841,30 @@ export const api = {
   async deleteAdmittedPatient(id: string): Promise<boolean> {
     const list = await this.getAdmittedPatients();
     const filtered = list.filter(p => p.id !== id);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('admitted_patients').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Supabase deleteAdmittedPatient error:', e);
+      }
+    }
     setStored(STORAGE_KEYS.IPD_PATIENTS, filtered);
     return true;
   },
 
   // --- PAYMENT RECEIPTS API ---
   async getPaymentReceipts(): Promise<PaymentReceipt[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('payment_receipts').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+          setStored(STORAGE_KEYS.RECEIPTS, data);
+          return data as PaymentReceipt[];
+        }
+      } catch (e) {
+        console.warn('Supabase getPaymentReceipts warning:', e);
+      }
+    }
     return getStored<PaymentReceipt[]>(STORAGE_KEYS.RECEIPTS, INITIAL_RECEIPTS);
   },
 
@@ -1204,6 +1936,134 @@ export const api = {
     const updated = current + 1;
     setStored(STORAGE_KEYS.VISITOR_COUNT, updated);
     return updated;
+  },
+
+  // --- AI DESK CHATBOT FAQ API ---
+  async getBotFaqs(): Promise<BotFaqItem[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('bot_faqs')
+          .select('*')
+          .order('click_count', { ascending: false });
+        if (!error && data && data.length > 0) {
+          setStored(STORAGE_KEYS.BOT_FAQS, data);
+          return data as BotFaqItem[];
+        }
+      } catch (e) {
+        console.warn('Supabase bot_faqs fetch warning, falling back to local storage:', e);
+      }
+    }
+    return getStored<BotFaqItem[]>(STORAGE_KEYS.BOT_FAQS, INITIAL_BOT_FAQS);
+  },
+
+  async addBotFaq(faq: Omit<BotFaqItem, 'id'>): Promise<BotFaqItem> {
+    const localFaqs = await this.getBotFaqs();
+    const newFaq: BotFaqItem = {
+      ...faq,
+      id: `faq-${Date.now()}`,
+      click_count: 0,
+      created_at: new Date().toISOString().split('T')[0]
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('bot_faqs')
+          .insert([{
+            question: faq.question,
+            answer: faq.answer,
+            keywords: faq.keywords || [],
+            category: faq.category,
+            is_active: faq.is_active,
+            click_count: 0
+          }])
+          .select()
+          .single();
+
+        if (!error && data) {
+          const createdSupabaseItem: BotFaqItem = data as BotFaqItem;
+          const updated = [createdSupabaseItem, ...localFaqs];
+          setStored(STORAGE_KEYS.BOT_FAQS, updated);
+          return createdSupabaseItem;
+        }
+      } catch (e) {
+        console.warn('Supabase bot_faqs insert failed, saving locally:', e);
+      }
+    }
+
+    const updated = [newFaq, ...localFaqs];
+    setStored(STORAGE_KEYS.BOT_FAQS, updated);
+    return newFaq;
+  },
+
+  async updateBotFaq(faq: BotFaqItem): Promise<BotFaqItem> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('bot_faqs')
+          .update({
+            question: faq.question,
+            answer: faq.answer,
+            keywords: faq.keywords || [],
+            category: faq.category,
+            is_active: faq.is_active,
+            click_count: faq.click_count || 0
+          })
+          .eq('id', faq.id);
+      } catch (e) {
+        console.warn('Supabase bot_faqs update warning:', e);
+      }
+    }
+
+    const localFaqs = getStored<BotFaqItem[]>(STORAGE_KEYS.BOT_FAQS, INITIAL_BOT_FAQS);
+    const updated = localFaqs.map(f => f.id === faq.id ? faq : f);
+    setStored(STORAGE_KEYS.BOT_FAQS, updated);
+    return faq;
+  },
+
+  async deleteBotFaq(id: string): Promise<boolean> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('bot_faqs')
+          .delete()
+          .eq('id', id);
+      } catch (e) {
+        console.warn('Supabase bot_faqs delete warning:', e);
+      }
+    }
+
+    const localFaqs = getStored<BotFaqItem[]>(STORAGE_KEYS.BOT_FAQS, INITIAL_BOT_FAQS);
+    const filtered = localFaqs.filter(f => f.id !== id);
+    setStored(STORAGE_KEYS.BOT_FAQS, filtered);
+    return true;
+  },
+
+  async incrementBotFaqClick(id: string): Promise<void> {
+    const localFaqs = getStored<BotFaqItem[]>(STORAGE_KEYS.BOT_FAQS, INITIAL_BOT_FAQS);
+    const target = localFaqs.find(f => f.id === id);
+    const newCount = (target?.click_count || 0) + 1;
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('bot_faqs')
+          .update({ click_count: newCount })
+          .eq('id', id);
+      } catch (e) {
+        console.warn('Supabase bot_faqs increment warning:', e);
+      }
+    }
+
+    const updated = localFaqs.map(f => {
+      if (f.id === id) {
+        return { ...f, click_count: newCount };
+      }
+      return f;
+    });
+    setStored(STORAGE_KEYS.BOT_FAQS, updated);
   }
 };
+
 

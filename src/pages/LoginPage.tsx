@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
-import { Lock, Mail, User, ShieldCheck, CheckCircle2, UserCheck, AlertCircle, ArrowRight, KeyRound } from 'lucide-react';
+import { Lock, Mail, User, ShieldCheck, CheckCircle2, UserCheck, AlertCircle, ArrowRight, KeyRound, Database, FileCode } from 'lucide-react';
 import { HospitalLogo } from '../components/common/HospitalLogo';
 import { PatientForgotPasswordModal } from '../components/PatientForgotPasswordModal';
+import { SupabaseSchemaModal } from '../components/SupabaseSchemaModal';
 
 interface LoginPageProps {
   setActiveTab: (tab: string) => void;
@@ -14,8 +15,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
   const { login, signup, switchUserRole } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [isSchemaModalOpen, setIsSchemaModalOpen] = useState(false);
+  const [schemaNotice, setSchemaNotice] = useState<string | null>(null);
   
   const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    const handleSchemaNeeded = (e: any) => {
+      setSchemaNotice(e?.detail?.message || 'Supabase tables need to be created using SQL Editor.');
+    };
+    window.addEventListener('supabase-schema-needed', handleSchemaNeeded);
+    return () => window.removeEventListener('supabase-schema-needed', handleSchemaNeeded);
+  }, []);
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -147,20 +158,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
           <p className="text-xs text-slate-500 font-semibold mt-1">Multispecialty Patient & Staff Portal</p>
         </div>
 
-        {/* Supabase Status Indicator */}
-        <div className="mb-6 p-3 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className={`w-4 h-4 ${isSupabaseConfigured ? 'text-emerald-600' : 'text-amber-500'}`} />
-            <div>
-              <span className="font-bold text-slate-800">Auth Engine: </span>
-              <span className="text-slate-600">{isSupabaseConfigured ? 'Supabase Active' : 'Local Persistence Mode'}</span>
+        {/* Supabase Status Indicator & SQL Setup Trigger */}
+        <div className="mb-6 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className={`w-4 h-4 ${isSupabaseConfigured ? 'text-emerald-600' : 'text-amber-500'}`} />
+              <div>
+                <span className="font-bold text-slate-800">Database Engine: </span>
+                <span className="text-slate-600">{isSupabaseConfigured ? 'Supabase Cloud Connected' : 'Local Persistence'}</span>
+              </div>
             </div>
+            <button
+              onClick={() => setIsSchemaModalOpen(true)}
+              className="px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200 flex items-center gap-1 transition-all"
+            >
+              <Database className="w-3.5 h-3.5 text-emerald-600" />
+              SQL Schema
+            </button>
           </div>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            isSupabaseConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
-          }`}>
-            {isSupabaseConfigured ? 'CONNECTED' : 'LOCAL MOCK'}
-          </span>
+
+          {schemaNotice && (
+            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-center justify-between gap-2">
+              <span>⚠️ Supabase tables missing! Run the SQL script in your Supabase SQL Editor.</span>
+              <button
+                onClick={() => setIsSchemaModalOpen(true)}
+                className="px-2 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] whitespace-nowrap hover:bg-amber-700 transition-colors"
+              >
+                Copy SQL
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Main Auth Card */}
@@ -554,6 +581,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
           setSelectedRole('patient');
           setIsSignup(false);
         }}
+      />
+
+      {/* Supabase Schema DDL Modal */}
+      <SupabaseSchemaModal
+        isOpen={isSchemaModalOpen}
+        onClose={() => setIsSchemaModalOpen(false)}
       />
     </div>
   );

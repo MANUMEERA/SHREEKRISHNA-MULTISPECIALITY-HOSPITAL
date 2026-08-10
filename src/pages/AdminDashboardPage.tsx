@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { 
   Users, Calendar, Stethoscope, Plus, Edit, Trash2, ShieldCheck, Copy, Check, Search, ChevronRight, X, 
   Building2, Upload, Image as ImageIcon, HeartPulse, Brain, Bone, Baby, Activity, BedDouble, UserCheck, PhoneCall,
-  FileText, FolderHeart, AlertTriangle, Printer, FileSpreadsheet, Eye, ClipboardList, Clock, CheckCircle2, UserPlus, FilePlus, Pill, Share2, FileCheck2, Lock, ShieldAlert, RefreshCw, Database
+  FileText, FolderHeart, AlertTriangle, Printer, FileSpreadsheet, Eye, ClipboardList, Clock, CheckCircle2, UserPlus, FilePlus, Pill, Share2, FileCheck2, Lock, ShieldAlert, RefreshCw, Database, Bot
 } from 'lucide-react';
 import { ClinicalObservationModal } from '../components/ClinicalObservationModal';
 import { PrintableConsultationSlip } from '../components/PrintableConsultationSlip';
@@ -19,9 +19,11 @@ import { InpatientManagerModal } from '../components/InpatientManagerModal';
 import { HospitalSettingsModal } from '../components/HospitalSettingsModal';
 import { AccountingManagerSection } from '../components/AccountingManagerSection';
 import { InventoryManagerSection } from '../components/InventoryManagerSection';
-import { GeminiHospitalBotModal } from '../components/GeminiHospitalBotModal';
+import { DiagnosticTestsManagerSection } from '../components/DiagnosticTestsManagerSection';
+import { BotFaqManagerSection } from '../components/BotFaqManagerSection';
 import { AudioNotificationToast } from '../components/AudioNotificationToast';
 import { SupabaseSchemaModal } from '../components/SupabaseSchemaModal';
+import { DailyPaymentReportModal } from '../components/DailyPaymentReportModal';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -29,9 +31,10 @@ export const AdminDashboardPage: React.FC = () => {
 
   const isReceptionist = userRole === 'receptionist';
 
-  const [adminSubTab, setAdminSubTab] = useState<'analytics' | 'departments' | 'doctors' | 'appointments' | 'patients' | 'supabase' | 'staff' | 'accounting' | 'inventory'>(
+  const [adminSubTab, setAdminSubTab] = useState<'analytics' | 'departments' | 'doctors' | 'appointments' | 'patients' | 'supabase' | 'staff' | 'accounting' | 'inventory' | 'tests' | 'bot_faqs'>(
     userRole === 'receptionist' ? 'appointments' : 'patients'
   );
+
 
   // Auto-Refresh state
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
@@ -45,16 +48,14 @@ export const AdminDashboardPage: React.FC = () => {
     phone: string;
     email?: string;
     doctor?: string;
-  }>({ name: 'Walk-in Patient', code: 'SKMH-WALKIN', phone: '+91 98000 00000' });
+    autoShowReceipt?: boolean;
+  }>({ name: 'Walk-in Patient', code: 'SKMH-WALKIN', phone: '+91 98000 00000', autoShowReceipt: false });
 
   // IPD modal
   const [ipdModalOpen, setIpdModalOpen] = useState(false);
 
   // Hospital settings modal
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-
-  // Gemini AI Bot Modal
-  const [aiBotModalOpen, setAiBotModalOpen] = useState(false);
 
   // Supabase Schema Modal
   const [supabaseSchemaModalOpen, setSupabaseSchemaModalOpen] = useState(false);
@@ -78,6 +79,16 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Walk-In Direct Hospital Patient Registration Modal State
   const [walkInModalOpen, setWalkInModalOpen] = useState(false);
+  const [walkInInitialType, setWalkInInitialType] = useState<'new' | 'existing'>('new');
+
+  // Receptionist Desk Settings: Disable Slip & Bill Receipts
+  const [printingDisabled, setPrintingDisabled] = useState<boolean>(false);
+
+  // Receptionist Daily Collection Payment Report Modal State
+  const [dailyReportModalOpen, setDailyReportModalOpen] = useState<boolean>(false);
+
+  // OPD Consultation Log Windows: 'today' vs 'previous'
+  const [opdLogWindow, setOpdLogWindow] = useState<'today' | 'previous'>('today');
 
   // Super Admin Doctor Login Security Monitor Modal State
   const [doctorSecurityModalOpen, setDoctorSecurityModalOpen] = useState(false);
@@ -599,13 +610,23 @@ export const AdminDashboardPage: React.FC = () => {
     );
   });
 
+  const todayDateStr = new Date().toISOString().split('T')[0];
+
+  const todayAptsCount = appointments.filter(a => a.appointment_date === todayDateStr || !a.appointment_date).length;
+  const previousAptsCount = appointments.filter(a => a.appointment_date && a.appointment_date !== todayDateStr).length;
+
   const filteredAppointments = appointments.filter((apt) => {
+    const isTodayApt = apt.appointment_date === todayDateStr || !apt.appointment_date;
+    const matchesWindow = opdLogWindow === 'today' ? isTodayApt : !isTodayApt;
+
     const matchesStatus = aptStatusFilter === 'all' || apt.status === aptStatusFilter;
     const matchesSearch =
       apt.user_name.toLowerCase().includes(aptSearch.toLowerCase()) ||
       apt.doctor_name.toLowerCase().includes(aptSearch.toLowerCase()) ||
-      apt.department.toLowerCase().includes(aptSearch.toLowerCase());
-    return matchesStatus && matchesSearch;
+      apt.department.toLowerCase().includes(aptSearch.toLowerCase()) ||
+      (apt.patient_code && apt.patient_code.toLowerCase().includes(aptSearch.toLowerCase()));
+      
+    return matchesWindow && matchesStatus && matchesSearch;
   });
 
   const filteredDepartments = departments.filter((d) => 
@@ -702,14 +723,6 @@ export const AdminDashboardPage: React.FC = () => {
                 <div className={`w-2 h-2 rounded-full ${autoRefreshEnabled ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
                 <span>Auto-Refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
                 <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">({lastRefreshedTime})</span>
-              </button>
-
-              {/* Gemini AI Bot Launcher */}
-              <button
-                onClick={() => setAiBotModalOpen(true)}
-                className="px-3.5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
-              >
-                <Brain className="w-4 h-4 text-emerald-300" /> AI Assistant Desk
               </button>
 
               {/* IPD Admissions Manager */}
@@ -970,6 +983,55 @@ export const AdminDashboardPage: React.FC = () => {
                   </span>
                 </button>
 
+                {/* TAB: DIAGNOSTIC TESTS & LAB MASTER */}
+                <button
+                  onClick={() => setAdminSubTab('tests')}
+                  className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between group ${
+                    adminSubTab === 'tests'
+                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10'
+                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl transition-colors ${
+                      adminSubTab === 'tests' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'
+                    }`}>
+                      <ClipboardList className="w-4 h-4" />
+                    </div>
+                    <span>Diagnostic Tests & Lab Price Catalog</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    adminSubTab === 'tests' ? 'bg-slate-800 text-indigo-400' : 'bg-indigo-100 text-indigo-800'
+                  }`}>
+                    Tests Master
+                  </span>
+                </button>
+
+                {/* TAB: AI DESK CHATBOT FIXED Q&A RULES */}
+                <button
+                  onClick={() => setAdminSubTab('bot_faqs')}
+                  className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between group ${
+                    adminSubTab === 'bot_faqs'
+                      ? 'bg-gradient-to-r from-teal-900 to-slate-900 text-white shadow-lg shadow-teal-900/20 border border-teal-700/50'
+                      : 'text-slate-600 hover:bg-teal-50/80 hover:text-teal-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl transition-colors ${
+                      adminSubTab === 'bot_faqs' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-teal-100 text-teal-800 group-hover:bg-teal-200'
+                    }`}>
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <span>AI Assistant Q&A Rules</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    adminSubTab === 'bot_faqs' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-teal-100 text-teal-900'
+                  }`}>
+                    Bot FAQ
+                  </span>
+                </button>
+
+
                 {/* Super Admin Passkey Monitor Button */}
                 <button
                   onClick={() => setDoctorSecurityModalOpen(true)}
@@ -1187,14 +1249,87 @@ export const AdminDashboardPage: React.FC = () => {
 
             {/* TAB 2: APPOINTMENTS HISTORY */}
             {adminSubTab === 'appointments' && (
-              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 space-y-5">
+                
+                {/* TWO WINDOWS / TABS NAVIGATION FOR TODAY VS PREVIOUS OPD CONSULTATION LOG */}
+                <div className="bg-slate-100 p-1.5 rounded-2xl flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => setOpdLogWindow('today')}
+                    className={`flex-1 py-3 px-4 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      opdLogWindow === 'today'
+                        ? 'bg-white text-emerald-950 shadow-md border border-slate-200'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4 text-emerald-600" />
+                    <span>WINDOW 1: TODAY'S OPD CONSULTATION LOG</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black ${
+                      opdLogWindow === 'today' ? 'bg-emerald-100 text-emerald-900' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {todayAptsCount} Today
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setOpdLogWindow('previous')}
+                    className={`flex-1 py-3 px-4 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      opdLogWindow === 'previous'
+                        ? 'bg-white text-teal-950 shadow-md border border-slate-200'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    <Clock className="w-4 h-4 text-teal-600" />
+                    <span>WINDOW 2: PREVIOUS / HISTORIC OPD LOG</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black ${
+                      opdLogWindow === 'previous' ? 'bg-teal-100 text-teal-900' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {previousAptsCount} History
+                    </span>
+                  </button>
+                </div>
+
+                {/* Toolbar Controls */}
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">Hospital Consultation & OPD Log</h2>
-                    <p className="text-xs text-slate-500">Track and manage every appointment record across all hospital departments.</p>
+                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <span>{opdLogWindow === 'today' ? "Today's Hospital Consultations & OPD Log" : "Historic OPD Consultations Log"}</span>
+                      {opdLogWindow === 'today' && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black uppercase">Live OPD Desk</span>
+                      )}
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      {opdLogWindow === 'today' 
+                        ? "Real-time queue of patient appointments & walk-ins registered for today's doctor consultations."
+                        : "Archived consultation history of all past OPD visits prior to today."}
+                    </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+                    
+                    {/* TOGGLE DISABLE / ENABLE SLIP & BILL PRINTING */}
+                    <button
+                      onClick={() => setPrintingDisabled(!printingDisabled)}
+                      className={`px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 border cursor-pointer transition-all ${
+                        printingDisabled
+                          ? 'bg-rose-100 border-rose-300 text-rose-900 shadow-sm'
+                          : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                      }`}
+                      title="Enable or Disable printing of OPD Slips and Bill Receipts"
+                    >
+                      <Printer className={`w-3.5 h-3.5 ${printingDisabled ? 'text-rose-600' : 'text-emerald-600'}`} />
+                      <span>Slips & Bills: {printingDisabled ? '🚫 DISABLED' : '✅ ENABLED'}</span>
+                    </button>
+
+                    {/* PRINT DAILY PAYMENT COLLECTION REPORT FOR ADMIN / SUPER ADMIN */}
+                    <button
+                      onClick={() => setDailyReportModalOpen(true)}
+                      className="px-3 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-black text-xs shadow flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                      title="Generate & Print Hard Copy Daily OPD Collection Report for Admin / Super Admin"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-purple-200" />
+                      <span>🖨️ Daily Collection Report</span>
+                    </button>
+
                     {/* Auto-Refresh Live Status Indicator */}
                     <button
                       onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
@@ -1207,7 +1342,6 @@ export const AdminDashboardPage: React.FC = () => {
                     >
                       <div className={`w-2 h-2 rounded-full ${autoRefreshEnabled ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
                       <span>Auto-Refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
-                      <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">({lastRefreshedTime})</span>
                     </button>
 
                     <button
@@ -1232,19 +1366,38 @@ export const AdminDashboardPage: React.FC = () => {
 
                     <input
                       type="text"
-                      placeholder="Filter patient or doctor..."
+                      placeholder="Search patient, code, doctor..."
                       value={aptSearch}
                       onChange={(e) => setAptSearch(e.target.value)}
                       className="px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none"
                     />
 
+                    {/* RE-ASSIGN EXISTING PATIENT FROM HISTORY */}
                     <button
-                      onClick={() => setWalkInModalOpen(true)}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-                      title="Register walk-in hospital visit"
+                      onClick={() => {
+                        setWalkInInitialType('existing');
+                        setWalkInModalOpen(true);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-extrabold text-xs shadow flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-all"
+                      title="Select existing registered patient from history & assign to doctor"
                     >
-                      <UserPlus className="w-4 h-4" /> Direct Walk-In OPD
+                      <Search className="w-3.5 h-3.5 text-teal-200" />
+                      <span>🔍 Existing Patient Walk-In</span>
                     </button>
+
+                    {/* NEW WALK-IN OPD CHECK-IN */}
+                    <button
+                      onClick={() => {
+                        setWalkInInitialType('new');
+                        setWalkInModalOpen(true);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      title="Register new walk-in hospital visit"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>➕ New Walk-In OPD</span>
+                    </button>
+
                   </div>
                 </div>
 
@@ -1272,6 +1425,13 @@ export const AdminDashboardPage: React.FC = () => {
                           <td className="p-3">
                             <div className="font-semibold text-emerald-800">{apt.doctor_name}</div>
                             <div className="text-[10px] text-slate-500">{apt.department}</div>
+                            {apt.referred_from_doctor_name && (
+                              <div className="mt-1">
+                                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-black inline-flex items-center gap-1 shadow-2xs">
+                                  ↪️ Referred by Dr. {apt.referred_from_doctor_name}
+                                </span>
+                              </div>
+                            )}
                           </td>
                           <td className="p-3 text-slate-700 font-medium">{apt.appointment_date} at {apt.time_slot}</td>
                           <td className="p-3 text-slate-600 max-w-xs">
@@ -1324,28 +1484,40 @@ export const AdminDashboardPage: React.FC = () => {
                                   </button>
 
                                   <button
-                                    onClick={() => handleOpenPrintSlip(apt)}
-                                    className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 flex items-center gap-1 cursor-pointer shadow-xs"
-                                    title="Print Authorized OPD Prescription Slip"
+                                    disabled={printingDisabled}
+                                    onClick={() => !printingDisabled && handleOpenPrintSlip(apt)}
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1 transition-all ${
+                                      printingDisabled
+                                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-50'
+                                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 cursor-pointer shadow-xs'
+                                    }`}
+                                    title={printingDisabled ? 'Slip printing is currently DISABLED by Receptionist settings' : 'Print Authorized OPD Prescription Slip'}
                                   >
-                                    <Printer className="w-3 h-3 text-emerald-600" /> Slip
+                                    <Printer className="w-3 h-3 text-emerald-600" /> Slip {printingDisabled && '(Disabled)'}
                                   </button>
 
                                   <button
+                                    disabled={printingDisabled}
                                     onClick={() => {
+                                      if (printingDisabled) return;
                                       setReceiptPatient({
                                         name: apt.user_name,
                                         code: apt.patient_code || 'SKMH-WALKIN',
                                         phone: apt.patient_phone || '+91 98000 00000',
                                         email: apt.user_email,
-                                        doctor: apt.doctor_name
+                                        doctor: apt.doctor_name,
+                                        autoShowReceipt: true
                                       });
                                       setReceiptModalOpen(true);
                                     }}
-                                    className="px-2 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold shadow flex items-center gap-1 cursor-pointer"
-                                    title="Collect Payment & Produce Cash/UPI/Card Receipt with Print/PDF"
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                                      printingDisabled
+                                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-50 shadow-none'
+                                        : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow cursor-pointer'
+                                    }`}
+                                    title={printingDisabled ? 'Bill receipt printing is currently DISABLED by Receptionist settings' : 'Print Official Payment Receipt (Consultation Completed)'}
                                   >
-                                    <FileText className="w-3 h-3 text-emerald-300" /> Bill Receipt
+                                    <FileText className="w-3 h-3 text-emerald-300" /> Print Bill Receipt {printingDisabled && '(Disabled)'}
                                   </button>
                                 </>
                               ) : (
@@ -1359,29 +1531,28 @@ export const AdminDashboardPage: React.FC = () => {
                                   </button>
 
                                   <button
-                                    onClick={() => handleOpenPrintSlip(apt)}
-                                    className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold border border-slate-200 flex items-center gap-1 cursor-pointer"
-                                    title="Print Consultation Slip"
+                                    disabled={printingDisabled}
+                                    onClick={() => !printingDisabled && handleOpenPrintSlip(apt)}
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1 transition-all ${
+                                      printingDisabled
+                                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-50'
+                                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 cursor-pointer'
+                                    }`}
+                                    title={printingDisabled ? 'Slip printing is currently DISABLED by Receptionist settings' : 'Print Consultation Slip'}
                                   >
-                                    <Printer className="w-3 h-3 text-blue-600" /> Slip
+                                    <Printer className="w-3 h-3 text-blue-600" /> Slip {printingDisabled && '(Disabled)'}
                                   </button>
 
-                                  <button
-                                    onClick={() => {
-                                      setReceiptPatient({
-                                        name: apt.user_name,
-                                        code: apt.patient_code || 'SKMH-WALKIN',
-                                        phone: apt.patient_phone || '+91 98000 00000',
-                                        email: apt.user_email,
-                                        doctor: apt.doctor_name
-                                      });
-                                      setReceiptModalOpen(true);
-                                    }}
-                                    className="px-2 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold shadow flex items-center gap-1 cursor-pointer"
-                                    title="Collect Payment & Produce Cash/UPI/Card Receipt with Print/PDF"
+                                  <span
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-extrabold flex items-center gap-1 transition-all border ${
+                                      printingDisabled
+                                        ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                                        : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                    }`}
+                                    title="Payment already received at OPD check-in. Official Bill Receipt print unlocks after Doctor marks consultation COMPLETED."
                                   >
-                                    <FileText className="w-3 h-3 text-emerald-300" /> Bill Receipt
-                                  </button>
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Payment Received (Print after Completed)
+                                  </span>
                                 </>
                               )}
 
@@ -1760,6 +1931,17 @@ export const AdminDashboardPage: React.FC = () => {
             {adminSubTab === 'inventory' && (
               <InventoryManagerSection />
             )}
+
+            {/* TAB 10: DIAGNOSTIC TESTS & LAB MASTER */}
+            {adminSubTab === 'tests' && (
+              <DiagnosticTestsManagerSection />
+            )}
+
+            {/* TAB 11: AI DESK CHATBOT FIXED Q&A RULES */}
+            {adminSubTab === 'bot_faqs' && (
+              <BotFaqManagerSection />
+            )}
+
 
 
           </main>
@@ -2761,14 +2943,25 @@ export const AdminDashboardPage: React.FC = () => {
       {/* ================= DIRECT HOSPITAL WALK-IN REGISTRATION & OPD MODAL ================= */}
       <WalkInRegistrationModal
         isOpen={walkInModalOpen}
+        initialRegistrationType={walkInInitialType}
         onClose={() => setWalkInModalOpen(false)}
         onSuccess={(newApt, newPatient) => {
           setAppointments(prev => [newApt, ...prev.filter(a => a.id !== newApt.id)]);
           setPatients(prev => [newPatient, ...prev.filter(p => p.id !== newPatient.id)]);
-          setSelectedSlipAppointment(newApt);
-          setSelectedSlipPatient(newPatient);
-          setPrintableSlipModalOpen(true);
+          if (!printingDisabled) {
+            setSelectedSlipAppointment(newApt);
+            setSelectedSlipPatient(newPatient);
+            setPrintableSlipModalOpen(true);
+          }
         }}
+      />
+
+      {/* ================= DAILY PAYMENT COLLECTION REPORT MODAL (HARD COPY) ================= */}
+      <DailyPaymentReportModal
+        isOpen={dailyReportModalOpen}
+        onClose={() => setDailyReportModalOpen(false)}
+        appointments={appointments}
+        doctors={doctors}
       />
 
       {/* ================= SUPER ADMIN DOCTOR LOGIN SECURITY MONITOR MODAL ================= */}
@@ -2787,6 +2980,7 @@ export const AdminDashboardPage: React.FC = () => {
         patientPhone={receiptPatient.phone}
         patientEmail={receiptPatient.email}
         doctorName={receiptPatient.doctor}
+        autoShowReceipt={receiptPatient.autoShowReceipt}
         onPaymentSuccess={() => {
           loadAllAdminData();
           setToastMessage({
@@ -2808,12 +3002,6 @@ export const AdminDashboardPage: React.FC = () => {
       <HospitalSettingsModal
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
-      />
-
-      {/* ================= GEMINI AI ASSISTANT DESK MODAL ================= */}
-      <GeminiHospitalBotModal
-        isOpen={aiBotModalOpen}
-        onClose={() => setAiBotModalOpen(false)}
       />
 
       {/* ================= SUPABASE DATABASE SCHEMA & TABLE DICTIONARY MODAL ================= */}
