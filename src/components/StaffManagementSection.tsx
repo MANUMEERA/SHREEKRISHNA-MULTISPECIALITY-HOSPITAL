@@ -1041,21 +1041,26 @@ export const StaffManagementSection: React.FC = () => {
 
       {/* ================= MODAL 2: ADD / EDIT STAFF DESIGNATION WITH PHOTOGRAPH ================= */}
       {designationModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-5 my-8 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
+            {/* STICKY HEADER */}
+            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <UserCheck className="w-5 h-5 text-emerald-600" />
                 <span>{editingDesignation ? 'Modify Staff Designation & Photograph' : 'Create Staff Designation with Photograph'}</span>
               </h3>
               <button
+                type="button"
                 onClick={() => setDesignationModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1 font-bold text-xs shrink-0 cursor-pointer"
+                title="Close Modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* SCROLLABLE FORM BODY */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
             <form onSubmit={handleSaveDesignation} className="space-y-4 text-xs">
               
               {/* PHOTOGRAPH SELECTION SECTION */}
@@ -1336,6 +1341,7 @@ export const StaffManagementSection: React.FC = () => {
               </div>
 
             </form>
+            </div>
           </div>
         </div>
       )}

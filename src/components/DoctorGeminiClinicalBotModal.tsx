@@ -228,11 +228,11 @@ export const DoctorGeminiClinicalBotModal: React.FC<DoctorGeminiClinicalBotModal
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
-      <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-700/80 w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
+      <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-700/80 w-full max-w-4xl max-h-[92vh] h-[85vh] flex flex-col overflow-hidden my-auto">
         
         {/* HEADER BAR */}
-        <div className="bg-gradient-to-r from-slate-950 via-teal-950 to-slate-950 p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-950 via-teal-950 to-slate-950 px-6 py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-lg border border-emerald-400/40">
               <Sparkles className="w-5 h-5 animate-pulse" />
@@ -251,8 +251,10 @@ export const DoctorGeminiClinicalBotModal: React.FC<DoctorGeminiClinicalBotModal
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1 font-bold text-xs shrink-0 cursor-pointer"
+            title="Close Clinical AI Workspace"
           >
             <X className="w-5 h-5" />
           </button>

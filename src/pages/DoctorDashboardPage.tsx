@@ -1079,28 +1079,8 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
               </div>
             </div>
 
-            {/* Doctor Workspace Selector & Action Bar */}
+            {/* Doctor Workspace Action Bar */}
             <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-800/80 p-3 rounded-2xl border border-slate-700/80 backdrop-blur">
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Active Doctor Account:
-                </label>
-                <select
-                  value={selectedDoctor?.id || ''}
-                  onChange={(e) => {
-                    const found = doctors.find(d => d.id === e.target.value);
-                    if (found) setSelectedDoctor(found);
-                  }}
-                  className="bg-slate-900 border border-slate-600 text-emerald-300 font-bold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-400 cursor-pointer"
-                >
-                  {doctors.map(doc => (
-                    <option key={doc.id} value={doc.id} className="bg-slate-900 text-white">
-                      {doc.name} ({doc.department})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* REFER PATIENT TO OTHER DOCTOR BUTTON */}
               <button
                 onClick={() => {

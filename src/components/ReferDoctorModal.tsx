@@ -47,11 +47,11 @@ export const ReferDoctorModal: React.FC<ReferDoctorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh] my-auto">
         
-        {/* Header */}
-        <div className="bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 p-5 text-white flex items-center justify-between">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 px-6 py-4 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-emerald-500/20 rounded-2xl border border-emerald-400/30">
               <Stethoscope className="w-6 h-6 text-emerald-400" />
@@ -66,8 +66,10 @@ export const ReferDoctorModal: React.FC<ReferDoctorModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-colors flex items-center gap-1 font-bold text-xs shrink-0 cursor-pointer"
+            title="Close Referral Modal"
           >
             <X className="w-5 h-5" />
           </button>

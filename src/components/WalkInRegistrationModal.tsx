@@ -147,31 +147,36 @@ export const WalkInRegistrationModal: React.FC<WalkInRegistrationModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-6 border border-slate-100 animate-in fade-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl my-auto border border-slate-200 animate-in fade-in zoom-in-95 max-h-[92vh] flex flex-col overflow-hidden">
         
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-emerald-100 rounded-2xl text-emerald-800">
+            <div className="p-2.5 bg-emerald-100 rounded-2xl text-emerald-800">
               <UserPlus className="w-6 h-6" />
             </div>
             <div>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black uppercase">
                 Direct Hospital Visit Entry
               </span>
-              <h2 className="text-xl font-black text-slate-900 mt-0.5">
+              <h2 className="text-lg font-black text-slate-900 mt-0.5">
                 Walk-In Patient & Instant OPD Check-In
               </h2>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1 font-bold text-xs shrink-0 cursor-pointer"
+            title="Close Modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Scrollable Form Body */}
+        <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-6">
 
         {/* Info Banner */}
         <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center gap-3 text-xs border border-slate-800">
@@ -480,6 +485,7 @@ export const WalkInRegistrationModal: React.FC<WalkInRegistrationModalProps> = (
           </div>
 
         </form>
+        </div>
 
       </div>
     </div>

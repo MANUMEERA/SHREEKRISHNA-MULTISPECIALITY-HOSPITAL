@@ -179,13 +179,13 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-8 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl my-auto border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
         
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-800 font-bold">
+            <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-800 font-bold">
               <Stethoscope className="w-6 h-6" />
             </div>
             <div>
@@ -199,7 +199,7 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                   </span>
                 )}
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mt-0.5">
+              <h2 className="text-lg font-bold text-slate-900 mt-0.5">
                 Consultation Record for {appointment.user_name}
               </h2>
               <p className="text-xs text-slate-500 font-medium">
@@ -209,12 +209,17 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1 font-bold text-xs shrink-0 cursor-pointer"
+            title="Close Modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Scrollable Form Body */}
+        <div className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-6">
 
         {/* Read Only Notice Banner for Front Desk / Receptionist */}
         {readOnly && (
@@ -442,8 +447,8 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                       onChange={(e) => setNewMedDosage(e.target.value)}
                       className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white"
                     />
-                    <div className="flex gap-1 mt-1">
-                      {['1/2 Nos', '1 Nos', '2 Nos', '5 ml'].map((doseVal) => (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {['1/2 Nos', '1 Nos', '2 Nos', '5 ml', '10 ml', '15 ml', '20 ml'].map((doseVal) => (
                         <button
                           key={doseVal}
                           type="button"
@@ -763,6 +768,7 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
           </div>
 
         </form>
+        </div>
       </div>
     </div>
   );

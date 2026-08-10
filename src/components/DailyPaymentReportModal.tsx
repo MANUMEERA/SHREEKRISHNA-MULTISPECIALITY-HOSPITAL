@@ -1,6 +1,7 @@
-import React from 'react';
-import { Appointment, Doctor } from '../types';
-import { X, Printer, Building2, Calendar, FileText, CheckCircle, ShieldCheck, DollarSign } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Appointment, Doctor, PaymentReceipt, AdmittedPatientRecord } from '../types';
+import { api } from '../lib/api';
+import { X, Printer, Building2, Calendar, FileText, CheckCircle, ShieldCheck, DollarSign, Filter, Stethoscope, Activity, BedDouble, UserCheck } from 'lucide-react';
 
 interface DailyPaymentReportModalProps {
   isOpen: boolean;
@@ -10,6 +11,22 @@ interface DailyPaymentReportModalProps {
   selectedDate?: string;
 }
 
+export type CollectionCategoryFilter = 'ALL' | 'DOCTORS' | 'XRAY' | 'OT' | 'IPD';
+
+interface UnifiedCollectionItem {
+  id: string;
+  patient_code: string;
+  patient_name: string;
+  category: CollectionCategoryFilter | 'OTHER';
+  categoryLabel: string;
+  doctor_id?: string;
+  doctor_name: string;
+  department: string;
+  time_or_date: string;
+  payment_mode: string;
+  amount: number;
+}
+
 export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = ({
   isOpen,
   onClose,
@@ -17,6 +34,18 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
   doctors,
   selectedDate
 }) => {
+  const [categoryFilter, setCategoryFilter] = useState<CollectionCategoryFilter>('ALL');
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('ALL');
+  const [paymentReceipts, setPaymentReceipts] = useState<PaymentReceipt[]>([]);
+  const [admittedPatients, setAdmittedPatients] = useState<AdmittedPatientRecord[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      api.getPaymentReceipts().then(rcpts => setPaymentReceipts(rcpts || [])).catch(() => {});
+      api.getAdmittedPatients().then(ipds => setAdmittedPatients(ipds || [])).catch(() => {});
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const reportDate = selectedDate || new Date().toISOString().split('T')[0];
@@ -27,102 +56,305 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
     day: 'numeric'
   });
 
-  // Filter today's active & confirmed/completed OPD appointments
-  const todayAppointments = appointments.filter(a => {
-    return (a.appointment_date === reportDate || !a.appointment_date) && a.status !== 'cancelled';
-  });
-
-  // Calculate totals
-  const totalConsultations = todayAppointments.length;
-  
   // Doctor fee lookup helper
   const getFeeForApt = (apt: Appointment) => {
     const doc = doctors.find(d => d.id === apt.doctor_id || d.name.toLowerCase() === apt.doctor_name.toLowerCase());
     return doc?.consultation_fee || 500;
   };
 
-  const totalRevenue = todayAppointments.reduce((acc, apt) => acc + getFeeForApt(apt), 0);
+  // Build unified collection list across OPD appointments, receipts, and IPD discharges
+  const unifiedItems: UnifiedCollectionItem[] = [];
 
-  // Mode breakdown simulation/calculation from notes or default
-  let cashTotal = 0;
-  let upiTotal = 0;
-  let cardTotal = 0;
-  let govtTotal = 0;
+  // 1. OPD Appointments (Category: DOCTORS)
+  appointments.forEach((apt, idx) => {
+    if ((apt.appointment_date === reportDate || !apt.appointment_date) && apt.status !== 'cancelled') {
+      const notesLower = (apt.notes || '').toLowerCase();
+      let mode = 'Cash';
+      if (notesLower.includes('upi') || notesLower.includes('qr')) mode = 'UPI / QR';
+      else if (notesLower.includes('card')) mode = 'Card';
 
-  todayAppointments.forEach(apt => {
-    const fee = getFeeForApt(apt);
-    const notesLower = (apt.notes || '').toLowerCase();
-    if (notesLower.includes('upi') || notesLower.includes('qr')) {
-      upiTotal += fee;
-    } else if (notesLower.includes('card')) {
-      cardTotal += fee;
-    } else if (notesLower.includes('free') || notesLower.includes('govt')) {
-      govtTotal += fee;
-    } else {
-      cashTotal += fee;
+      const fee = getFeeForApt(apt);
+
+      unifiedItems.push({
+        id: `apt-${apt.id}`,
+        patient_code: apt.patient_code || `SKMH-2026-PAT-${101 + idx}`,
+        patient_name: apt.user_name || 'Walk-in Patient',
+        category: 'DOCTORS',
+        categoryLabel: 'OPD Doctor Consultation Fee',
+        doctor_id: apt.doctor_id,
+        doctor_name: apt.doctor_name || 'Consulting Physician',
+        department: apt.department || 'General Medicine',
+        time_or_date: apt.time_slot || '10:00 AM',
+        payment_mode: mode,
+        amount: fee
+      });
     }
   });
 
-  // Doctor-wise breakdown
-  const doctorBreakdownMap = new Map<string, { doctorName: string; department: string; count: number; totalFee: number }>();
+  // 2. Billing Payment Receipts (Category: XRAY, OT, IPD, DOCTORS, OTHER)
+  paymentReceipts.forEach((rcpt) => {
+    if (rcpt.payment_date === reportDate || !rcpt.payment_date) {
+      rcpt.items.forEach((item, itemIdx) => {
+        const catLower = (item.category || item.description || '').toLowerCase();
+        let cat: CollectionCategoryFilter | 'OTHER' = 'OTHER';
+        let label = item.category || 'Hospital Service';
 
-  todayAppointments.forEach(apt => {
-    const docName = apt.doctor_name || 'General OPD';
-    const fee = getFeeForApt(apt);
-    const existing = doctorBreakdownMap.get(docName) || {
-      doctorName: docName,
-      department: apt.department || 'Consultation',
-      count: 0,
-      totalFee: 0
-    };
-    existing.count += 1;
-    existing.totalFee += fee;
-    doctorBreakdownMap.set(docName, existing);
+        if (catLower.includes('x-ray') || catLower.includes('xray') || catLower.includes('radiology') || catLower.includes('scan') || catLower.includes('ultrasound') || catLower.includes('mri')) {
+          cat = 'XRAY';
+          label = 'X-Ray & Radiology';
+        } else if (catLower.includes('ot') || catLower.includes('operation') || catLower.includes('surgery') || catLower.includes('theatre') || catLower.includes('anaesthesia')) {
+          cat = 'OT';
+          label = 'OT Charges & Surgery';
+        } else if (catLower.includes('ipd') || catLower.includes('inpatient') || catLower.includes('discharge') || catLower.includes('ward') || catLower.includes('bed')) {
+          cat = 'IPD';
+          label = 'Inpatient Discharge Payment';
+        } else if (catLower.includes('consultation') || catLower.includes('doctor')) {
+          cat = 'DOCTORS';
+          label = 'OPD Doctor Consultation Fee';
+        }
+
+        unifiedItems.push({
+          id: `rcpt-${rcpt.id}-${itemIdx}`,
+          patient_code: rcpt.patient_code || 'SKMH-PAT',
+          patient_name: rcpt.patient_name || 'Hospital Patient',
+          category: cat,
+          categoryLabel: item.description || label,
+          doctor_name: 'Consulting Specialist',
+          department: label,
+          time_or_date: 'Receipt Ref: ' + rcpt.receipt_number,
+          payment_mode: rcpt.payment_mode || 'Cash',
+          amount: item.amount || 0
+        });
+      });
+    }
   });
 
-  const doctorBreakdowns = Array.from(doctorBreakdownMap.values());
+  // 3. Inpatient Discharges (Category: IPD)
+  admittedPatients.forEach((ipd, idx) => {
+    if (ipd.status === 'Discharged' || (ipd.total_paid_amount && ipd.total_paid_amount > 0)) {
+      unifiedItems.push({
+        id: `ipd-${ipd.id || idx}`,
+        patient_code: ipd.patient_code || `SKMH-IPD-${200 + idx}`,
+        patient_name: ipd.patient_name,
+        category: 'IPD',
+        categoryLabel: 'Inpatient Discharge Final Bill Payment',
+        doctor_id: ipd.doctor_id,
+        doctor_name: ipd.doctor_name || 'Attending IPD Consultant',
+        department: ipd.department || 'IPD Ward',
+        time_or_date: ipd.discharge_date ? `Discharged: ${ipd.discharge_date}` : `Admitted: ${ipd.admission_date}`,
+        payment_mode: 'Cash / Bank Transfer',
+        amount: ipd.total_paid_amount || (ipd.daily_bed_charge * 2) || 12000
+      });
+    }
+  });
+
+  // Apply User Filter Selection (ALL vs DOCTORS vs XRAY vs OT vs IPD, and Doctor selection)
+  const filteredItems = unifiedItems.filter(item => {
+    // Category match
+    if (categoryFilter !== 'ALL' && item.category !== categoryFilter) {
+      return false;
+    }
+
+    // Doctor match when filtered by Doctor or ALL
+    if (selectedDoctorId !== 'ALL') {
+      const selectedDocObj = doctors.find(d => d.id === selectedDoctorId);
+      if (selectedDocObj) {
+        const itemDocLower = (item.doctor_name || '').toLowerCase();
+        const selDocLower = selectedDocObj.name.toLowerCase();
+        if (item.doctor_id) {
+          if (item.doctor_id !== selectedDoctorId && !itemDocLower.includes(selDocLower)) return false;
+        } else if (!itemDocLower.includes(selDocLower)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+
+  // Calculated Metrics for the selected filter
+  const totalTransactions = filteredItems.length;
+  const totalRevenue = filteredItems.reduce((acc, item) => acc + item.amount, 0);
+
+  let cashTotal = 0;
+  let digitalTotal = 0;
+
+  filteredItems.forEach(item => {
+    const modeLower = (item.payment_mode || '').toLowerCase();
+    if (modeLower.includes('upi') || modeLower.includes('card') || modeLower.includes('bank') || modeLower.includes('net')) {
+      digitalTotal += item.amount;
+    } else {
+      cashTotal += item.amount;
+    }
+  });
+
+  // Doctor-wise / Category-wise summary mapping
+  const breakdownMap = new Map<string, { title: string; subtitle: string; count: number; total: number }>();
+
+  filteredItems.forEach(item => {
+    const key = categoryFilter === 'DOCTORS' || categoryFilter === 'ALL'
+      ? item.doctor_name
+      : item.categoryLabel;
+
+    const existing = breakdownMap.get(key) || {
+      title: key,
+      subtitle: item.department || 'Hospital Department',
+      count: 0,
+      total: 0
+    };
+    existing.count += 1;
+    existing.total += item.amount;
+    breakdownMap.set(key, existing);
+  });
+
+  const breakdowns = Array.from(breakdownMap.values());
 
   const handlePrint = () => {
     window.print();
   };
 
+  const getReportTitle = () => {
+    let title = 'DAILY HOSPITAL PAYMENT COLLECTION STATEMENT';
+    if (categoryFilter === 'DOCTORS') {
+      if (selectedDoctorId !== 'ALL') {
+        const doc = doctors.find(d => d.id === selectedDoctorId);
+        title = `DAILY OPD COLLECTION STATEMENT - DR. ${doc?.name?.toUpperCase() || ''}`;
+      } else {
+        title = 'DOCTOR-WISE OPD PAYMENT COLLECTION STATEMENT';
+      }
+    } else if (categoryFilter === 'XRAY') {
+      title = 'X-RAY & RADIOLOGY CHARGES COLLECTION STATEMENT';
+    } else if (categoryFilter === 'OT') {
+      title = 'OPERATION THEATRE (OT) CHARGES COLLECTION STATEMENT';
+    } else if (categoryFilter === 'IPD') {
+      title = 'INPATIENT (IPD) DISCHARGE PAYMENT COLLECTION STATEMENT';
+    }
+    return title;
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col max-h-[95vh] my-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
         
-        {/* Modal Header Actions (Screen Only) */}
-        <div className="bg-slate-900 text-white p-4 flex items-center justify-between shrink-0 print:hidden">
+        {/* Sticky Modal Header Actions (Screen Only) */}
+        <div className="sticky top-0 z-20 bg-slate-900 text-white px-6 sm:px-8 py-4 flex items-center justify-between shrink-0 print:hidden border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+            <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/30">
               <FileText className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                <span>Daily OPD Payment Collection Report</span>
+                <span>Receptionist Daily Payment Collection Report</span>
                 <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500 text-slate-950 font-black uppercase">
-                  Hard Copy Format
+                  Hard Copy Print
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
-                Formal daily collection statement for submission to Admin & Super Administrator.
+                Formal collection statement for submission to Admin & Super Administrator.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handlePrint}
               className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95"
             >
               <Printer className="w-4 h-4" /> Print Hard Copy Report
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1 font-bold text-xs shrink-0 cursor-pointer"
+              title="Close Report Modal"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
+        </div>
+
+        {/* RECEPTIONIST CATEGORY FILTER SELECTION BAR */}
+        <div className="bg-slate-800 text-white p-3 border-b border-slate-700 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-[10px] uppercase font-bold text-slate-400 mr-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-emerald-400" /> Collection Filter:
+            </span>
+            
+            <button
+              onClick={() => { setCategoryFilter('ALL'); setSelectedDoctorId('ALL'); }}
+              className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                categoryFilter === 'ALL'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md scale-105'
+                  : 'bg-slate-700/80 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              🌐 ALL COLLECTIONS
+            </button>
+
+            <button
+              onClick={() => setCategoryFilter('DOCTORS')}
+              className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                categoryFilter === 'DOCTORS'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md scale-105'
+                  : 'bg-slate-700/80 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              🩺 INDIVIDUAL DOCTORS
+            </button>
+
+            <button
+              onClick={() => setCategoryFilter('XRAY')}
+              className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                categoryFilter === 'XRAY'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md scale-105'
+                  : 'bg-slate-700/80 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              🩻 X-RAY & RADIOLOGY
+            </button>
+
+            <button
+              onClick={() => setCategoryFilter('OT')}
+              className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                categoryFilter === 'OT'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md scale-105'
+                  : 'bg-slate-700/80 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              🔪 OT CHARGES
+            </button>
+
+            <button
+              onClick={() => setCategoryFilter('IPD')}
+              className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                categoryFilter === 'IPD'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md scale-105'
+                  : 'bg-slate-700/80 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              🏥 INPATIENT DISCHARGE PAYMENT
+            </button>
+          </div>
+
+          {/* Individual Doctor Dropdown Selection */}
+          {(categoryFilter === 'ALL' || categoryFilter === 'DOCTORS') && (
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] uppercase font-bold text-slate-300">Doctor Filter:</label>
+              <select
+                value={selectedDoctorId}
+                onChange={(e) => setSelectedDoctorId(e.target.value)}
+                className="bg-slate-900 border border-slate-600 text-emerald-300 font-bold text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-400 cursor-pointer"
+              >
+                <option value="ALL">All Doctors ({doctors.length})</option>
+                {doctors.map(doc => (
+                  <option key={doc.id} value={doc.id}>
+                    Dr. {doc.name} ({doc.department})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* PRINTABLE REPORT CONTENT AREA */}
@@ -149,17 +381,34 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
 
             <div className="text-right border-l-2 border-slate-200 pl-4 space-y-0.5">
               <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Report Type</span>
-              <span className="text-sm font-black text-emerald-950 uppercase block">Daily OPD Collection Statement</span>
+              <span className="text-sm font-black text-emerald-950 uppercase block">{getReportTitle()}</span>
               <span className="text-xs font-bold text-slate-700 block">{formattedReportDate}</span>
               <span className="text-[10px] font-mono text-slate-400">Ref No: SKMH-DCR-{reportDate.replace(/-/g, '')}</span>
             </div>
           </div>
 
+          {/* Active Filter Title Badge */}
+          <div className="flex items-center justify-between bg-slate-100 p-3 rounded-2xl border border-slate-200">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700">Active Collection Category:</span>
+              <span className="px-2.5 py-1 rounded-lg text-xs bg-slate-900 text-emerald-400 font-extrabold uppercase">
+                {categoryFilter === 'ALL' && 'GLOBAL COMBINED COLLECTION (ALL)'}
+                {categoryFilter === 'DOCTORS' && (selectedDoctorId !== 'ALL' ? `INDIVIDUAL DOCTOR: DR. ${doctors.find(d => d.id === selectedDoctorId)?.name?.toUpperCase()}` : 'INDIVIDUAL DOCTOR OPD CONSULTATIONS')}
+                {categoryFilter === 'XRAY' && 'X-RAY & RADIOLOGY CHARGES'}
+                {categoryFilter === 'OT' && 'OPERATION THEATRE (OT) CHARGES'}
+                {categoryFilter === 'IPD' && 'INPATIENT (IPD) DISCHARGE PAYMENT'}
+              </span>
+            </div>
+            <span className="text-xs font-mono font-bold text-slate-500">
+              Total Records: {filteredItems.length}
+            </span>
+          </div>
+
           {/* Key Revenue Summary Metrics Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
-              <span className="text-[10px] uppercase font-extrabold text-slate-500 block">Total OPD Consultations</span>
-              <span className="text-2xl font-black text-slate-900">{totalConsultations}</span>
+              <span className="text-[10px] uppercase font-extrabold text-slate-500 block">Total Transactions</span>
+              <span className="text-2xl font-black text-slate-900">{totalTransactions}</span>
               <span className="text-[10px] text-slate-400 block font-medium">Patients Processed</span>
             </div>
 
@@ -176,43 +425,53 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
             </div>
 
             <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-200 text-center">
-              <span className="text-[10px] uppercase font-extrabold text-purple-800 block">Digital / UPI / Card</span>
-              <span className="text-2xl font-black text-purple-900">₹{(upiTotal + cardTotal).toLocaleString('en-IN')}</span>
-              <span className="text-[10px] text-purple-600 block font-medium">Direct Bank Settlement</span>
+              <span className="text-[10px] uppercase font-extrabold text-purple-800 block">Digital / UPI / Card / Bank</span>
+              <span className="text-2xl font-black text-purple-900">₹{digitalTotal.toLocaleString('en-IN')}</span>
+              <span className="text-[10px] text-purple-600 block font-medium">Direct Settlement</span>
             </div>
           </div>
 
-          {/* Doctor-wise OPD Revenue Breakdown Table */}
+          {/* Summary Breakdown Table */}
           <div className="space-y-2">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
-              📊 Doctor-Wise OPD Collection Summary
+              📊 {categoryFilter === 'DOCTORS' || categoryFilter === 'ALL' ? 'Doctor / Department Collection Summary' : 'Service Collection Summary'}
             </h3>
             <table className="w-full text-xs text-left border-collapse border border-slate-200">
               <thead>
                 <tr className="bg-slate-100 text-slate-700 font-extrabold border-b border-slate-200">
-                  <th className="p-2 border-r border-slate-200">Attending Doctor Name</th>
-                  <th className="p-2 border-r border-slate-200">Specialty Department</th>
-                  <th className="p-2 border-r border-slate-200 text-center">OPD Patients</th>
+                  <th className="p-2 border-r border-slate-200">
+                    {categoryFilter === 'DOCTORS' || categoryFilter === 'ALL' ? 'Attending Doctor / Service' : 'Service / Category Name'}
+                  </th>
+                  <th className="p-2 border-r border-slate-200">Specialty / Department</th>
+                  <th className="p-2 border-r border-slate-200 text-center">Count</th>
                   <th className="p-2 text-right">Total Collection (₹)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-800">
-                {doctorBreakdowns.map((doc, idx) => (
-                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
-                    <td className="p-2 border-r border-slate-200 font-bold text-slate-900">Dr. {doc.doctorName}</td>
-                    <td className="p-2 border-r border-slate-200 text-slate-600">{doc.department}</td>
-                    <td className="p-2 border-r border-slate-200 text-center font-bold">{doc.count}</td>
-                    <td className="p-2 text-right font-black text-emerald-900">₹{doc.totalFee.toLocaleString('en-IN')}</td>
+                {breakdowns.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-slate-400 italic">
+                      No collections recorded for the selected filter.
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  breakdowns.map((b, idx) => (
+                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                      <td className="p-2 border-r border-slate-200 font-bold text-slate-900">{b.title}</td>
+                      <td className="p-2 border-r border-slate-200 text-slate-600">{b.subtitle}</td>
+                      <td className="p-2 border-r border-slate-200 text-center font-bold">{b.count}</td>
+                      <td className="p-2 text-right font-black text-emerald-900">₹{b.total.toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Itemized Patient Payment Log Table */}
+          {/* Detailed Itemized Patient Payment Log Table */}
           <div className="space-y-2">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
-              📑 Detailed Patient Payment Log ({todayAppointments.length} Entries)
+              📑 Detailed Patient Payment Log ({filteredItems.length} Entries)
             </h3>
             <table className="w-full text-[11px] text-left border-collapse border border-slate-200">
               <thead>
@@ -220,36 +479,41 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
                   <th className="p-2 border-r border-slate-700">S.No</th>
                   <th className="p-2 border-r border-slate-700">Patient Code</th>
                   <th className="p-2 border-r border-slate-700">Patient Name</th>
-                  <th className="p-2 border-r border-slate-700">Doctor Assigned</th>
-                  <th className="p-2 border-r border-slate-700">Time Slot</th>
+                  <th className="p-2 border-r border-slate-700">Service / Description</th>
+                  <th className="p-2 border-r border-slate-700">Doctor / Dept</th>
                   <th className="p-2 border-r border-slate-700">Mode</th>
                   <th className="p-2 text-right">Fee (₹)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-800">
-                {todayAppointments.map((apt, index) => {
-                  const fee = getFeeForApt(apt);
-                  return (
-                    <tr key={apt.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                {filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-6 text-center text-slate-400 font-medium italic">
+                      No patient payment transactions found for this selection.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredItems.map((item, index) => (
+                    <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-500 text-center">{index + 1}</td>
                       <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-700">
-                        {apt.patient_code || `PAT-${101 + index}`}
+                        {item.patient_code}
                       </td>
-                      <td className="p-2 border-r border-slate-200 font-bold text-slate-900">{apt.user_name}</td>
-                      <td className="p-2 border-r border-slate-200 font-semibold text-emerald-800">Dr. {apt.doctor_name}</td>
-                      <td className="p-2 border-r border-slate-200 text-slate-600">{apt.time_slot}</td>
+                      <td className="p-2 border-r border-slate-200 font-bold text-slate-900">{item.patient_name}</td>
+                      <td className="p-2 border-r border-slate-200 font-medium text-slate-800">{item.categoryLabel}</td>
+                      <td className="p-2 border-r border-slate-200 font-semibold text-emerald-800">{item.doctor_name}</td>
                       <td className="p-2 border-r border-slate-200 font-bold text-slate-700">
-                        {apt.notes?.toLowerCase().includes('upi') ? 'UPI / QR' : apt.notes?.toLowerCase().includes('card') ? 'Card' : 'Cash'}
+                        {item.payment_mode}
                       </td>
-                      <td className="p-2 text-right font-extrabold text-slate-900">₹{fee}</td>
+                      <td className="p-2 text-right font-extrabold text-slate-900">₹{item.amount.toLocaleString('en-IN')}</td>
                     </tr>
-                  );
-                })}
+                  ))
+                )}
               </tbody>
               <tfoot>
                 <tr className="bg-emerald-100 font-black text-slate-900 border-t-2 border-slate-900">
                   <td colSpan={6} className="p-2 text-right uppercase tracking-wider text-xs">
-                    Grand Total Daily Collection:
+                    Grand Total Collection ({categoryFilter}):
                   </td>
                   <td className="p-2 text-right text-sm text-emerald-950 font-black">
                     ₹{totalRevenue.toLocaleString('en-IN')}
@@ -265,7 +529,7 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
               <div className="border-b-2 border-slate-400 w-48"></div>
               <div>
                 <span className="font-extrabold text-slate-900 block">Submitted By (Receptionist Desk Officer)</span>
-                <span className="text-[10px] text-slate-500 block">Shree Krishna Hospital OPD Desk</span>
+                <span className="text-[10px] text-slate-500 block">Shree Krishna Hospital OPD & Billing Desk</span>
                 <span className="text-[10px] font-mono text-slate-400 block">Date & Time: {new Date().toLocaleString('en-IN')}</span>
               </div>
             </div>
@@ -286,3 +550,4 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
     </div>
   );
 };
+

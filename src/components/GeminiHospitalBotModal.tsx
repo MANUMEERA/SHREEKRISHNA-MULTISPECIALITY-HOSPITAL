@@ -186,11 +186,11 @@ export const GeminiHospitalBotModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-lg w-full h-[640px] flex flex-col shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] h-[640px] flex flex-col shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 my-auto">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 p-4 text-white flex items-center justify-between shrink-0">
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 p-4 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center justify-center font-bold">
               <Bot className="w-6 h-6 animate-pulse" />
@@ -206,7 +206,12 @@ export const GeminiHospitalBotModal: React.FC<{
             </div>
           </div>
 
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-colors flex items-center gap-1 font-bold text-xs shrink-0 cursor-pointer"
+            title="Close AI Assistant"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>

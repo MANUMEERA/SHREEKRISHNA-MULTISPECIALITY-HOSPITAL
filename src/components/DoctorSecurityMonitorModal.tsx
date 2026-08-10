@@ -196,18 +196,18 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
   );
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-md flex items-start sm:items-center justify-center p-4 sm:p-6 pt-10 sm:pt-14">
-      <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-4 sm:my-8">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
         
-        {/* Modal Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 p-6 sm:p-8 text-white flex items-start sm:items-center justify-between gap-4">
+        {/* Sticky Modal Header */}
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 px-6 sm:px-8 py-4 text-white flex items-center justify-between gap-4 shrink-0 border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-400 flex items-center justify-center shadow-inner shrink-0">
-              <ShieldCheck className="w-7 h-7" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-400 flex items-center justify-center shadow-inner shrink-0">
+              <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">Super Administrator Security Console</h2>
+                <h2 className="text-base sm:text-lg font-black tracking-tight text-white">Super Administrator Security Console</h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-black uppercase tracking-wider">
                   Passkey Guarded
                 </span>
@@ -219,17 +219,22 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
           </div>
 
           <button
+            type="button"
             onClick={() => {
               setIsUnlocked(false);
               setPasskeyInput('');
               onClose();
             }}
-            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all shrink-0 hover:scale-110 active:scale-95 cursor-pointer border border-white/20 shadow-md"
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center gap-1.5 font-bold text-xs shrink-0 cursor-pointer border border-white/20 shadow-md transition-all"
             title="Close Security Console"
           >
             <X className="w-5 h-5" />
+            <span className="hidden sm:inline">Close</span>
           </button>
         </div>
+
+        {/* Scrollable Modal Body */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
 
         {/* LOCKED STATE: Passkey Prompt */}
         {!isUnlocked ? (
@@ -548,6 +553,7 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
           </div>
         )}
 
+        </div>
       </div>
 
       {/* Doctor Password Change Modal */}

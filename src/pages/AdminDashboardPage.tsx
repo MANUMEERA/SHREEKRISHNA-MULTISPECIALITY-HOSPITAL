@@ -21,6 +21,7 @@ import { AccountingManagerSection } from '../components/AccountingManagerSection
 import { InventoryManagerSection } from '../components/InventoryManagerSection';
 import { DiagnosticTestsManagerSection } from '../components/DiagnosticTestsManagerSection';
 import { BotFaqManagerSection } from '../components/BotFaqManagerSection';
+import { WardRoomChargesManagerSection } from '../components/WardRoomChargesManagerSection';
 import { AudioNotificationToast } from '../components/AudioNotificationToast';
 import { SupabaseSchemaModal } from '../components/SupabaseSchemaModal';
 import { DailyPaymentReportModal } from '../components/DailyPaymentReportModal';
@@ -31,7 +32,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   const isReceptionist = userRole === 'receptionist';
 
-  const [adminSubTab, setAdminSubTab] = useState<'analytics' | 'departments' | 'doctors' | 'appointments' | 'patients' | 'supabase' | 'staff' | 'accounting' | 'inventory' | 'tests' | 'bot_faqs'>(
+  const [adminSubTab, setAdminSubTab] = useState<'analytics' | 'departments' | 'doctors' | 'appointments' | 'patients' | 'supabase' | 'staff' | 'accounting' | 'inventory' | 'tests' | 'bot_faqs' | 'ward_charges'>(
     userRole === 'receptionist' ? 'appointments' : 'patients'
   );
 
@@ -1031,6 +1032,30 @@ export const AdminDashboardPage: React.FC = () => {
                   </span>
                 </button>
 
+                {/* TAB: ROOM & WARD CHARGES MASTER */}
+                <button
+                  onClick={() => setAdminSubTab('ward_charges')}
+                  className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between group ${
+                    adminSubTab === 'ward_charges'
+                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10'
+                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl transition-colors ${
+                      adminSubTab === 'ward_charges' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'
+                    }`}>
+                      <BedDouble className="w-4 h-4" />
+                    </div>
+                    <span>Room & Ward Charges Master</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    adminSubTab === 'ward_charges' ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    Ward Rates
+                  </span>
+                </button>
+
 
                 {/* Super Admin Passkey Monitor Button */}
                 <button
@@ -1940,6 +1965,11 @@ export const AdminDashboardPage: React.FC = () => {
             {/* TAB 11: AI DESK CHATBOT FIXED Q&A RULES */}
             {adminSubTab === 'bot_faqs' && (
               <BotFaqManagerSection />
+            )}
+
+            {/* TAB 12: ROOM & WARD CHARGES MASTER */}
+            {adminSubTab === 'ward_charges' && (
+              <WardRoomChargesManagerSection />
             )}
 
 
@@ -2996,6 +3026,19 @@ export const AdminDashboardPage: React.FC = () => {
       <InpatientManagerModal
         isOpen={ipdModalOpen}
         onClose={() => setIpdModalOpen(false)}
+        onOpenBillingReceipt={(ipd) => {
+          setReceiptPatient({
+            id: ipd.patient_id || ipd.patient_code,
+            name: ipd.patient_name,
+            code: ipd.patient_code,
+            phone: ipd.phone,
+            email: '',
+            doctor: ipd.doctor_name,
+            autoShowReceipt: true
+          });
+          setIpdModalOpen(false);
+          setReceiptModalOpen(true);
+        }}
       />
 
       {/* ================= HOSPITAL SEAL STAMP & LEGAL POLICY SETTINGS MODAL ================= */}
