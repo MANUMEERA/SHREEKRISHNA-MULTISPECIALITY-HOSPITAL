@@ -11,26 +11,8 @@ export const SUPABASE_SQL_SCHEMA = `-- =========================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Clean up any existing conflicting tables to avoid type mismatch errors
-DROP TABLE IF EXISTS public.profiles CASCADE;
-DROP TABLE IF EXISTS public.notifications CASCADE;
-DROP TABLE IF EXISTS public.medical_reports CASCADE;
-DROP TABLE IF EXISTS public.clinical_observations CASCADE;
-DROP TABLE IF EXISTS public.accounting_entries CASCADE;
-DROP TABLE IF EXISTS public.payment_receipts CASCADE;
-DROP TABLE IF EXISTS public.hospital_charge_categories CASCADE;
-DROP TABLE IF EXISTS public.diagnostic_tests CASCADE;
-DROP TABLE IF EXISTS public.medicines CASCADE;
-DROP TABLE IF EXISTS public.admitted_patients CASCADE;
-DROP TABLE IF EXISTS public.appointments CASCADE;
-DROP TABLE IF EXISTS public.departments CASCADE;
-DROP TABLE IF EXISTS public.doctor_login_logs CASCADE;
-DROP TABLE IF EXISTS public.doctors CASCADE;
-DROP TABLE IF EXISTS public.staff_designations CASCADE;
-DROP TABLE IF EXISTS public.staff_categories CASCADE;
-DROP TABLE IF EXISTS public.bot_faqs CASCADE;
-DROP TABLE IF EXISTS public.hospital_settings CASCADE;
-DROP TABLE IF EXISTS public.users CASCADE;
+-- NOTE: We use CREATE TABLE IF NOT EXISTS to prevent Supabase Studio cached table OID errors ("Unable to find table with ID XXXX").
+-- Existing table schema will be safely preserved.
 
 -- --------------------------------------------------------------------
 -- 1. USERS TABLE (Patients, Doctors, Staff, Admins, Receptionists)
@@ -61,6 +43,17 @@ CREATE TABLE IF NOT EXISTS public.users (
   medical_history_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add any missing user columns
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS patient_code VARCHAR(50);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS street_address TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS locality VARCHAR(255);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS city VARCHAR(100);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS state VARCHAR(100);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS pincode VARCHAR(20);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS past_medical_history TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS medical_history_notes TEXT;
 
 -- --------------------------------------------------------------------
 -- 2. DOCTORS TABLE
@@ -101,6 +94,17 @@ CREATE TABLE IF NOT EXISTS public.doctors (
   total_logins_count INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add any missing doctors columns
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS signature_url TEXT;
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS stamp_url TEXT;
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS registration_number VARCHAR(100);
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS designation VARCHAR(100);
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS login_password VARCHAR(255);
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS last_login_ip VARCHAR(45);
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS account_status VARCHAR(20) DEFAULT 'active';
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS total_logins_count INT DEFAULT 0;
 
 -- --------------------------------------------------------------------
 -- 3. DOCTOR LOGIN AUDIT LOGS
@@ -166,6 +170,21 @@ CREATE TABLE IF NOT EXISTS public.appointments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Safely add any missing appointments columns
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS patient_code VARCHAR(50);
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS user_email VARCHAR(255);
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS report_ids UUID[];
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS vitals JSONB;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS diagnosis TEXT;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS prescribed_medicines JSONB;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS recommended_tests TEXT[];
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS higher_reference JSONB;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS follow_up_date DATE;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS recommend_admission BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS admission_reason TEXT;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS recommended_ward VARCHAR(100);
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS admitted_patient_id UUID;
+
 -- --------------------------------------------------------------------
 -- 6. ADMITTED PATIENTS TABLE (IPD Inpatient Manager)
 -- --------------------------------------------------------------------
@@ -178,7 +197,7 @@ CREATE TABLE IF NOT EXISTS public.admitted_patients (
   doctor_id UUID REFERENCES public.doctors(id) ON DELETE SET NULL,
   doctor_name VARCHAR(255) NOT NULL,
   doctor_specialty VARCHAR(100),
-  department VARCHAR(100) NOT NULL,
+  department VARCHAR(100) DEFAULT 'General Ward',
   ward_type VARCHAR(100) NOT NULL,
   bed_number VARCHAR(50) NOT NULL,
   admission_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -196,6 +215,14 @@ CREATE TABLE IF NOT EXISTS public.admitted_patients (
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add any missing admitted_patients columns
+ALTER TABLE public.admitted_patients ADD COLUMN IF NOT EXISTS department VARCHAR(100) DEFAULT 'General Ward';
+ALTER TABLE public.admitted_patients ADD COLUMN IF NOT EXISTS doctor_specialty VARCHAR(100);
+ALTER TABLE public.admitted_patients ADD COLUMN IF NOT EXISTS daily_routine_checkups JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.admitted_patients ADD COLUMN IF NOT EXISTS daily_doses JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.admitted_patients ADD COLUMN IF NOT EXISTS surgeries_performed JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.admitted_patients ADD COLUMN IF NOT EXISTS total_paid_amount NUMERIC(10,2) DEFAULT 0.00;
 
 -- --------------------------------------------------------------------
 -- 7. MEDICINES INVENTORY STOCK TABLE
