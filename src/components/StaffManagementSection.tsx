@@ -125,6 +125,15 @@ export const StaffManagementSection: React.FC = () => {
   const [recSuccessMsg, setRecSuccessMsg] = useState('');
   const [savingRec, setSavingRec] = useState(false);
 
+  // Admin Credentials Manager State (Appointed by Super Administrator SHREEKRISHNA)
+  const [adminEmail, setAdminEmail] = useState('admin@skmh.org');
+  const [adminPassword, setAdminPassword] = useState('Admin@2026');
+  const [adminFullName, setAdminFullName] = useState('Hospital Administrator');
+  const [adminPhone, setAdminPhone] = useState('+91 99001 88776');
+  const [showAdminPass, setShowAdminPass] = useState(false);
+  const [adminSuccessMsg, setAdminSuccessMsg] = useState('');
+  const [savingAdmin, setSavingAdmin] = useState(false);
+
   // CSV Import State for Staff Designations
   const [showStaffCsvModal, setShowStaffCsvModal] = useState(false);
   const [parsedStaffPreview, setParsedStaffPreview] = useState<Partial<StaffDesignation>[]>([]);
@@ -246,6 +255,20 @@ export const StaffManagementSection: React.FC = () => {
       console.error('Failed to update receptionist credentials', err);
     } finally {
       setSavingRec(false);
+    }
+  };
+
+  const handleSaveAdminCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingAdmin(true);
+    try {
+      await api.updateAdminCredentials(adminEmail, adminPassword, adminFullName, adminPhone);
+      setAdminSuccessMsg('Admin Login & Credentials updated! Admin can now log in with full access for ALL modules EXCEPT delete permissions (reserved for Super Admin SHREEKRISHNA).');
+      setTimeout(() => setAdminSuccessMsg(''), 6000);
+    } catch (err) {
+      console.error('Failed to update admin credentials', err);
+    } finally {
+      setSavingAdmin(false);
     }
   };
 
@@ -687,6 +710,97 @@ export const StaffManagementSection: React.FC = () => {
           >
             <Save className="w-4 h-4" />
             {savingRec ? 'Updating Credentials...' : 'Save Receptionist Password'}
+          </button>
+        </form>
+      </div>
+
+      {/* ADMIN LOGIN & APPOINTMENT CREDENTIALS MANAGER (SUPER ADMIN SETTINGS) */}
+      <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-emerald-700/60 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-emerald-800/80 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 flex items-center justify-center shadow-inner">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black text-white">Appoint Admin Login & Password Settings</h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-extrabold uppercase">
+                  Super Admin Exclusive (SHREEKRISHNA)
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium mt-0.5">
+                Super Admin (<strong className="text-emerald-300">SHREEKRISHNA</strong>) can appoint and configure Admin login credentials. Appointed Admins have full access to ALL hospital modules, records, and reports EXCEPT delete rights (reserved strictly for Super Admin).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-emerald-200 bg-emerald-500/10 border border-emerald-400/20 px-3 py-2 rounded-xl">
+            <UserCheck className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+            <span className="font-bold text-[11px]">Full Module Access (No Delete)</span>
+          </div>
+        </div>
+
+        {adminSuccessMsg && (
+          <div className="p-3.5 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-xs font-bold flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            {adminSuccessMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSaveAdminCredentials} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-300 mb-1">Admin Full Name</label>
+            <input
+              type="text"
+              required
+              value={adminFullName}
+              onChange={(e) => setAdminFullName(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs font-medium focus:outline-none focus:border-emerald-400"
+              placeholder="e.g. Hospital Administrator"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-300 mb-1">Admin Username / Email</label>
+            <input
+              type="email"
+              required
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs font-mono focus:outline-none focus:border-emerald-400"
+              placeholder="admin@skmh.org"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-300 mb-1">Access Password</label>
+            <div className="relative">
+              <input
+                type={showAdminPass ? "text" : "password"}
+                required
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs font-mono focus:outline-none focus:border-emerald-400"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowAdminPass(!showAdminPass)}
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-white transition-colors"
+                title="Toggle password view"
+              >
+                {showAdminPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={savingAdmin}
+            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            {savingAdmin ? 'Updating Admin Account...' : 'Appoint & Save Admin'}
           </button>
         </form>
       </div>

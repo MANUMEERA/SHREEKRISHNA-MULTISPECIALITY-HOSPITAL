@@ -267,60 +267,6 @@ export const INITIAL_DOCTORS: Doctor[] = [
 
 export const INITIAL_USERS: User[] = [
   {
-    id: 'usr-patient-1',
-    patient_code: 'SKMH-2026-PAT-101',
-    email: 'patient@skmh.org',
-    full_name: 'Amitabh Sharma',
-    role: 'patient',
-    phone: '+91 98112 23344',
-    gender: 'Male',
-    age: 42,
-    blood_group: 'B+',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
-    created_at: '2026-01-15T10:00:00Z',
-    allergies: ['Penicillin', 'Dust Mites'],
-    chronic_conditions: ['Stage 1 Hypertension', 'Mild Osteoarthritis'],
-    emergency_contact: '+91 98112 99887 (Sunita Sharma - Wife)',
-    address: 'Flat 402, Royal Residency, Near Kilvani Naka, Silvassa 396230',
-    medical_history_notes: 'Underwent right knee diagnostic evaluation in 2025. Regular cardiac OPD checks with Dr. Tushar Patel & Dr. Rajesh Krishna.'
-  },
-  {
-    id: 'usr-patient-2',
-    patient_code: 'SKMH-2026-PAT-102',
-    email: 'priya.patel@gmail.com',
-    full_name: 'Priya Patel',
-    role: 'patient',
-    phone: '+91 98251 44332',
-    gender: 'Female',
-    age: 31,
-    blood_group: 'O+',
-    avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200',
-    created_at: '2026-02-10T11:20:00Z',
-    allergies: ['Sulfa Drugs'],
-    chronic_conditions: ['PCOS / Thyroid Screen Normal'],
-    emergency_contact: '+91 98251 99110 (Rahul Patel - Husband)',
-    address: 'B-12, Green Park Society, Naroli Road, Silvassa 396230',
-    medical_history_notes: 'Antenatal wellness visits with Dr. Dipti Agarwal. 3D Voluson USG scan recorded clear fetal progression.'
-  },
-  {
-    id: 'usr-patient-3',
-    patient_code: 'SKMH-2026-PAT-103',
-    email: 'ramesh.verma@yahoo.com',
-    full_name: 'Rameshchandra Verma',
-    role: 'patient',
-    phone: '+91 97230 11998',
-    gender: 'Male',
-    age: 58,
-    blood_group: 'A+',
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200',
-    created_at: '2026-03-01T09:15:00Z',
-    allergies: ['None Reported'],
-    chronic_conditions: ['Type 2 Diabetes Mellitus', 'Lumbar Spondylosis'],
-    emergency_contact: '+91 97230 88221 (Anil Verma - Son)',
-    address: 'Plot 88, GIDC Industrial Estate, Amli, Silvassa 396230',
-    medical_history_notes: 'Undergoing Advanced Robotic Physiotherapy under Dr. Rushita Movaliya for chronic back pain.'
-  },
-  {
     id: 'usr-doctor-1',
     email: 'rajesh.krishna@skmh.org',
     full_name: 'Dr. Rajesh Krishna',
@@ -334,8 +280,9 @@ export const INITIAL_USERS: User[] = [
   },
   {
     id: 'usr-admin-1',
-    email: 'admin@skmh.org',
-    full_name: 'Suresh Patel (Admin)',
+    email: 'shreekrishna@skmh.org',
+    password: 'Krishna@123',
+    full_name: 'SHREEKRISHNA (Admin)',
     role: 'admin',
     phone: '+91 99001 88776',
     gender: 'Male',
@@ -346,11 +293,12 @@ export const INITIAL_USERS: User[] = [
   },
   {
     id: 'usr-superadmin-1',
-    email: 'superadmin@skmh.org',
-    full_name: 'Director Desk (Super Admin)',
+    email: 'SHREEKRISHNA',
+    password: 'Krishna@123',
+    full_name: 'SHREEKRISHNA (Super Admin)',
     role: 'super_admin',
     phone: '+91 99000 11111',
-    gender: 'Female',
+    gender: 'Male',
     age: 55,
     blood_group: 'AB+',
     avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
@@ -371,259 +319,11 @@ export const INITIAL_USERS: User[] = [
   }
 ];
 
-export const INITIAL_APPOINTMENTS: Appointment[] = [
-  {
-    id: 'apt-101',
-    user_id: 'usr-patient-1',
-    patient_code: 'SKMH-2026-PAT-101',
-    user_name: 'Amitabh Sharma',
-    user_phone: '+91 98112 23344',
-    user_email: 'patient@skmh.org',
-    doctor_id: 'doc-1',
-    doctor_name: 'Dr. Tushar Patel',
-    department: 'Orthopedics & Joint Replacement',
-    appointment_date: '2026-08-01',
-    time_slot: '10:30 AM',
-    status: 'completed',
-    reason: 'Severe right knee pain while walking & climbing stairs.',
-    notes: 'Patient advised non-weight bearing exercise and knee sleeve support.',
-    created_at: '2026-08-01T14:20:00Z',
-    vitals: {
-      blood_pressure: '130/85 mmHg',
-      pulse_rate: '74 bpm',
-      temperature: '98.4 °F',
-      spo2: '99%',
-      weight_kg: '78'
-    },
-    diagnosis: 'Primary Osteoarthritis Right Knee (Grade II) with Medial Joint Space Narrowing',
-    prescribed_medicines: [
-      {
-        id: 'med-1',
-        name: 'Tab. Glucosamine + Chondroitin (500mg)',
-        dosage: '1 Tablet',
-        frequency: '1-0-1 (Twice Daily)',
-        duration: '1 Month',
-        instructions: 'Take after principal meals'
-      },
-      {
-        id: 'med-2',
-        name: 'Tab. Aceclofenac + Paracetamol (100mg/325mg)',
-        dosage: '1 Tablet',
-        frequency: '1-0-1 (As Needed)',
-        duration: '5 Days',
-        instructions: 'After meals for acute pain'
-      },
-      {
-        id: 'med-3',
-        name: 'Cap. Omeprazole (20mg)',
-        dosage: '1 Capsule',
-        frequency: '1-0-0 (Once Daily)',
-        duration: '10 Days',
-        instructions: '30 mins before breakfast'
-      }
-    ],
-    recommended_tests: [
-      'Digital X-Ray Right Knee Joint (AP & Lateral Weight-Bearing)',
-      'Serum Calcium & Vitamin D3 (25-OH)',
-      'Uric Acid Level'
-    ],
-    higher_reference: {
-      referred_to_hospital: 'Civil Hospital Surat / Spine & Joint Tertiary Institute',
-      specialist_center: 'Advanced Arthroscopy & Knee Reconstruction Center',
-      referral_reason: 'Optional higher tertiary consult if conservative therapy fails to relieve nocturnal joint pain after 4 weeks.',
-      urgency: 'Routine',
-      reference_date: '2026-08-01',
-      doctor_signature_notes: 'Dr. Tushar Patel (M.B.B.S, D. Ortho) - Senior Orthopedic Specialist'
-    },
-    follow_up_date: '2026-08-25'
-  },
-  {
-    id: 'apt-102',
-    user_id: 'usr-patient-1',
-    patient_code: 'SKMH-2026-PAT-101',
-    user_name: 'Amitabh Sharma',
-    user_phone: '+91 98112 23344',
-    user_email: 'patient@skmh.org',
-    doctor_id: 'doc-3',
-    doctor_name: 'Dr. Naval Singh Rajput',
-    department: 'General & Laparoscopic Surgery',
-    appointment_date: '2026-08-18',
-    time_slot: '02:00 PM',
-    status: 'pending',
-    reason: 'Mild right upper quadrant discomfort & epigastric fullness.',
-    notes: 'Awaiting abdominal sonography ultrasound report.',
-    created_at: '2026-08-05T09:15:00Z'
-  },
-  {
-    id: 'apt-103',
-    user_id: 'usr-patient-2',
-    patient_code: 'SKMH-2026-PAT-102',
-    user_name: 'Priya Patel',
-    user_phone: '+91 98251 44332',
-    user_email: 'priya.patel@gmail.com',
-    doctor_id: 'doc-2',
-    doctor_name: 'Dr. Dipti Agarwal',
-    department: 'Obstetrics, Gynecology & Infertility',
-    appointment_date: '2026-07-20',
-    time_slot: '11:00 AM',
-    status: 'completed',
-    reason: 'Second trimester routine antenatal check & fetal anomaly scan review.',
-    notes: 'Fetal growth metrics aligned with gestational age.',
-    created_at: '2026-07-15T11:00:00Z',
-    vitals: {
-      blood_pressure: '118/76 mmHg',
-      pulse_rate: '78 bpm',
-      temperature: '98.6 °F',
-      spo2: '99%',
-      weight_kg: '62'
-    },
-    diagnosis: '22 Weeks Gestation - Single Live Intrauterine Pregnancy (Normal Anomaly Scan)',
-    prescribed_medicines: [
-      {
-        id: 'med-4',
-        name: 'Tab. Ferrous Ascorbate + Folic Acid',
-        dosage: '1 Tablet',
-        frequency: '0-1-0 (Once Daily)',
-        duration: '3 Months',
-        instructions: 'Take with lemon water or post lunch'
-      },
-      {
-        id: 'med-5',
-        name: 'Tab. Calcium Citrate + Vitamin D3 (500mg)',
-        dosage: '1 Tablet',
-        frequency: '1-0-1 (Twice Daily)',
-        duration: '3 Months',
-        instructions: 'After breakfast & dinner'
-      }
-    ],
-    recommended_tests: [
-      'Fetal Growth & Doppler Ultrasonography (3D Voluson)',
-      'Complete Hemogram (Hb % check)',
-      'Oral Glucose Tolerance Test (OGTT 75g)'
-    ],
-    follow_up_date: '2026-08-20'
-  },
-  {
-    id: 'apt-104',
-    user_id: 'usr-patient-3',
-    patient_code: 'SKMH-2026-PAT-103',
-    user_name: 'Rameshchandra Verma',
-    user_phone: '+91 97230 11998',
-    user_email: 'ramesh.verma@yahoo.com',
-    doctor_id: 'doc-4',
-    doctor_name: 'Dr. Rushita Movaliya',
-    department: 'Advanced Robotic Physiotherapy Clinic',
-    appointment_date: '2026-08-04',
-    time_slot: '04:00 PM',
-    status: 'completed',
-    reason: 'Chronic lower back ache radiating to left thigh with morning stiffness.',
-    notes: 'Undergoing Class-IV Laser therapy & VR spinal traction.',
-    created_at: '2026-08-01T10:00:00Z',
-    vitals: {
-      blood_pressure: '138/88 mmHg',
-      pulse_rate: '80 bpm',
-      temperature: '98.2 °F',
-      spo2: '98%',
-      weight_kg: '82'
-    },
-    diagnosis: 'L4-L5 Lumbar Spondylosis with Mild Left Sciatic Nerve Impingement',
-    prescribed_medicines: [
-      {
-        id: 'med-6',
-        name: 'Cap. Pregabalin (75mg) + Methylcobalamin (1500mcg)',
-        dosage: '1 Capsule',
-        frequency: '0-0-1 (Nightly)',
-        duration: '15 Days',
-        instructions: 'Take at bedtime'
-      },
-      {
-        id: 'med-7',
-        name: 'Topical Diclofenac + Menthol Gel',
-        dosage: 'Local Application',
-        frequency: '1-0-1 (Twice Daily)',
-        duration: '10 Days',
-        instructions: 'Gently apply over lumbar spine, no heavy massage'
-      }
-    ],
-    recommended_tests: [
-      'Lumbar Spine MRI (1.5 Tesla Scan)',
-      'HbA1c Glycated Hemoglobin',
-      'Class-IV High Power Laser Therapy Sessions (10 sittings)'
-    ],
-    higher_reference: {
-      referred_to_hospital: 'Apex Neuro-Spine Super Specialty Hospital, Surat',
-      specialist_center: 'Department of Spine Surgery & Interventional Pain Medicine',
-      referral_reason: 'Higher tertiary neuro-spine evaluation for selective nerve root block if numbness in left foot persists.',
-      urgency: 'Urgent',
-      reference_date: '2026-08-04',
-      doctor_signature_notes: 'Dr. Rushita Movaliya (M.P.T) - Senior Robotic Physiotherapy Specialist'
-    },
-    follow_up_date: '2026-08-18'
-  }
-];
+export const INITIAL_APPOINTMENTS: Appointment[] = [];
 
-export const INITIAL_REPORTS: MedicalReport[] = [
-  {
-    id: 'rep-1',
-    user_id: 'usr-patient-1',
-    user_name: 'Amitabh Sharma',
-    title: 'Comprehensive Lipid Profile & Blood Sugar',
-    category: 'Blood Test',
-    file_name: 'Lipid_Profile_Sharma_Aug2026.pdf',
-    file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    file_size: '1.2 MB',
-    uploaded_at: '2026-08-02T10:30:00Z',
-    doctor_notes: 'Triglycerides slightly elevated (185 mg/dL). Recommended low-carb diet and 30 mins brisk walking.',
-    uploaded_by_role: 'doctor'
-  },
-  {
-    id: 'rep-2',
-    user_id: 'usr-patient-1',
-    user_name: 'Amitabh Sharma',
-    title: '2D Echo & ECG Cardiac Report',
-    category: 'Lab Result',
-    file_name: '2D_Echo_ECG_Aug2026.pdf',
-    file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    file_size: '2.8 MB',
-    uploaded_at: '2026-08-03T16:10:00Z',
-    doctor_notes: 'Ejection fraction 62%. Normal valvular movement. No signs of ischemia.',
-    uploaded_by_role: 'doctor'
-  },
-  {
-    id: 'rep-3',
-    user_id: 'usr-patient-1',
-    user_name: 'Amitabh Sharma',
-    title: 'Right Knee Joint X-Ray (AP & Lateral View)',
-    category: 'Radiology / X-Ray',
-    file_name: 'Knee_XRay_Amitabh.png',
-    file_url: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&q=80&w=800',
-    file_size: '3.5 MB',
-    uploaded_at: '2026-08-05T08:45:00Z',
-    doctor_notes: 'Uploaded by patient prior to consultation with Dr. Vikram Roy.',
-    uploaded_by_role: 'patient'
-  }
-];
+export const INITIAL_REPORTS: MedicalReport[] = [];
 
-export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    user_id: 'usr-patient-1',
-    title: 'Appointment Confirmed! 🏥',
-    message: 'Your appointment with Dr. Rajesh Krishna on Aug 12, 2026 at 10:30 AM is confirmed.',
-    type: 'appointment',
-    read: false,
-    created_at: '2026-08-01T14:21:00Z'
-  },
-  {
-    id: 'notif-2',
-    user_id: 'usr-patient-1',
-    title: 'New Medical Report Uploaded 📄',
-    message: 'Dr. Rajesh Krishna uploaded your "Comprehensive Lipid Profile & Blood Sugar" test result.',
-    type: 'report',
-    read: true,
-    created_at: '2026-08-02T10:31:00Z'
-  }
-];
+export const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
 export const INITIAL_BOT_FAQS = [
   {

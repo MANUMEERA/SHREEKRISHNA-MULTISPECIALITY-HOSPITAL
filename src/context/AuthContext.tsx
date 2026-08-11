@@ -70,25 +70,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchUserRole = async (newRole: UserRole) => {
-    if (!user) {
-      await login('patient@skmh.org', newRole);
-      return;
+    let targetEmail = 'patient@skmh.org';
+    if (newRole === 'admin' || newRole === 'super_admin') {
+      targetEmail = 'SHREEKRISHNA';
+    } else if (newRole === 'receptionist') {
+      targetEmail = 'reception.opd@skmh.org';
+    } else if (newRole === 'doctor') {
+      targetEmail = 'rajesh.krishna@skmh.org';
     }
-    const updatedUser: User = {
-      ...user,
-      role: newRole,
-      full_name: newRole === 'admin' 
-        ? 'Suresh Patel (Admin)' 
-        : newRole === 'receptionist' 
-        ? 'Pooja Mehta (Reception Desk)' 
-        : newRole === 'doctor' 
-        ? 'Dr. Rajesh Krishna' 
-        : newRole === 'super_admin' 
-        ? 'Director Desk (Super Admin)' 
-        : 'Amitabh Sharma'
-    };
-    await api.setCurrentUser(updatedUser);
-    setUser(updatedUser);
+
+    const loggedUser = await api.login(targetEmail, newRole);
+    setUser(loggedUser);
   };
 
   const markNotificationRead = async (id: string) => {

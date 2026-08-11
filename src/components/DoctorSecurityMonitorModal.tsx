@@ -281,7 +281,7 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
               <span className="font-bold text-slate-900 block flex items-center gap-1">
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> Default Passkey Hint:
               </span>
-              <p className="font-mono text-slate-800">Passkey: <code className="bg-slate-200 px-1.5 py-0.5 rounded font-bold text-emerald-800">SKMH-SUPER-2026</code> or <code className="bg-slate-200 px-1.5 py-0.5 rounded font-bold text-emerald-800">123456</code></p>
+              <p className="font-mono text-slate-800">Passkey: <code className="bg-slate-200 px-1.5 py-0.5 rounded font-bold text-emerald-800">Krishna@123</code> or <code className="bg-slate-200 px-1.5 py-0.5 rounded font-bold text-emerald-800">123456</code></p>
             </div>
           </div>
         ) : (

@@ -265,36 +265,11 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
                   </button>
                 </form>
 
-                {/* Quick Demo Accounts */}
-                <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
-                    ⚡ Quick Demo Patient Logins:
-                  </span>
-                  <div className="space-y-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleGateLogin('patient@skmh.org')}
-                      className="w-full p-2.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 text-xs font-bold flex items-center justify-between transition-colors text-left cursor-pointer"
-                    >
-                      <div>
-                        <span className="block font-black">Amitabh Sharma</span>
-                        <span className="text-[10px] font-mono text-emerald-700">patient@skmh.org</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-emerald-600" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleGateLogin('priya.nair@skmh.org')}
-                      className="w-full p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-900 border border-slate-200 text-xs font-bold flex items-center justify-between transition-colors text-left cursor-pointer"
-                    >
-                      <div>
-                        <span className="block font-black">Priya Nair</span>
-                        <span className="text-[10px] font-mono text-slate-500">priya.nair@skmh.org</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </div>
+                {/* Registration guidance */}
+                <div className="pt-3 border-t border-slate-100">
+                  <p className="text-xs text-slate-500">
+                    Already registered? Enter your email address or patient health ID above to sign in to your medical dashboard.
+                  </p>
                 </div>
               </div>
             </div>
@@ -365,8 +340,8 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
                   Patient Health Records
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">{user?.full_name || 'Amitabh Sharma'}</h1>
-              <p className="text-xs text-emerald-200 font-medium">{user?.email || 'patient@skmh.org'} • {user?.phone || '+91 98112 23344'}</p>
+              <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">{user?.full_name || 'Patient'}</h1>
+              <p className="text-xs text-emerald-200 font-medium">{user?.email || 'Registered Patient'} {user?.phone ? `• ${user.phone}` : ''}</p>
             </div>
           </div>
 

@@ -520,6 +520,16 @@ INSERT INTO public.medicines (name, category, stock_count, min_threshold, unit, 
 ('Cefoperazone + Sulbactam Injection 1.5g', 'Injection', 60, 15, 'Vials', 320.00, 'Cold Storage C-1')
 ON CONFLICT DO NOTHING;
 
+-- PERFORMANCE INDEXES
+CREATE INDEX IF NOT EXISTS idx_appointments_user ON public.appointments(user_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor ON public.appointments(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON public.appointments(appointment_date);
+CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+CREATE INDEX IF NOT EXISTS idx_doctors_user ON public.doctors(user_id);
+CREATE INDEX IF NOT EXISTS idx_medical_reports_user ON public.medical_reports(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id);
+
 -- Enable Supabase Realtime
 DO $$ 
 BEGIN 

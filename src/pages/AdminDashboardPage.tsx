@@ -201,6 +201,108 @@ export const AdminDashboardPage: React.FC = () => {
   // Copy SQL script state
   const [sqlCopied, setSqlCopied] = useState(false);
 
+  // Super Admin Delete Authorization State
+  const [deleteAuthModalOpen, setDeleteAuthModalOpen] = useState(false);
+  const [deleteAuthTarget, setDeleteAuthTarget] = useState<{ title: string; recordName: string; onConfirm: () => Promise<void> } | null>(null);
+  const [passkeyInput, setPasskeyInput] = useState('');
+  const [showPasskey, setShowPasskey] = useState(false);
+  const [passkeyError, setPasskeyError] = useState('');
+  const [deletingRecord, setDeletingRecord] = useState(false);
+
+  const isSuperAdmin = user?.role === 'super_admin' || user?.email?.toLowerCase().includes('shreekrishna') || user?.email === 'SHREEKRISHNA';
+
+  const triggerDelete = (title: string, recordName: string, onConfirmAction: () => Promise<void>) => {
+    setDeleteAuthTarget({ title, recordName, onConfirm: onConfirmAction });
+    setPasskeyInput('');
+    setPasskeyError('');
+    setDeleteAuthModalOpen(true);
+  };
+
+  const handleExecuteDeleteWithPasskey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deleteAuthTarget) return;
+
+    if (passkeyInput.trim() !== 'Krishna@123' && passkeyInput.trim() !== api.getSuperAdminPasskey()) {
+      setPasskeyError('Invalid Super Admin Passkey! Only Super Admin (SHREEKRISHNA) with passkey "Krishna@123" can authorize deletion.');
+      return;
+    }
+
+    setDeletingRecord(true);
+    try {
+      await deleteAuthTarget.onConfirm();
+      setDeleteAuthModalOpen(false);
+      setToastMessage({
+        id: Date.now().toString(),
+        title: 'Record Deleted Successfully',
+        description: `${deleteAuthTarget.title} "${deleteAuthTarget.recordName}" removed from system.`,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    } catch (err) {
+      console.error('Failed to execute delete:', err);
+      setPasskeyError('Error deleting record. Please try again.');
+    } finally {
+      setDeletingRecord(false);
+    }
+  };
+
+  // Edit Appointment Modal State
+  const [editAptModalOpen, setEditAptModalOpen] = useState(false);
+  const [editingApt, setEditingApt] = useState<Appointment | null>(null);
+  const [editAptForm, setEditAptForm] = useState({
+    user_name: '',
+    user_phone: '',
+    user_email: '',
+    doctor_name: '',
+    department: '',
+    appointment_date: '',
+    time_slot: '',
+    reason: '',
+    notes: '',
+    status: 'pending' as AppointmentStatus
+  });
+
+  const handleOpenEditAppointment = (apt: Appointment) => {
+    setEditingApt(apt);
+    setEditAptForm({
+      user_name: apt.user_name || '',
+      user_phone: apt.user_phone || '',
+      user_email: apt.user_email || '',
+      doctor_name: apt.doctor_name || '',
+      department: apt.department || '',
+      appointment_date: apt.appointment_date || '',
+      time_slot: apt.time_slot || '',
+      reason: apt.reason || '',
+      notes: apt.notes || '',
+      status: apt.status || 'pending'
+    });
+    setEditAptModalOpen(true);
+  };
+
+  const handleSaveEditAppointment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingApt) return;
+    await api.updateAppointmentDetails(editingApt.id, {
+      user_name: editAptForm.user_name,
+      user_phone: editAptForm.user_phone,
+      user_email: editAptForm.user_email,
+      doctor_name: editAptForm.doctor_name,
+      department: editAptForm.department,
+      appointment_date: editAptForm.appointment_date,
+      time_slot: editAptForm.time_slot,
+      reason: editAptForm.reason,
+      notes: editAptForm.notes,
+      status: editAptForm.status
+    });
+    setEditAptModalOpen(false);
+    await loadAllAdminData();
+    setToastMessage({
+      id: Date.now().toString(),
+      title: 'OPD Consultation Updated',
+      description: `Appointment details for ${editAptForm.user_name} updated successfully.`,
+      timestamp: new Date().toLocaleTimeString()
+    });
+  };
+
   useEffect(() => {
     loadAllAdminData();
 
@@ -341,11 +443,11 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   const handleDeletePatient = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to remove patient record for "${name}"? This action removes history records.`)) {
+    triggerDelete('Patient Health Record', name, async () => {
       await api.deletePatient(id);
       if (selectedEhrPatient?.id === id) setSelectedEhrPatient(null);
       await loadAllAdminData();
-    }
+    });
   };
 
   // Open Upload Report Modal
@@ -450,10 +552,10 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   const handleDeleteDepartment = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete department "${name}"?`)) {
+    triggerDelete('Department', name, async () => {
       await api.deleteDepartment(id);
       await loadAllAdminData();
-    }
+    });
   };
 
   // --- DOCTOR HANDLERS ---
@@ -551,10 +653,10 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   const handleDeleteDoctor = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to deactivate and remove Dr. ${name}?`)) {
+    triggerDelete('Doctor Profile', name, async () => {
       await api.deleteDoctor(id);
       await loadAllAdminData();
-    }
+    });
   };
 
   const handleOpenObservationModal = (apt: Appointment) => {
@@ -1640,6 +1742,22 @@ export const AdminDashboardPage: React.FC = () => {
                                   <option value="cancelled">Cancel</option>
                                 </select>
                               )}
+
+                              <button
+                                onClick={() => handleOpenEditAppointment(apt)}
+                                className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+                                title="Edit OPD Consultation Details"
+                              >
+                                <Edit className="w-3.5 h-3.5 text-amber-600" />
+                              </button>
+
+                              <button
+                                onClick={() => triggerDelete('OPD Consultation Log', `${apt.user_name} (${apt.id})`, async () => { await api.deleteAppointment(apt.id); await loadAllAdminData(); })}
+                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+                                title="Delete OPD Consultation Log (Super Admin Authorized)"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -3090,6 +3208,256 @@ export const AdminDashboardPage: React.FC = () => {
         isOpen={supabaseSchemaModalOpen}
         onClose={() => setSupabaseSchemaModalOpen(false)}
       />
+
+      {/* ================= SUPER ADMIN DELETE AUTHORIZATION PASSKEY MODAL ================= */}
+      {deleteAuthModalOpen && deleteAuthTarget && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center shadow-inner">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Super Admin Delete Authorization</h3>
+                  <p className="text-[11px] text-slate-500 font-semibold">Authorized ID: SHREEKRISHNA</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteAuthModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleExecuteDeleteWithPasskey} className="mt-4 space-y-4">
+              <div className="p-3.5 bg-rose-50 border border-rose-200/80 rounded-2xl text-xs space-y-1">
+                <div className="font-bold text-rose-900">
+                  Target Record: <span className="underline">{deleteAuthTarget.title}</span> - {deleteAuthTarget.recordName}
+                </div>
+                <p className="text-rose-700 text-[11px] font-medium leading-relaxed">
+                  Delete actions are restricted strictly to Super Admin (<strong className="font-mono text-rose-950">SHREEKRISHNA</strong>). Enter passkey <strong className="font-mono text-rose-950">Krishna@123</strong> to authorize permanent removal.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Enter Super Admin Passkey
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPasskey ? "text" : "password"}
+                    required
+                    value={passkeyInput}
+                    onChange={(e) => {
+                      setPasskeyInput(e.target.value);
+                      setPasskeyError('');
+                    }}
+                    placeholder="Enter passkey (Krishna@123)"
+                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasskey(!showPasskey)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPasskey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {passkeyError && (
+                  <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" /> {passkeyError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteAuthModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingRecord}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {deletingRecord ? 'Deleting...' : 'Authorize & Delete Record'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= EDIT OPD CONSULTATION APPOINTMENT MODAL ================= */}
+      {editAptModalOpen && editingApt && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center shadow-inner">
+                  <Edit className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Edit OPD Consultation Record</h3>
+                  <p className="text-[11px] text-slate-500 font-semibold">Appointment ID: {editingApt.id}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditAptModalOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditAppointment} className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Patient Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editAptForm.user_name}
+                    onChange={(e) => setEditAptForm({ ...editAptForm, user_name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Patient Phone</label>
+                  <input
+                    type="text"
+                    required
+                    value={editAptForm.user_phone}
+                    onChange={(e) => setEditAptForm({ ...editAptForm, user_phone: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Doctor Name</label>
+                  <select
+                    value={editAptForm.doctor_name}
+                    onChange={(e) => {
+                      const doc = doctors.find(d => d.name === e.target.value);
+                      setEditAptForm({
+                        ...editAptForm,
+                        doctor_name: e.target.value,
+                        department: doc ? doc.department : editAptForm.department
+                      });
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
+                  >
+                    {doctors.map(d => (
+                      <option key={d.id} value={d.name}>{d.name} ({d.department})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Department</label>
+                  <select
+                    value={editAptForm.department}
+                    onChange={(e) => setEditAptForm({ ...editAptForm, department: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
+                  >
+                    {departments.map(d => (
+                      <option key={d.id} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Consultation Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={editAptForm.appointment_date}
+                    onChange={(e) => setEditAptForm({ ...editAptForm, appointment_date: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Time Slot</label>
+                  <input
+                    type="text"
+                    required
+                    value={editAptForm.time_slot}
+                    onChange={(e) => setEditAptForm({ ...editAptForm, time_slot: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800"
+                    placeholder="10:30 AM"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Status</label>
+                  <select
+                    value={editAptForm.status}
+                    onChange={(e) => setEditAptForm({ ...editAptForm, status: e.target.value as AppointmentStatus })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-800 bg-white"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Chief Complaints / Reason</label>
+                <input
+                  type="text"
+                  value={editAptForm.reason}
+                  onChange={(e) => setEditAptForm({ ...editAptForm, reason: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800"
+                  placeholder="Reason for visit"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Receptionist / Clinical Notes</label>
+                <textarea
+                  rows={2}
+                  value={editAptForm.notes}
+                  onChange={(e) => setEditAptForm({ ...editAptForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800"
+                  placeholder="Additional notes"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditAptModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" /> Save OPD Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ================= AUDIO NOTIFICATION CHIME TOAST ================= */}
       <AudioNotificationToast

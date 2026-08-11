@@ -133,6 +133,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
   };
 
   const handleQuickDemoLogin = async (role: UserRole) => {
+    if (role === 'patient') {
+      setSelectedRole('patient');
+      setIsSignup(true);
+      return;
+    }
     setLoading(true);
     try {
       await switchUserRole(role);
@@ -479,14 +484,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
 
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Email Address
+                Email Address or Username
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
-                  type="email"
+                  type="text"
                   required
-                  placeholder="name@example.com"
+                  placeholder="e.g. SHREEKRISHNA or email@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
@@ -545,7 +550,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
                 onClick={() => handleQuickDemoLogin('patient')}
                 className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[11px] font-bold text-emerald-800 text-center transition-colors"
               >
-                👤 Patient
+                👤 Register Patient
               </button>
               <button
                 onClick={() => handleQuickDemoLogin('receptionist')}

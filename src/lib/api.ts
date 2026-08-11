@@ -61,66 +61,11 @@ export const INITIAL_CHARGE_CATEGORIES: HospitalChargeCategory[] = [
   { id: 'chg-7', category_name: 'X-Ray', service_name: 'Digital Radiography Per Film', charge_amount: 450, department: 'Radiology' }
 ];
 
-export const INITIAL_IPD_PATIENTS: AdmittedPatientRecord[] = [
-  {
-    id: 'ipd-2026-101',
-    patient_id: 'pat-1',
-    patient_name: 'Amitabh Sharma',
-    patient_code: 'SKMH-2026-PAT-101',
-    phone: '+91 98112 23344',
-    doctor_id: 'doc-1',
-    doctor_name: 'Dr. Tushar Patel',
-    department: 'Orthopedics',
-    ward_type: 'Super Deluxe Suite',
-    bed_number: 'Bed SD-302',
-    admission_date: '2026-08-05',
-    status: 'Admitted',
-    diagnosis_at_admission: 'Acute Right Knee Ligament Injury & Meniscal Tear',
-    daily_bed_charge: 4500,
-    daily_routine_checkups: [
-      { id: 'chk-1', date: '2026-08-06', time: '09:00 AM', bp: '122/82', pulse: '74 bpm', temp: '98.4 °F', sugar: '110 mg/dL', notes: 'Stable post-op recovery. Mild knee swelling.', doctor_or_nurse: 'Dr. Tushar Patel' },
-      { id: 'chk-2', date: '2026-08-07', time: '09:30 AM', bp: '120/80', pulse: '72 bpm', temp: '98.6 °F', sugar: '105 mg/dL', notes: 'Physiotherapy started. Pain managed well.', doctor_or_nurse: 'Dr. Tushar Patel' }
-    ],
-    daily_doses: [
-      { id: 'dose-1', date: '2026-08-06', time: '08:00 AM', medicine_name: 'Tab. Paracetamol 500mg', dose_amount: '1 Nos', type: 'Medicine', given_by: 'Nurse Sunita' },
-      { id: 'dose-2', date: '2026-08-06', time: '10:00 AM', medicine_name: 'Saline Normal Saline 500ml', dose_amount: '1 Pack', type: 'Saline', given_by: 'Nurse Sunita' },
-      { id: 'dose-3', date: '2026-08-07', time: '08:00 AM', medicine_name: 'Inj. Ondansetron 2ml', dose_amount: '1 Vial', type: 'Injection', given_by: 'Nurse Rina' }
-    ],
-    surgeries_performed: [
-      { id: 'surg-1', date: '2026-08-05', surgery_name: 'Arthroscopic Knee Reconstruction', surgeon_name: 'Dr. Tushar Patel', charge: 45000, notes: 'Successful arthroscopic repair.' }
-    ],
-    total_paid_amount: 25000,
-    notes: 'Patient advised 3 days bed rest with cold compress.'
-  }
-];
+export const INITIAL_IPD_PATIENTS: AdmittedPatientRecord[] = [];
 
-export const INITIAL_RECEIPTS: PaymentReceipt[] = [
-  {
-    id: 'rcpt-1001',
-    receipt_number: 'SKMH-REC-2026-1001',
-    patient_id: 'pat-1',
-    patient_name: 'Amitabh Sharma',
-    patient_code: 'SKMH-2026-PAT-101',
-    phone: '+91 98112 23344',
-    payment_date: '2026-08-08',
-    payment_mode: 'UPI (QR Code)',
-    transaction_ref: 'UPI/628193819283/OKHDFC',
-    items: [
-      { description: 'OPD Doctor Consultation Fee - Dr. Rajesh Krishna', category: 'Consultation', amount: 500 },
-      { description: 'Chest X-Ray Digital PA View', category: 'Radiology', amount: 450 }
-    ],
-    subtotal: 950,
-    tax: 0,
-    discount: 50,
-    total_paid: 900,
-    collected_by: 'OPD Receptionist'
-  }
-];
+export const INITIAL_RECEIPTS: PaymentReceipt[] = [];
 
 export const INITIAL_ACCOUNTING: AccountingEntry[] = [
-  { id: 'acc-1', date: '2026-08-08', type: 'Income', source_category: 'OPD Consultation', department: 'Cardiology', doctor_name: 'Dr. Rajesh Krishna', amount: 500, payment_mode: 'UPI', description: 'OPD Fee - Amitabh Sharma', receipt_ref: 'SKMH-REC-2026-1001' },
-  { id: 'acc-2', date: '2026-08-08', type: 'Income', source_category: 'X-Ray & Radiology', department: 'Radiology', doctor_name: 'Dr. Rajesh Krishna', amount: 450, payment_mode: 'UPI', description: 'Chest X-Ray', receipt_ref: 'SKMH-REC-2026-1001' },
-  { id: 'acc-3', date: '2026-08-07', type: 'Income', source_category: 'IPD Admission', department: 'Orthopedics', doctor_name: 'Dr. Tushar Patel', amount: 25000, payment_mode: 'Card', description: 'IPD Advance Deposit - Amitabh Sharma' },
   { id: 'acc-4', date: '2026-08-06', type: 'Expense', source_category: 'Supplies Purchase', department: 'Pharmacy', amount: 12500, payment_mode: 'Net Banking', description: 'Bulk purchase of Saline and Surgical Gloves' }
 ];
 
@@ -236,9 +181,7 @@ if (!localStorage.getItem(STORAGE_KEYS.DOCTORS)) {
 if (!localStorage.getItem(STORAGE_KEYS.DEPARTMENTS)) {
   setStored(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
 }
-if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-  setStored(STORAGE_KEYS.USERS, INITIAL_USERS);
-}
+setStored(STORAGE_KEYS.USERS, INITIAL_USERS);
 if (!localStorage.getItem(STORAGE_KEYS.APPOINTMENTS)) {
   setStored(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
 }
@@ -250,6 +193,63 @@ if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
 }
 if (!localStorage.getItem(STORAGE_KEYS.DOCTOR_LOGS)) {
   setStored(STORAGE_KEYS.DOCTOR_LOGS, INITIAL_DOCTOR_LOGS);
+}
+
+// Automatic cleanup of legacy dummy patients from localStorage
+try {
+  const legacyDummyIds = new Set(['usr-patient-1', 'usr-patient-2', 'usr-patient-3', 'pat-1', 'pat-2', 'pat-3']);
+  const legacyEmails = new Set(['patient@skmh.org', 'priya.patel@gmail.com', 'ramesh.verma@yahoo.com']);
+
+  const storedUsersStr = localStorage.getItem(STORAGE_KEYS.USERS);
+  if (storedUsersStr) {
+    const parsedUsers: User[] = JSON.parse(storedUsersStr);
+    const cleanedUsers = parsedUsers.filter(u => 
+      !legacyDummyIds.has(u.id) && 
+      !legacyEmails.has(u.email?.toLowerCase())
+    );
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(cleanedUsers));
+  }
+
+  const storedAptsStr = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
+  if (storedAptsStr) {
+    const parsedApts: Appointment[] = JSON.parse(storedAptsStr);
+    const cleanedApts = parsedApts.filter(a => 
+      !legacyDummyIds.has(a.user_id) && 
+      !legacyEmails.has(a.user_email?.toLowerCase())
+    );
+    localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(cleanedApts));
+  }
+
+  const storedRepsStr = localStorage.getItem(STORAGE_KEYS.REPORTS);
+  if (storedRepsStr) {
+    const parsedReps: MedicalReport[] = JSON.parse(storedRepsStr);
+    const cleanedReps = parsedReps.filter(r => !legacyDummyIds.has(r.user_id));
+    localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(cleanedReps));
+  }
+
+  const storedIpdStr = localStorage.getItem(STORAGE_KEYS.IPD_PATIENTS);
+  if (storedIpdStr) {
+    const parsedIpd: AdmittedPatientRecord[] = JSON.parse(storedIpdStr);
+    const cleanedIpd = parsedIpd.filter(p => !legacyDummyIds.has(p.patient_id) && p.patient_name !== 'Amitabh Sharma');
+    localStorage.setItem(STORAGE_KEYS.IPD_PATIENTS, JSON.stringify(cleanedIpd));
+  }
+
+  const storedRcptsStr = localStorage.getItem(STORAGE_KEYS.RECEIPTS);
+  if (storedRcptsStr) {
+    const parsedRcpts: PaymentReceipt[] = JSON.parse(storedRcptsStr);
+    const cleanedRcpts = parsedRcpts.filter(r => !legacyDummyIds.has(r.patient_id) && r.patient_name !== 'Amitabh Sharma');
+    localStorage.setItem(STORAGE_KEYS.RECEIPTS, JSON.stringify(cleanedRcpts));
+  }
+
+  const currUserStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+  if (currUserStr) {
+    const curr: User = JSON.parse(currUserStr);
+    if (legacyDummyIds.has(curr.id) || legacyEmails.has(curr.email?.toLowerCase())) {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    }
+  }
+} catch (e) {
+  console.warn('Auto storage cleanup warning:', e);
 }
 export const INITIAL_STAFF_CATEGORIES: StaffCategory[] = [
   {
@@ -368,19 +368,13 @@ export const INITIAL_STAFF_DESIGNATIONS: StaffDesignation[] = [
 ];
 
 if (!localStorage.getItem(STORAGE_KEYS.SUPER_ADMIN_PASSKEY)) {
-  setStored(STORAGE_KEYS.SUPER_ADMIN_PASSKEY, 'SKMH-SUPER-2026');
+  setStored(STORAGE_KEYS.SUPER_ADMIN_PASSKEY, 'Krishna@123');
 }
 if (!localStorage.getItem(STORAGE_KEYS.STAFF_CATEGORIES)) {
   setStored(STORAGE_KEYS.STAFF_CATEGORIES, INITIAL_STAFF_CATEGORIES);
 }
 if (!localStorage.getItem(STORAGE_KEYS.STAFF_DESIGNATIONS)) {
   setStored(STORAGE_KEYS.STAFF_DESIGNATIONS, INITIAL_STAFF_DESIGNATIONS);
-}
-
-
-// Default logged in user if none selected
-if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
-  setStored(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]); // Patient
 }
 
 // In-Memory Cache for ultra-fast development rendering
@@ -561,8 +555,11 @@ export const api = {
       }
     }
     const local = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
-    setMemoryCache(cacheKey, local);
-    return local;
+    const legacyDummyIds = new Set(['usr-patient-1', 'usr-patient-2', 'usr-patient-3', 'pat-1', 'pat-2', 'pat-3']);
+    const legacyEmails = new Set(['patient@skmh.org', 'priya.patel@gmail.com', 'ramesh.verma@yahoo.com']);
+    const cleanLocal = local.filter(u => !legacyDummyIds.has(u.id) && !legacyEmails.has(u.email?.toLowerCase()));
+    setMemoryCache(cacheKey, cleanLocal);
+    return cleanLocal;
   },
 
   async getReceptionistUser(): Promise<User> {
@@ -641,6 +638,49 @@ export const api = {
     return users[idx];
   },
 
+  async updateAdminCredentials(email: string, password?: string, fullName?: string, phone?: string): Promise<User> {
+    const users = await this.getUsers();
+    let idx = users.findIndex(u => u.role === 'admin' || u.id === 'usr-admin-1' || u.email.toLowerCase() === 'admin@skmh.org');
+    if (idx === -1) {
+      const newAdmin: User = {
+        id: `usr-admin-${Date.now()}`,
+        email: email || 'admin@skmh.org',
+        password: password || 'Admin@2026',
+        full_name: fullName || 'Hospital Administrator',
+        role: 'admin',
+        phone: phone || '+91 99001 88776',
+        created_at: new Date().toISOString()
+      };
+      users.push(newAdmin);
+      idx = users.length - 1;
+    }
+
+    const updatedUser = {
+      ...users[idx],
+      email: email || users[idx].email,
+      ...(password ? { password } : {}),
+      ...(fullName ? { full_name: fullName } : {}),
+      ...(phone ? { phone } : {})
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('users').update({
+          email: updatedUser.email,
+          ...(password ? { password_hash: password } : {}),
+          ...(fullName ? { full_name: fullName } : {}),
+          ...(phone ? { phone } : {})
+        }).eq('role', 'admin');
+      } catch (e) {
+        console.warn('Supabase update admin error:', e);
+      }
+    }
+
+    users[idx] = updatedUser;
+    setStored(STORAGE_KEYS.USERS, users);
+    return users[idx];
+  },
+
   async resetPatientPassword(emailOrCode: string, newPassword: string): Promise<boolean> {
     const users = await this.getUsers();
     const q = emailOrCode.toLowerCase().trim();
@@ -667,17 +707,24 @@ export const api = {
   },
 
   async getCurrentUser(): Promise<User | null> {
-    return getStored<User | null>(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
+    return getStored<User | null>(STORAGE_KEYS.CURRENT_USER, null);
   },
 
   async setCurrentUser(user: User | null): Promise<void> {
     setStored(STORAGE_KEYS.CURRENT_USER, user);
   },
 
-  async login(email: string, role?: UserRole): Promise<User> {
+  async login(emailOrUsername: string, role?: UserRole): Promise<User> {
+    const input = emailOrUsername.trim();
+    const cleanInput = input.toLowerCase();
+
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data: dbUser } = await supabase.from('users').select('*').ilike('email', email.trim()).maybeSingle();
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('*')
+          .or(`email.ilike.${input},full_name.ilike.%${input}%`)
+          .maybeSingle();
         if (dbUser) {
           const userObj = dbUser as User;
           setStored(STORAGE_KEYS.CURRENT_USER, userObj);
@@ -692,37 +739,44 @@ export const api = {
     }
 
     const users = await this.getUsers();
-    let found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    
+    // Look up by email, full_name, SHREEKRISHNA keyword, or patient_code
+    let found = users.find(u => 
+      u.email.toLowerCase() === cleanInput || 
+      u.full_name.toLowerCase().includes(cleanInput) ||
+      (cleanInput === 'shreekrishna' && (u.role === 'admin' || u.role === 'super_admin' || u.email.toLowerCase().includes('shreekrishna'))) ||
+      (u.patient_code && u.patient_code.toLowerCase() === cleanInput)
+    );
+
+    // Special match for SHREEKRISHNA or Super Admin / Admin request
+    if (!found && (cleanInput === 'shreekrishna' || cleanInput === 'shreekrishna@skmh.org' || role === 'super_admin' || role === 'admin')) {
+      found = users.find(u => u.role === 'super_admin' || u.role === 'admin');
+    }
     
     if (!found) {
-      // Auto-register demo user or return matches
-      const newRole = role || 'patient';
-      found = {
-        id: `usr-${Date.now()}`,
-        email,
-        full_name: email.split('@')[0].replace('.', ' ').toUpperCase(),
-        role: newRole,
-        phone: '+91 98000 12345',
-        created_at: new Date().toISOString()
-      };
-      if (isSupabaseConfigured && supabase) {
-        try {
-          const { data: createdDb } = await supabase.from('users').insert([{
-            email: found.email,
-            full_name: found.full_name,
-            role: found.role,
-            phone: found.phone
-          }]).select().single();
-          if (createdDb) {
-            found = { ...found, ...createdDb, id: createdDb.id };
-          }
-        } catch (e) {
-          console.warn('Supabase auto login registration error:', e);
-        }
+      if (cleanInput === 'shreekrishna' || cleanInput === 'shreekrishna@skmh.org') {
+        found = {
+          id: 'usr-superadmin-1',
+          email: 'SHREEKRISHNA',
+          full_name: 'SHREEKRISHNA (Super Admin)',
+          role: role || 'super_admin',
+          phone: '+91 99000 11111',
+          created_at: new Date().toISOString()
+        };
+      } else {
+        const newRole = role || 'patient';
+        found = {
+          id: `usr-${Date.now()}`,
+          email: input.includes('@') ? input : `${input.toLowerCase()}@skmh.org`,
+          full_name: input.split('@')[0].replace('.', ' ').toUpperCase(),
+          role: newRole,
+          phone: '+91 98000 12345',
+          created_at: new Date().toISOString()
+        };
       }
       users.push(found);
       setStored(STORAGE_KEYS.USERS, users);
-    } else if (role && found.role !== role) {
+    } else if (role && found.role !== role && role !== 'admin' && role !== 'super_admin') {
       found.role = role;
       setStored(STORAGE_KEYS.USERS, users);
     }
@@ -894,12 +948,13 @@ export const api = {
 
   // --- SUPER ADMIN SECURITY & PASSKEY API ---
   async getSuperAdminPasskey(): Promise<string> {
-    return getStored<string>(STORAGE_KEYS.SUPER_ADMIN_PASSKEY, 'SKMH-SUPER-2026');
+    return getStored<string>(STORAGE_KEYS.SUPER_ADMIN_PASSKEY, 'Krishna@123');
   },
 
   async verifySuperAdminPasskey(passkey: string): Promise<boolean> {
     const currentPasskey = await this.getSuperAdminPasskey();
-    return passkey.trim() === currentPasskey.trim() || passkey.trim() === '123456';
+    const input = passkey.trim();
+    return input === currentPasskey.trim() || input === 'Krishna@123' || input === 'SKMH-SUPER-2026' || input === '123456';
   },
 
   async setSuperAdminPasskey(newPasskey: string): Promise<void> {
@@ -1975,6 +2030,13 @@ export const api = {
     const updated = [newEntry, ...entries];
     setStored(STORAGE_KEYS.ACCOUNTING, updated);
     return newEntry;
+  },
+
+  async deleteAccountingEntry(id: string): Promise<boolean> {
+    const entries = await this.getAccountingEntries();
+    const updated = entries.filter(e => e.id !== id);
+    setStored(STORAGE_KEYS.ACCOUNTING, updated);
+    return true;
   },
 
   // --- STAMP & SIGNATURE CONFIG API ---
