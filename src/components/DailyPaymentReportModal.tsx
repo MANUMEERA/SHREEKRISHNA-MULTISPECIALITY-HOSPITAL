@@ -368,13 +368,13 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
               </div>
               <div>
                 <h1 className="text-xl font-black tracking-tight text-slate-950 uppercase">
-                  SHREE KRISHNA MULTISPECIALTY HOSPITAL
+                  SHREE KRISHNA MULTISPECIALITY HOSPITAL
                 </h1>
                 <p className="text-xs text-slate-600 font-medium">
                   OPD Desk & Financial Accounts Division • Silvassa, Dadra & Nagar Haveli
                 </p>
                 <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                  Helpline: +91 260 264 0000 | Email: accounts@shreekrishnahospital.org
+                  Helpline: +91 260 264 0000 | Email: shreekrishnamultispeciality.sil@gmail.com
                 </p>
               </div>
             </div>

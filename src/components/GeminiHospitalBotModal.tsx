@@ -22,7 +22,7 @@ export const GeminiHospitalBotModal: React.FC<{
     {
       id: '1',
       sender: 'bot',
-      text: 'Namaste! Welcome to Shree Krishna Multispecialty Hospital 24/7 AI Desk. I can provide real-time Doctor Availability Status, OPD Timings, Hospital Charges, and Official Admin Desk Q&As. How may I assist you today?',
+      text: 'Namaste! Welcome to Shree Krishna Multispeciality Hospital 24/7 AI Desk. I can provide real-time Doctor Availability Status, OPD Timings, Hospital Charges, and Official Admin Desk Q&As. How may I assist you today?',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -164,7 +164,7 @@ export const GeminiHospitalBotModal: React.FC<{
             "• **24/7 Services:** Surgical ICU, Trauma OT, Digital DR X-Ray, Blood Bank & Emergency Pharmacy.";
         }
         else {
-          botAnswer = `Shree Krishna Multispecialty Hospital in Silvassa provides 24x7 Critical Care, Trauma Surgery, Orthopedics, Obstetrics & Gynecology, Robotic Physiotherapy, and Radiology.\n\n` +
+          botAnswer = `Shree Krishna Multispeciality Hospital in Silvassa provides 24x7 Critical Care, Trauma Surgery, Orthopedics, Obstetrics & Gynecology, Robotic Physiotherapy, and Radiology.\n\n` +
             `You can click any of the **Fixed Q&A Buttons** below or ask me about Doctor Availability, OPD Timings, Emergency Contacts, or Service Fees!`;
         }
       }

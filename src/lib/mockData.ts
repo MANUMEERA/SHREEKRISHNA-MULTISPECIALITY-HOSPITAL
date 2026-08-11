@@ -637,7 +637,7 @@ export const INITIAL_BOT_FAQS = [
   },
   {
     id: 'faq-2',
-    question: 'Where is Shree Krishna Multispecialty Hospital located?',
+    question: 'Where is Shree Krishna Multispeciality Hospital located?',
     answer: 'We are located at: Opp. Horizon Tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa - 396230 (UT of Dadra & Nagar Haveli). Landmark: Opposite Horizon Tower.',
     keywords: ['location', 'address', 'where', 'map', 'reach', 'silvassa', 'landmark'],
     category: 'General Info' as const,

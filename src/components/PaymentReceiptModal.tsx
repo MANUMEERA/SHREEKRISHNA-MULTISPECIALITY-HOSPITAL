@@ -178,7 +178,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             </div>
             <div className="min-w-0">
               <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight uppercase truncate">
-                SHREE KRISHNA MULTISPECIALTY HOSPITAL
+                SHREE KRISHNA MULTISPECIALITY HOSPITAL
               </h2>
               <p className="text-xs text-slate-600 font-bold truncate">
                 Official OPD & Clinical Payment Money Receipt • Silvassa (D&NH)
@@ -467,9 +467,9 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               
               <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4">
                 <div>
-                  <h1 className="text-xl font-black tracking-tight text-slate-900">SHREE KRISHNA MULTISPECIALTY HOSPITAL</h1>
+                  <h1 className="text-xl font-black tracking-tight text-slate-900">SHREE KRISHNA MULTISPECIALITY HOSPITAL</h1>
                   <p className="text-xs font-bold text-slate-700">Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa - 396230 (UT)</p>
-                  <p className="text-[11px] font-medium text-slate-600">Ph: (0260) 264-9999 • Email: billing@shreekrishnahospital.org</p>
+                  <p className="text-[11px] font-medium text-slate-600">Ph: (0260) 264-9999 • Email: shreekrishnamultispeciality.sil@gmail.com</p>
                 </div>
                 <div className="text-right">
                   <span className="px-3 py-1 rounded-full bg-slate-900 text-white font-extrabold text-[10px] uppercase tracking-wider">

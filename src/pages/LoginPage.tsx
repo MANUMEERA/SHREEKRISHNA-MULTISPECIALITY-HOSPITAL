@@ -155,7 +155,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
         {/* Header Logo */}
         <div className="text-center mb-8 flex flex-col items-center">
           <HospitalLogo size="lg" variant="full" theme="light" />
-          <p className="text-xs text-slate-500 font-semibold mt-1">Multispecialty Patient & Staff Portal</p>
+          <p className="text-xs text-slate-500 font-semibold mt-1">Multispeciality Patient & Staff Portal</p>
         </div>
 
         {/* Supabase Status Indicator & SQL Setup Trigger */}

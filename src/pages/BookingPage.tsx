@@ -224,7 +224,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
             Book an OPD Appointment
           </h1>
           <p className="text-xs sm:text-sm text-slate-600">
-            Instant digital confirmation with zero wait time at Shree Krishna Multispecialty Hospital.
+            Instant digital confirmation with zero wait time at Shree Krishna Multispeciality Hospital.
           </p>
         </div>
 
@@ -903,7 +903,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
               <a
                 href={`https://wa.me/${confirmedAppointment.user_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                  `*Shree Krishna Multispecialty Hospital - Appointment Confirmation*\n\nDear ${confirmedAppointment.user_name},\nYour appointment has been registered successfully!\n\n*Doctor:* ${confirmedAppointment.doctor_name}\n*Department:* ${confirmedAppointment.department}\n*Date & Time:* ${confirmedAppointment.appointment_date} at ${confirmedAppointment.time_slot}\n*Appointment ID:* ${confirmedAppointment.id}\n\n*Address:* Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa, Dadra & Nagar Haveli- 396230 (UT)\n*Helpline:* +91 90990 57219`
+                  `*Shree Krishna Multispeciality Hospital - Appointment Confirmation*\n\nDear ${confirmedAppointment.user_name},\nYour appointment has been registered successfully!\n\n*Doctor:* ${confirmedAppointment.doctor_name}\n*Department:* ${confirmedAppointment.department}\n*Date & Time:* ${confirmedAppointment.appointment_date} at ${confirmedAppointment.time_slot}\n*Appointment ID:* ${confirmedAppointment.id}\n\n*Address:* Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa, Dadra & Nagar Haveli- 396230 (UT)\n*Helpline:* +91 90990 57219`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -914,7 +914,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
               <a
                 href={`mailto:${confirmedAppointment.user_email || 'patient@skmh.org'}?subject=${encodeURIComponent(`Appointment Confirmation - ${confirmedAppointment.id}`)}&body=${encodeURIComponent(
-                  `Dear ${confirmedAppointment.user_name},\n\nYour appointment at Shree Krishna Multispecialty Hospital is confirmed.\n\nDoctor: ${confirmedAppointment.doctor_name}\nDepartment: ${confirmedAppointment.department}\nDate & Time: ${confirmedAppointment.appointment_date} at ${confirmedAppointment.time_slot}\nAppointment ID: ${confirmedAppointment.id}\n\nThank you,\nShree Krishna Multispecialty Hospital, Silvassa`
+                  `Dear ${confirmedAppointment.user_name},\n\nYour appointment at Shree Krishna Multispeciality Hospital is confirmed.\n\nDoctor: ${confirmedAppointment.doctor_name}\nDepartment: ${confirmedAppointment.department}\nDate & Time: ${confirmedAppointment.appointment_date} at ${confirmedAppointment.time_slot}\nAppointment ID: ${confirmedAppointment.id}\n\nThank you,\nShree Krishna Multispeciality Hospital, Silvassa`
                 )}`}
                 className="w-full py-3 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-2 transition-all"
               >

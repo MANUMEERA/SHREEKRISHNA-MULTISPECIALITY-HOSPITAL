@@ -745,7 +745,7 @@ export const InpatientManagerModal: React.FC<InpatientManagerModalProps> = ({
                 
                 <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
                   <div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">SHREE KRISHNA MULTISPECIALTY HOSPITAL</h1>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">SHREE KRISHNA MULTISPECIALITY HOSPITAL</h1>
                     <p className="text-xs font-bold text-slate-700">Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa - 396230 (UT) • 24x7 Critical Care & OT Unit</p>
                   </div>
                   <div className="text-right">

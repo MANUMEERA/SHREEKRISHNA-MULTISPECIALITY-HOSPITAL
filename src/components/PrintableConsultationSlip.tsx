@@ -58,7 +58,7 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
   const recipientPhone = (appointment.user_phone || patient?.phone || '+919099057219').replace(/[^0-9]/g, '');
   const recipientEmail = appointment.user_email || patient?.email || 'patient@skmh.org';
 
-  const shareText = `*SHREE KRISHNA MULTISPECIALTY HOSPITAL - SILVASSA*\n*OPD CONSULTATION & PRESCRIPTION SLIP*\n----------------------------------------\n*Patient Name:* ${appointment.user_name}\n*Patient ID:* ${appointment.patient_code || patient?.patient_code || 'SKMH-2026-PAT-101'}\n*Consulting Doctor:* ${appointment.doctor_name} (${appointment.department})\n*Visit Date & Slot:* ${appointment.appointment_date} (${appointment.time_slot})\n*Clinical Diagnosis:* ${appointment.diagnosis || appointment.reason || 'OPD Evaluation'}\n*Prescribed Medications:* ${appointment.prescribed_medicines?.map(m => m.name).join(', ') || 'As advised'}\n----------------------------------------\n*Hospital Contact:* +91 90990 57219 | Silvassa`;
+  const shareText = `*SHREE KRISHNA MULTISPECIALITY HOSPITAL - SILVASSA*\n*OPD CONSULTATION & PRESCRIPTION SLIP*\n----------------------------------------\n*Patient Name:* ${appointment.user_name}\n*Patient ID:* ${appointment.patient_code || patient?.patient_code || 'SKMH-2026-PAT-101'}\n*Consulting Doctor:* ${appointment.doctor_name} (${appointment.department})\n*Visit Date & Slot:* ${appointment.appointment_date} (${appointment.time_slot})\n*Clinical Diagnosis:* ${appointment.diagnosis || appointment.reason || 'OPD Evaluation'}\n*Prescribed Medications:* ${appointment.prescribed_medicines?.map(m => m.name).join(', ') || 'As advised'}\n----------------------------------------\n*Hospital Contact:* +91 90990 57219 | Silvassa`;
 
   const handleSendWhatsApp = () => {
     const waUrl = `https://wa.me/${recipientPhone.length > 10 ? recipientPhone : '91' + recipientPhone}?text=${encodeURIComponent(shareText)}`;
@@ -157,7 +157,7 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
           <div className="border-b-2 border-emerald-800 pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <HospitalLogo size="md" variant="full" showSubtitle={false} />
-              <p className="text-[11px] text-slate-600 font-bold mt-1">Multi-Specialty Healthcare & Trauma Center • Silvassa</p>
+              <p className="text-[11px] text-slate-600 font-bold mt-1">Multi-Speciality Healthcare & Trauma Center • Silvassa</p>
               <p className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
                 <MapPin className="w-3 h-3 text-emerald-700" /> Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa - 396230 • 📞 +91 90990 57219
               </p>

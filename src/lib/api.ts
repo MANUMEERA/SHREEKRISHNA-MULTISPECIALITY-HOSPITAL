@@ -133,15 +133,15 @@ export const INITIAL_STAMP_CONFIG: HospitalStampConfig = {
 };
 
 export const INITIAL_POLICIES: HospitalPolicy = {
-  privacy_policy: `SHREE KRISHNA MULTISPECIALTY HOSPITAL - PRIVACY POLICY & EHR DATA PROTECTION
-1. Data Privacy: All electronic health records (EHR), patient vitals, diagnostic test reports, and prescriptions stored at Shree Krishna Multispecialty Hospital are protected under National Healthcare Data Security Guidelines.
+  privacy_policy: `SHREE KRISHNA MULTISPECIALITY HOSPITAL - PRIVACY POLICY & EHR DATA PROTECTION
+1. Data Privacy: All electronic health records (EHR), patient vitals, diagnostic test reports, and prescriptions stored at Shree Krishna Multispeciality Hospital are protected under National Healthcare Data Security Guidelines.
 2. Confidentiality: Patient medical information shall only be accessible by authorized medical officers, assigned consulting doctors, nursing staff, and the patient via their authenticated portal.
 3. Patient Consent: Medical reports and diagnostic results will not be shared with external third parties without explicit written consent from the patient or legal guardian, except when mandated by statutory health authorities.`,
-  terms_of_service: `SHREE KRISHNA MULTISPECIALTY HOSPITAL - TERMS OF SERVICE & OPD POLICY
+  terms_of_service: `SHREE KRISHNA MULTISPECIALITY HOSPITAL - TERMS OF SERVICE & OPD POLICY
 1. Appointment Timings: Patients are requested to report to the OPD Reception Counter 15 minutes prior to their scheduled slot.
 2. Emergency Priorities: Emergency surgical and critical trauma cases will be prioritized over routine OPD appointments.
 3. Payment Terms: Consultation fees and diagnostic test charges must be settled at the OPD Cash Counter prior to consultation or sample collection. Payment receipts must be retained for hospital records.`,
-  patients_charter: `SHREE KRISHNA MULTISPECIALTY HOSPITAL - PATIENTS' CHARTER OF RIGHTS
+  patients_charter: `SHREE KRISHNA MULTISPECIALITY HOSPITAL - PATIENTS' CHARTER OF RIGHTS
 1. Right to Information: Patients have the right to receive full explanation regarding their medical diagnosis, recommended surgical options, potential risks, and estimated treatment costs.
 2. Right to Privacy & Dignity: Every patient is entitled to respectful care, privacy during physical examinations, and protection of personal dignity.
 3. Right to Emergency Medical Care: Immediate medical stabilization will be provided to all emergency patients regardless of financial background.`
@@ -923,7 +923,7 @@ export const api = {
       id: `dept-${Date.now()}`,
       name: data.name || 'New Department',
       icon_name: data.icon_name || 'Activity',
-      description: data.description || 'Multispecialty department providing advanced care.',
+      description: data.description || 'Multispeciality department providing advanced care.',
       lead_doctor: data.lead_doctor || 'Dr. Shree Krishna Specialist',
       total_doctors: data.total_doctors || 1,
       beds_count: data.beds_count || 5,

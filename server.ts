@@ -13,7 +13,7 @@ async function startServer() {
   app.get('/api/health', (_req, res) => {
     res.json({
       status: 'ok',
-      hospital_name: 'Shree Krishna Multispecialty Hospital',
+      hospital_name: 'Shree Krishna Multispeciality Hospital',
       timestamp: new Date().toISOString(),
       supabase_configured: Boolean(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY),
       gemini_configured: Boolean(process.env.GEMINI_API_KEY)
@@ -34,7 +34,7 @@ async function startServer() {
       }
 
       const ai = new GoogleGenAI({ apiKey });
-      const systemInstruction = `You are a clinical decision support assistant for Dr. ${doctorName || 'Doctor'} at Shree Krishna Multispecialty Hospital (${department || 'General Practice'}).
+      const systemInstruction = `You are a clinical decision support assistant for Dr. ${doctorName || 'Doctor'} at Shree Krishna Multispeciality Hospital (${department || 'General Practice'}).
 Provide accurate, structured, medical recommendations regarding disease diagnosis, standard drug regimens, generic and brand names, dosages (adult and pediatric), contraindications, drug interactions, and medical image interpretation.
 Formatting: Use bold headers, bullet points, and clear structured sections for readability.`;
 
@@ -127,7 +127,7 @@ Formatting: Use bold headers, bullet points, and clear structured sections for r
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Shree Krishna Multispecialty Hospital Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Shree Krishna Multispeciality Hospital Server running on http://0.0.0.0:${PORT}`);
   });
 }
 

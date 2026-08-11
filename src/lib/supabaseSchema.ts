@@ -3,7 +3,7 @@
  */
 
 export const SUPABASE_SQL_SCHEMA = `-- ====================================================================
--- SHREE KRISHNA MULTISPECIALTY HOSPITAL - SUPABASE POSTGRESQL SCHEMA
+-- SHREE KRISHNA MULTISPECIALITY HOSPITAL - SUPABASE POSTGRESQL SCHEMA
 -- Generated for full compatibility with Supabase Auth, Row-Level Security (RLS) & Realtime
 -- ====================================================================
 
@@ -423,11 +423,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- --------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.hospital_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  hospital_name VARCHAR(255) DEFAULT 'Shree Krishna Multispecialty Hospital',
+  hospital_name VARCHAR(255) DEFAULT 'Shree Krishna Multispeciality Hospital',
   tagline VARCHAR(255) DEFAULT 'Compassionate Care & Advanced Healthcare Excellence',
   contact_phone VARCHAR(50) DEFAULT '+91 260 2640000',
   emergency_helpline VARCHAR(50) DEFAULT '+91 98000 12345',
-  email VARCHAR(255) DEFAULT 'info@shreekrishnahospital.com',
+  email VARCHAR(255) DEFAULT 'shreekrishnamultispeciality.sil@gmail.com',
   address TEXT DEFAULT 'Opp. Circuit House, Silvassa - Vapi Main Road, Silvassa, Dadra & Nagar Haveli - 396230',
   logo_url TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -472,11 +472,11 @@ END $$;
 -- Hospital Settings Seed
 INSERT INTO public.hospital_settings (hospital_name, tagline, contact_phone, emergency_helpline, email, address)
 VALUES (
-  'Shree Krishna Multispecialty Hospital',
+  'Shree Krishna Multispeciality Hospital',
   'Compassionate Care & Advanced Healthcare Excellence',
   '+91 260 2640000',
   '+91 98000 12345',
-  'info@shreekrishnahospital.com',
+  'shreekrishnamultispeciality.sil@gmail.com',
   'Opp. Circuit House, Silvassa - Vapi Main Road, Silvassa, Dadra & Nagar Haveli - 396230'
 )
 ON CONFLICT DO NOTHING;

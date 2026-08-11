@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Appointment, MedicalReport, NotificationItem } from '../types';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, FileText, Bell, User, Clock, FileUp, Eye, Trash2, Download, CheckCircle2, XCircle, AlertCircle, Plus, ChevronRight, X, Pill, FileCheck2, Share2, Printer, HeartPulse, Stethoscope } from 'lucide-react';
+import { Calendar, FileText, Bell, User, Clock, FileUp, Eye, Trash2, Download, CheckCircle2, XCircle, AlertCircle, Plus, ChevronRight, X, Pill, FileCheck2, Share2, Printer, HeartPulse, Stethoscope, Activity, History } from 'lucide-react';
 import { PrintableConsultationSlip } from '../components/PrintableConsultationSlip';
+import { PatientMedicalHistoryTimeline } from '../components/PatientMedicalHistoryTimeline';
 
 interface PatientDashboardPageProps {
   setActiveTab: (tab: string) => void;
@@ -12,7 +13,7 @@ interface PatientDashboardPageProps {
 export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setActiveTab }) => {
   const { user, login, signup, logout, role, notifications, markNotificationRead, refreshNotifications } = useAuth();
 
-  const [activeSubTab, setActiveSubTab] = useState<'appointments' | 'reports' | 'notifications' | 'profile'>('appointments');
+  const [activeSubTab, setActiveSubTab] = useState<'history' | 'appointments' | 'reports' | 'notifications' | 'profile'>('history');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [reports, setReports] = useState<MedicalReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -316,8 +317,17 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
         {/* Sub-Navigation Tabs */}
         <div className="bg-white rounded-2xl p-2 border border-slate-200/90 shadow-sm flex items-center gap-2 overflow-x-auto">
           <button
+            onClick={() => setActiveSubTab('history')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeSubTab === 'history' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <History className="w-4 h-4 text-emerald-300" /> Medical History Timeline
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('appointments')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'appointments' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -326,7 +336,7 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
 
           <button
             onClick={() => setActiveSubTab('reports')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'reports' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -335,7 +345,7 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
 
           <button
             onClick={() => setActiveSubTab('notifications')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'notifications' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -344,13 +354,25 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
 
           <button
             onClick={() => setActiveSubTab('profile')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeSubTab === 'profile' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
             <User className="w-4 h-4" /> Patient Profile
           </button>
         </div>
+
+        {/* Tab 0: Medical History Timeline */}
+        {activeSubTab === 'history' && (
+          <PatientMedicalHistoryTimeline
+            user={user}
+            onOpenSlipModal={(apt) => {
+              setSelectedSlipAppointment(apt);
+              setPrintableSlipModalOpen(true);
+            }}
+            onViewReportModal={(rep) => setSelectedReport(rep)}
+          />
+        )}
 
         {/* Tab 1: Appointments List */}
         {activeSubTab === 'appointments' && (

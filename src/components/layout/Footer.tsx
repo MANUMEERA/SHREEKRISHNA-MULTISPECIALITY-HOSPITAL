@@ -53,7 +53,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
               </a>
 
               <a
-                href="mailto:info@shreekrishnahospital.org"
+                href="mailto:shreekrishnamultispeciality.sil@gmail.com"
                 className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 text-slate-200 hover:text-emerald-400 transition-all group"
               >
                 <div className="p-1.5 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-800/80 group-hover:scale-110 transition-transform">
@@ -61,7 +61,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
                 </div>
                 <div>
                   <div className="text-[10px] text-slate-400 font-medium">Email Inquiries</div>
-                  <div className="font-medium text-slate-300 text-xs">info@shreekrishnahospital.org</div>
+                  <div className="font-medium text-slate-300 text-xs">shreekrishnamultispeciality.sil@gmail.com</div>
                 </div>
               </a>
             </div>
@@ -286,7 +286,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
         {/* Bottom Bar with DESIGNED & DEVELOPED BY : FUSION FORGE CREATIONS */}
         <div className="mt-12 pt-6 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-4">
           <p className="text-slate-400 text-center md:text-left">
-            © 2026 Shree Krishna Multispecialty Hospital. All rights reserved.
+            © 2026 Shree Krishna Multispeciality Hospital. All rights reserved.
           </p>
           
           {/* DESIGNED & DEVELOPED BY : FUSION FORGE CREATIONS */}

@@ -40,7 +40,7 @@ export const DepartmentsPage: React.FC<DepartmentsPageProps> = ({ setActiveTab, 
             Centres of Medical Excellence
           </h1>
           <p className="text-sm text-slate-600 leading-relaxed">
-            Shree Krishna Multispecialty Hospital houses 25+ dedicated medical departments led by renowned senior consultants, backed by cutting-edge robotic and diagnostic infrastructure.
+            Shree Krishna Multispeciality Hospital houses 25+ dedicated medical departments led by renowned senior consultants, backed by cutting-edge robotic and diagnostic infrastructure.
           </p>
         </div>
 

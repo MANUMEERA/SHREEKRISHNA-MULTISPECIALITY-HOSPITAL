@@ -140,7 +140,7 @@ export const HospitalLogo: React.FC<HospitalLogoProps> = ({
             <div className={`font-extrabold tracking-wider uppercase leading-snug mt-1 whitespace-nowrap ${
               theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'
             } ${subClass}`}>
-              MULTISPECIALTY HOSPITAL
+              MULTISPECIALITY HOSPITAL
             </div>
           )}
         </div>

@@ -56,7 +56,7 @@ export const DoctorsPage: React.FC<DoctorsPageProps> = ({ setActiveTab, onSelect
             Find & Book Specialist Doctors
           </h1>
           <p className="text-sm text-slate-600">
-            Select from 85+ highly skilled MD, DM, and M.Ch senior consultants across 25 multispecialty departments.
+            Select from 85+ highly skilled MD, DM, and M.Ch senior consultants across 25 multispeciality departments.
           </p>
         </div>
 

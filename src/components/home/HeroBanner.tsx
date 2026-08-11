@@ -34,7 +34,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ setActiveTab, onSearch }
       title: 'Shree Krishna',
       highlight: 'Multispeciality Hospital',
       subtitle: 'Advanced Care with Compassion',
-      description: 'Premier multispecialty hospital in Silvassa featuring Orthopedics, Obstetrics & Gynaecology, Infertility Care, Robotic Physiotherapy, Storz Laparoscopy, 3D/4D Voluson USG, 24x7 Digital DR X-Ray, Surgical ICU, and Cashless Mediclaim.',
+      description: 'Premier multispeciality hospital in Silvassa featuring Orthopedics, Obstetrics & Gynaecology, Infertility Care, Robotic Physiotherapy, Storz Laparoscopy, 3D/4D Voluson USG, 24x7 Digital DR X-Ray, Surgical ICU, and Cashless Mediclaim.',
       image: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?auto=format&fit=crop&q=90&w=1600',
       location: 'Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa',
       beds: '35 Beds • 24x7 Emergency'

@@ -5,7 +5,7 @@ export const StatsTicker: React.FC = () => {
   const stats = [
     { label: 'Happy Patients Treated', value: '50,000+', icon: Users, desc: 'Across India & Abroad' },
     { label: 'Senior Specialists', value: '85+', icon: Stethoscope, desc: 'MD, DM, M.Ch Doctors' },
-    { label: 'Medical Specialties', value: '25+', icon: Building2, desc: 'Multispecialty Centers' },
+    { label: 'Medical Specialties', value: '25+', icon: Building2, desc: 'Multispeciality Centers' },
     { label: 'Patient Satisfaction Rate', value: '99.4%', icon: Smile, desc: 'Verified Feedback' }
   ];
 
