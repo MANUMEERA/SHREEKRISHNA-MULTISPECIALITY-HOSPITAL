@@ -20,7 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
     { id: 'departments', label: 'Departments' },
     { id: 'doctors', label: 'Our Doctors' },
     { id: 'dashboard', label: 'Patient Portal' },
-    { id: 'doctor_panel', label: 'Doctor Panel', badge: role === 'doctor' ? 'DOCTOR' : 'CONSULT' },
+    { id: 'doctor_panel', label: 'Doctor Panel', badge: role === 'doctor' ? 'DOCTOR' : (user && role === 'patient' ? 'RESTRICTED' : 'CONSULT') },
     ...(role === 'admin' || role === 'staff' || role === 'super_admin'
       ? [{ id: 'admin', label: 'Admin Panel', badge: 'ADMIN' }]
       : [])
@@ -160,6 +160,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenA
                       </span>
                     </div>
                   </div>
+
+                  {role === 'doctor' && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('doctor_panel');
+                        setUserDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-emerald-800 hover:bg-emerald-100/80 hover:text-emerald-900 transition-all flex items-center gap-2 cursor-pointer mb-1"
+                    >
+                      <Stethoscope className="w-4 h-4 text-emerald-600" /> Doctor OPD Workspace
+                    </button>
+                  )}
 
                   {(role === 'admin' || role === 'staff' || role === 'super_admin' || role === 'receptionist') && (
                     <button

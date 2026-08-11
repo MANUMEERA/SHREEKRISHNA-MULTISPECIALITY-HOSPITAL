@@ -228,8 +228,8 @@ export const DoctorGeminiClinicalBotModal: React.FC<DoctorGeminiClinicalBotModal
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
-      <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-700/80 w-full max-w-4xl max-h-[92vh] h-[85vh] flex flex-col overflow-hidden my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
+      <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-700/80 w-full max-w-6xl max-h-[94vh] h-[88vh] flex flex-col overflow-hidden my-auto">
         
         {/* HEADER BAR */}
         <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-950 via-teal-950 to-slate-950 px-6 py-4 border-b border-slate-800 flex items-center justify-between shrink-0">

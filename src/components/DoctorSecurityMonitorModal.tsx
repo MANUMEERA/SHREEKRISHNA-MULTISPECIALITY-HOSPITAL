@@ -196,8 +196,8 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-5 overflow-y-auto">
+      <div className="relative w-full max-w-7xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[94vh] flex flex-col animate-in fade-in zoom-in-95">
         
         {/* Sticky Modal Header */}
         <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 px-6 sm:px-8 py-4 text-white flex items-center justify-between gap-4 shrink-0 border-b border-slate-800">

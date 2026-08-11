@@ -147,8 +147,8 @@ export const WalkInRegistrationModal: React.FC<WalkInRegistrationModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl my-auto border border-slate-200 animate-in fade-in zoom-in-95 max-h-[92vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-5 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-5xl w-full shadow-2xl my-auto border border-slate-200 animate-in fade-in zoom-in-95 max-h-[94vh] flex flex-col overflow-hidden">
         
         {/* Sticky Header */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">

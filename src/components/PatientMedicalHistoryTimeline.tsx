@@ -898,8 +898,9 @@ export const PatientMedicalHistoryTimeline: React.FC<PatientMedicalHistoryTimeli
       {/* OPD Printable Consultation Slip Modal */}
       {slipModalOpen && selectedSlipApt && (
         <PrintableConsultationSlip
+          isOpen={slipModalOpen}
           appointment={selectedSlipApt}
-          user={userProfile}
+          patient={userProfile}
           onClose={() => {
             setSlipModalOpen(false);
             setSelectedSlipApt(null);

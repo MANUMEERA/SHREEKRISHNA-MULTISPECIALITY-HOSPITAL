@@ -48,7 +48,7 @@ export interface Doctor {
   email: string;
   is_active: boolean;
   is_on_call?: boolean;
-  consultant_type?: 'Resident Consultant' | 'Visiting / On-Call';
+  consultant_type?: 'Resident Consultant' | 'Visiting / On-Call' | string;
   availability_status?: DoctorAvailabilityStatus;
   
   // Authorised Signatory & Digital Signature Details
@@ -128,7 +128,7 @@ export interface PatientVitals {
 export interface MedicineItem {
   id: string;
   name: string;
-  category: 'Tablet' | 'Capsule' | 'Syrup' | 'Injection' | 'Ointment' | 'Saline' | 'Drops' | 'Other';
+  category: 'Tablet' | 'Capsule' | 'Syrup' | 'Injection' | 'Ointment' | 'Saline' | 'Drops' | 'Eye/Nasal Drops' | 'Pharmacy General' | 'Other' | string;
   stock_count: number;
   min_threshold: number;
   unit: string; // e.g. "Nos", "ml", "Vials", "Packs"
@@ -213,6 +213,8 @@ export interface AdmittedPatientRecord {
   daily_doses: IPDDailyDose[];
   surgeries_performed: IPDSurgeryRecord[];
   total_paid_amount: number;
+  advance_paid?: number;
+  created_at?: string;
   notes?: string;
 }
 
@@ -235,6 +237,7 @@ export interface PaymentReceipt {
   discount: number;
   total_paid: number;
   collected_by: string; // Receptionist / Accountant name
+  created_at?: string;
   notes?: string;
 }
 
@@ -242,7 +245,7 @@ export interface AccountingEntry {
   id: string;
   date: string;
   type: 'Income' | 'Expense';
-  source_category: 'OPD Consultation' | 'IPD Admission' | 'X-Ray & Radiology' | 'Diagnostic Lab' | 'Pharmacy' | 'Surgery / OT' | 'Staff Salary' | 'Supplies Purchase' | 'Utilities / Other';
+  source_category: 'OPD Consultation' | 'IPD Admission' | 'X-Ray & Radiology' | 'Diagnostic Lab' | 'Pharmacy' | 'Surgery / OT' | 'Staff Salary' | 'Supplies Purchase' | 'Utilities / Other' | 'Other Income' | string;
   department: string;
   doctor_name?: string;
   amount: number;
@@ -289,6 +292,7 @@ export interface Appointment {
   id: string;
   user_id: string;
   patient_code?: string;
+  patient_phone?: string;
   user_name: string;
   user_phone: string;
   user_email: string;

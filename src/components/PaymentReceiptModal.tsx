@@ -167,8 +167,8 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:bg-white print:fixed print:inset-0">
-      <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl my-auto print:shadow-none print:m-0 print:w-full print:max-w-none border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-5 overflow-y-auto print:p-0 print:bg-white print:fixed print:inset-0">
+      <div className="bg-white rounded-3xl max-w-5xl w-full shadow-2xl my-auto print:shadow-none print:m-0 print:w-full print:max-w-none border border-slate-200 overflow-hidden max-h-[94vh] flex flex-col">
         
         {/* Sticky Header */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 border-b border-slate-200 flex items-center justify-between shrink-0 print:pb-2 print:static">
@@ -455,11 +455,23 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           /* GENERATED MONEY RECEIPT (PRINTABLE FORMAT) */
           <div className="space-y-6 animate-in fade-in">
             
-            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl flex items-center justify-between text-emerald-900 text-xs font-bold print:hidden">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Payment successfully confirmed & recorded in hospital accounting ledger!
-              </span>
-              <span className="font-mono text-emerald-800">{receiptGenerated.receipt_number}</span>
+            <div className="bg-emerald-50/90 border-2 border-emerald-300 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-emerald-950 text-xs font-bold print:hidden shadow-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider shadow">
+                  <CheckCircle2 className="w-4 h-4" /> Paid & Confirmed
+                </span>
+                <div>
+                  <span className="text-slate-600 font-bold block text-[10px] uppercase">Paid Method & Ref ID:</span>
+                  <span className="font-extrabold text-emerald-900 text-xs sm:text-sm">
+                    {receiptGenerated.payment_mode} • Ref: <span className="font-mono">{receiptGenerated.transaction_ref || 'PAID-DESK-01'}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-right font-mono text-emerald-800">
+                <span className="text-[10px] text-slate-500 font-sans block uppercase font-bold">Receipt No:</span>
+                <span className="font-extrabold text-xs sm:text-sm">{receiptGenerated.receipt_number}</span>
+              </div>
             </div>
 
             {/* Printable Slip Canvas */}
@@ -550,21 +562,58 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             </div>
 
             {/* Modal Actions */}
-            <div className="flex justify-between items-center pt-4 print:hidden">
-              <button
-                type="button"
-                onClick={() => setReceiptGenerated(null)}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
-              >
-                Create Another Bill
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200 print:hidden">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (receiptGenerated) {
+                      if (receiptGenerated.items && receiptGenerated.items.length > 0) {
+                        setLineItems(receiptGenerated.items);
+                      }
+                      if (receiptGenerated.payment_mode) {
+                        setPaymentMode(receiptGenerated.payment_mode as any);
+                      }
+                      if (receiptGenerated.transaction_ref) {
+                        setTransactionRef(receiptGenerated.transaction_ref);
+                      }
+                      if (receiptGenerated.discount) {
+                        setDiscount(receiptGenerated.discount);
+                      }
+                    }
+                    setReceiptGenerated(null);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer transition-all active:scale-95"
+                >
+                  <Plus className="w-4 h-4" /> Add More Service Rendered / Edit Bill
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLineItems([
+                      {
+                        description: doctorName ? `OPD Consultation Fee - Dr. ${doctorName}` : 'Senior OPD Doctor Consultation Charge',
+                        category: 'Consultation',
+                        amount: 500
+                      }
+                    ]);
+                    setTransactionRef('');
+                    setDiscount(0);
+                    setReceiptGenerated(null);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <FileText className="w-4 h-4 text-slate-500" /> New Blank Bill
+                </button>
+              </div>
 
               <button
                 type="button"
                 onClick={handlePrint}
-                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs shadow-lg flex items-center gap-2 cursor-pointer transition-all active:scale-95"
               >
-                <Printer className="w-4 h-4" /> Print / Save PDF Receipt
+                <Printer className="w-4 h-4 text-emerald-400" /> Print / Save PDF Receipt
               </button>
             </div>
 

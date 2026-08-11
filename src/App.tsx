@@ -25,10 +25,10 @@ export function AppContent() {
   const [doctorSearchQuery, setDoctorSearchQuery] = useState<string>('');
   const [aiBotOpen, setAiBotOpen] = useState<boolean>(false);
 
-  // Automatically return to front-end Home page if logged out while on protected dashboard views
+  // Redirect unauthenticated users accessing protected routes to login page
   useEffect(() => {
-    if (!user && (activeTab === 'admin' || activeTab === 'doctor_panel' || activeTab === 'dashboard')) {
-      setActiveTab('home');
+    if (!user && (activeTab === 'admin' || activeTab === 'dashboard')) {
+      setActiveTab('login');
     }
   }, [user, activeTab]);
 
@@ -99,13 +99,7 @@ export function AppContent() {
           )}
 
           {activeTab === 'doctor_panel' && (
-            <ProtectedDashboardRoute
-              allowedRoles={['doctor', 'admin', 'super_admin']}
-              setActiveTab={setActiveTab}
-              routeName="Doctor Consultation Panel"
-            >
-              <DoctorDashboardPage setActiveTab={setActiveTab} />
-            </ProtectedDashboardRoute>
+            <DoctorDashboardPage setActiveTab={setActiveTab} />
           )}
 
           {activeTab === 'admin' && (

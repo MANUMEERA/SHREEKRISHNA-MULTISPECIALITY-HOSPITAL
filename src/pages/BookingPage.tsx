@@ -882,55 +882,15 @@ export const BookingPage: React.FC<BookingPageProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                onClick={() => {
-                  window.print();
-                }}
-                className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
-              >
-                <Printer className="w-4 h-4" /> Print Booking Pass
-              </button>
-
-              <button
-                onClick={() => {
-                  window.print();
-                }}
-                className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
-              >
-                <Download className="w-4 h-4 text-amber-400" /> Export PDF
-              </button>
-
-              <a
-                href={`https://wa.me/${confirmedAppointment.user_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                  `*Shree Krishna Multispeciality Hospital - Appointment Confirmation*\n\nDear ${confirmedAppointment.user_name},\nYour appointment has been registered successfully!\n\n*Doctor:* ${confirmedAppointment.doctor_name}\n*Department:* ${confirmedAppointment.department}\n*Date & Time:* ${confirmedAppointment.appointment_date} at ${confirmedAppointment.time_slot}\n*Appointment ID:* ${confirmedAppointment.id}\n\n*Address:* Opp. Horizon tower, Kilvani Road, Mitu Apartment, C/o - Gulabbhai Patel, Amli, Silvassa, Dadra & Nagar Haveli- 396230 (UT)\n*Helpline:* +91 90990 57219`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md flex items-center justify-center gap-2 transition-all"
-              >
-                <Phone className="w-4 h-4 fill-white" /> Send WhatsApp
-              </a>
-
-              <a
-                href={`mailto:${confirmedAppointment.user_email || 'patient@skmh.org'}?subject=${encodeURIComponent(`Appointment Confirmation - ${confirmedAppointment.id}`)}&body=${encodeURIComponent(
-                  `Dear ${confirmedAppointment.user_name},\n\nYour appointment at Shree Krishna Multispeciality Hospital is confirmed.\n\nDoctor: ${confirmedAppointment.doctor_name}\nDepartment: ${confirmedAppointment.department}\nDate & Time: ${confirmedAppointment.appointment_date} at ${confirmedAppointment.time_slot}\nAppointment ID: ${confirmedAppointment.id}\n\nThank you,\nShree Krishna Multispeciality Hospital, Silvassa`
-                )}`}
-                className="w-full py-3 rounded-xl bg-teal-800 hover:bg-teal-700 text-white font-black text-xs shadow-md flex items-center justify-center gap-2 transition-all"
-              >
-                <Mail className="w-4 h-4 text-teal-200" /> Send Email
-              </a>
-            </div>
-
-            <div className="mt-3">
+            <div className="mt-4 pt-3 border-t border-slate-100 text-center">
               <button
                 onClick={() => {
                   setConfirmedAppointment(null);
                   setActiveTab('dashboard');
                 }}
-                className="text-xs text-slate-500 hover:text-slate-800 font-semibold underline"
+                className="text-xs text-slate-600 hover:text-emerald-700 font-bold underline cursor-pointer transition-colors"
               >
-                Go to Patient Dashboard
+                Go to Patient Health Portal →
               </button>
             </div>
 

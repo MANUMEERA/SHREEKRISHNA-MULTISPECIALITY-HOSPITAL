@@ -186,8 +186,8 @@ export const GeminiHospitalBotModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] h-[640px] flex flex-col shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 my-auto">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-5 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[94vh] h-[720px] flex flex-col shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 my-auto">
         
         {/* Header */}
         <div className="sticky top-0 z-20 bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 p-4 text-white flex items-center justify-between shrink-0">

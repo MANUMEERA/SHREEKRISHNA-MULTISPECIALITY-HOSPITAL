@@ -14,7 +14,7 @@ export const InventoryManagerSection: React.FC = () => {
   const [editingMed, setEditingMed] = useState<MedicineItem | null>(null);
   const [medForm, setMedForm] = useState({
     name: '',
-    category: 'Tablet' as 'Tablet' | 'Capsule' | 'Syrup' | 'Injection' | 'Ointment' | 'Saline' | 'Drops' | 'Other',
+    category: 'Tablet' as string,
     stock_count: 500,
     min_threshold: 100,
     unit: 'Nos',
@@ -368,7 +368,7 @@ export const InventoryManagerSection: React.FC = () => {
       {/* Add / Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
             <h3 className="font-extrabold text-slate-900 text-sm">
               {editingMed ? 'Edit Medicine Stock Record' : 'Add New Medicine Stock Item'}
             </h3>
@@ -475,7 +475,7 @@ export const InventoryManagerSection: React.FC = () => {
       {/* CSV IMPORT PREVIEW MODAL */}
       {showCsvModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200">
+          <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[88vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200">
             <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-indigo-600 rounded-2xl">

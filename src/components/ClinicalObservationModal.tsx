@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Appointment, PrescribedMedicine, HigherReference, PatientVitals } from '../types';
-import { X, Plus, Trash2, Stethoscope, Activity, Pill, FileCheck2, Share2, AlertCircle, Calendar, HeartPulse, User, Lock, Printer, ShieldCheck, BedDouble } from 'lucide-react';
+import { X, Plus, Trash2, Stethoscope, Activity, Pill, FileCheck2, Share2, AlertCircle, Calendar, HeartPulse, User, Lock, Printer, ShieldCheck, BedDouble, Sparkles, Database, Check } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface ClinicalObservationModalProps {
@@ -121,17 +121,76 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
 
   const [submitting, setSubmitting] = useState(false);
 
-  const handleAddMedicine = () => {
+  const [isSavingCustomMed, setIsSavingCustomMed] = useState(false);
+  const [customMedSuccessMsg, setCustomMedSuccessMsg] = useState('');
+
+  // Check if typed newMedName is not in master dropdown
+  const isMedNotInMaster = newMedName.trim().length > 1 && !availableMedicines.some(
+    m => m.toLowerCase().trim() === newMedName.trim().toLowerCase()
+  );
+
+  const handleSaveCustomToMaster = async () => {
+    const medName = newMedName.trim();
+    if (!medName) return;
+    setIsSavingCustomMed(true);
+    try {
+      await api.addMedicine({
+        name: medName,
+        category: medName.toLowerCase().includes('drop') ? 'Eye/Nasal Drops' : 'Pharmacy General',
+        stock_count: 100,
+        min_threshold: 10,
+        unit: medName.toLowerCase().includes('drop') ? 'Vials/Bottles' : 'Strips/Pack',
+        expiry_date: '2028-12-31',
+        unit_price: 50,
+        location: 'OPD Dispensary'
+      });
+      if (!availableMedicines.includes(medName)) {
+        setAvailableMedicines(prev => [...prev, medName]);
+      }
+      setCustomMedSuccessMsg(`"${medName}" saved to master inventory!`);
+      setTimeout(() => setCustomMedSuccessMsg(''), 3500);
+    } catch (e) {
+      console.error('Failed to save medicine to master list:', e);
+    } finally {
+      setIsSavingCustomMed(false);
+    }
+  };
+
+  const handleAddMedicine = async () => {
     if (!newMedName.trim()) return;
+    const medNameFormatted = newMedName.trim();
     const item: PrescribedMedicine = {
       id: `med-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      name: newMedName.trim(),
+      name: medNameFormatted,
       dosage: newMedDosage,
       frequency: newMedFreq,
       duration: newMedDuration,
       instructions: newMedInstruct
     };
     setMedicines(prev => [...prev, item]);
+
+    // Auto-save new medicine to master list if not existing
+    const exists = availableMedicines.some(
+      m => m.toLowerCase().trim() === medNameFormatted.toLowerCase()
+    );
+    if (!exists) {
+      try {
+        await api.addMedicine({
+          name: medNameFormatted,
+          category: medNameFormatted.toLowerCase().includes('drop') ? 'Eye/Nasal Drops' : 'Pharmacy General',
+          stock_count: 100,
+          min_threshold: 10,
+          unit: medNameFormatted.toLowerCase().includes('drop') ? 'Vials/Bottles' : 'Strips/Pack',
+          expiry_date: '2028-12-31',
+          unit_price: 50,
+          location: 'OPD Dispensary'
+        });
+        setAvailableMedicines(prev => [...prev, medNameFormatted]);
+      } catch (e) {
+        console.error('Error auto-storing custom medicine:', e);
+      }
+    }
+
     setNewMedName('');
   };
 
@@ -179,8 +238,8 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl my-auto border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-5 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-6xl w-full shadow-2xl my-auto border border-slate-200 overflow-hidden max-h-[94vh] flex flex-col animate-in fade-in zoom-in-95">
         
         {/* Sticky Header */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
@@ -419,14 +478,45 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
 
             {/* Quick Add Medicine Form (Only for Doctor) */}
             {!readOnly && (
-              <div className="space-y-2 pt-3 border-t border-emerald-200/60">
+              <div className="space-y-3 pt-3 border-t border-emerald-200/60">
+                
+                {/* Custom Medicine Alert & Save Button if not in master list */}
+                {isMedNotInMaster && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold animate-in fade-in">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>
+                        <strong>"{newMedName.trim()}"</strong> is a custom medicine (Not in standard dropdown).
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSaveCustomToMaster}
+                      disabled={isSavingCustomMed}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] flex items-center gap-1 shadow cursor-pointer transition-all disabled:opacity-50"
+                    >
+                      <Database className="w-3 h-3 text-emerald-300" />
+                      {isSavingCustomMed ? 'Saving...' : 'Save to Hospital Master Inventory'}
+                    </button>
+                  </div>
+                )}
+
+                {customMedSuccessMsg && (
+                  <div className="p-2 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-700" /> {customMedSuccessMsg}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                   <div className="sm:col-span-4">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Medicine Search / Name</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase">Medicine Search / Name</label>
+                      <span className="text-[9px] font-bold text-emerald-700">Type or select below</span>
+                    </div>
                     <input
                       type="text"
                       list="medicine-suggestions"
-                      placeholder="Search Medicine (e.g. Tab. Paracetamol)..."
+                      placeholder="Search or Type Medicine Name..."
                       value={newMedName}
                       onChange={(e) => setNewMedName(e.target.value)}
                       className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-emerald-600 font-bold"
@@ -438,26 +528,53 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                     </datalist>
                   </div>
 
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-3">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dosage</label>
                     <input
                       type="text"
-                      placeholder="e.g. 1/2 Nos or 5 ml"
+                      placeholder="e.g. 1 Drop or 1/2 Nos or 5 ml"
                       value={newMedDosage}
                       onChange={(e) => setNewMedDosage(e.target.value)}
-                      className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white"
+                      className="w-full p-2 rounded-xl border border-slate-200 text-xs bg-white font-bold text-emerald-950"
                     />
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {['1/2 Nos', '1 Nos', '2 Nos', '5 ml', '10 ml', '15 ml', '20 ml'].map((doseVal) => (
-                        <button
-                          key={doseVal}
-                          type="button"
-                          onClick={() => setNewMedDosage(doseVal)}
-                          className="px-1.5 py-0.5 text-[9px] rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold"
-                        >
-                          {doseVal}
-                        </button>
-                      ))}
+                    
+                    {/* Quick Dosage Buttons: Oral vs Drops */}
+                    <div className="mt-1.5 space-y-1">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-[8px] font-black uppercase text-slate-400 mr-0.5">Oral:</span>
+                        {['1/2 Nos', '1 Nos', '2 Nos', '5 ml', '10 ml'].map((doseVal) => (
+                          <button
+                            key={doseVal}
+                            type="button"
+                            onClick={() => setNewMedDosage(doseVal)}
+                            className={`px-1.5 py-0.5 text-[9px] rounded font-bold transition-all cursor-pointer ${
+                              newMedDosage === doseVal
+                                ? 'bg-emerald-700 text-white shadow-sm'
+                                : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900'
+                            }`}
+                          >
+                            {doseVal}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-[8px] font-black uppercase text-blue-500 mr-0.5">Drops:</span>
+                        {['1 Drop', '2 Drops', '3 Drops', '4 Drops', '5 Drops'].map((dropVal) => (
+                          <button
+                            key={dropVal}
+                            type="button"
+                            onClick={() => setNewMedDosage(dropVal)}
+                            className={`px-1.5 py-0.5 text-[9px] rounded font-extrabold transition-all cursor-pointer ${
+                              newMedDosage === dropVal
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200/80'
+                            }`}
+                          >
+                            {dropVal}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -472,11 +589,17 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                       <option value="1-1-1 (Thrice Daily)">1-1-1 (Thrice Daily)</option>
                       <option value="1-0-0 (Once Daily Morning)">1-0-0 (Morning)</option>
                       <option value="0-0-1 (Once Daily Night)">0-0-1 (Night)</option>
+                      <option value="1 Drop 3 times daily">1 Drop 3 times daily</option>
+                      <option value="1 Drop 4 times daily">1 Drop 4 times daily</option>
+                      <option value="2 Drops Twice Daily">2 Drops Twice Daily</option>
+                      <option value="2 Drops 3 times daily">2 Drops 3 times daily</option>
+                      <option value="Every 2 Hours (Eye Drop)">Every 2 Hours (Eye Drop)</option>
+                      <option value="Every 4 Hours">Every 4 Hours</option>
                       <option value="SOS (As Needed)">SOS (As Needed)</option>
                     </select>
                   </div>
 
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-1.5 sm:col-span-2">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Duration</label>
                     <input
                       type="text"
@@ -487,18 +610,18 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                     />
                   </div>
 
-                  <div className="sm:col-span-2 flex items-end">
+                  <div className="sm:col-span-1 flex items-start pt-5">
                     <button
                       type="button"
                       onClick={handleAddMedicine}
-                      className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow flex items-center justify-center gap-1 cursor-pointer"
+                      className="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" /> Add Rx
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 pt-1">
                   <span className="text-[10px] font-bold text-slate-500 uppercase">Instruction:</span>
                   <select
                     value={newMedInstruct}
@@ -507,6 +630,11 @@ export const ClinicalObservationModal: React.FC<ClinicalObservationModalProps> =
                   >
                     <option value="After meals">After meals</option>
                     <option value="Before meals">Before meals</option>
+                    <option value="In Both Eyes (Eye Drops)">In Both Eyes (Eye Drops)</option>
+                    <option value="In Left Eye (Eye Drops)">In Left Eye (Eye Drops)</option>
+                    <option value="In Right Eye (Eye Drops)">In Right Eye (Eye Drops)</option>
+                    <option value="In Both Nostrils (Nasal Drops)">In Both Nostrils (Nasal Drops)</option>
+                    <option value="In Affected Ear (Ear Drops)">In Affected Ear (Ear Drops)</option>
                     <option value="With water">With water</option>
                     <option value="At bedtime">At bedtime</option>
                     <option value="On empty stomach">On empty stomach</option>

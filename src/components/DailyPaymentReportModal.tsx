@@ -22,6 +22,7 @@ interface UnifiedCollectionItem {
   doctor_id?: string;
   doctor_name: string;
   department: string;
+  date: string;
   time_or_date: string;
   payment_mode: string;
   amount: number;
@@ -34,27 +35,70 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
   doctors,
   selectedDate
 }) => {
+  const todayStr = new Date().toISOString().split('T')[0];
   const [categoryFilter, setCategoryFilter] = useState<CollectionCategoryFilter>('ALL');
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('ALL');
+  const [startDate, setStartDate] = useState<string>(selectedDate || todayStr);
+  const [endDate, setEndDate] = useState<string>(selectedDate || todayStr);
   const [paymentReceipts, setPaymentReceipts] = useState<PaymentReceipt[]>([]);
   const [admittedPatients, setAdmittedPatients] = useState<AdmittedPatientRecord[]>([]);
 
   useEffect(() => {
     if (isOpen) {
+      const initDate = selectedDate || todayStr;
+      setStartDate(initDate);
+      setEndDate(initDate);
       api.getPaymentReceipts().then(rcpts => setPaymentReceipts(rcpts || [])).catch(() => {});
       api.getAdmittedPatients().then(ipds => setAdmittedPatients(ipds || [])).catch(() => {});
     }
-  }, [isOpen]);
+  }, [isOpen, selectedDate, todayStr]);
 
   if (!isOpen) return null;
 
-  const reportDate = selectedDate || new Date().toISOString().split('T')[0];
-  const formattedReportDate = new Date(reportDate).toLocaleDateString('en-IN', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  // Helper to check if a item date falls within the selected start-end range
+  const isDateInSelectedRange = (dateVal?: string) => {
+    if (!dateVal) return true; // keep if no date attached
+    const itemDate = dateVal.split('T')[0];
+    if (startDate && itemDate < startDate) return false;
+    if (endDate && itemDate > endDate) return false;
+    return true;
+  };
+
+  const formatDateFormatted = (dStr: string) => {
+    if (!dStr) return '';
+    return new Date(dStr).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const getDisplayDateRange = () => {
+    if (!startDate && !endDate) return 'All Recorded Collections';
+    if (startDate && endDate && startDate === endDate) {
+      return new Date(startDate).toLocaleDateString('en-IN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+    if (startDate && endDate) {
+      return `${formatDateFormatted(startDate)} to ${formatDateFormatted(endDate)}`;
+    }
+    if (startDate) return `From ${formatDateFormatted(startDate)}`;
+    if (endDate) return `Until ${formatDateFormatted(endDate)}`;
+    return 'Custom Date Range';
+  };
+
+  const getRefNo = () => {
+    if (startDate && endDate && startDate === endDate) {
+      return `Ref No: SKMH-DCR-${startDate.replace(/-/g, '')}`;
+    } else if (startDate && endDate) {
+      return `Ref No: SKMH-DCR-${startDate.replace(/-/g, '')}-TO-${endDate.replace(/-/g, '')}`;
+    }
+    return `Ref No: SKMH-DCR-STATEMENT`;
+  };
 
   // Doctor fee lookup helper
   const getFeeForApt = (apt: Appointment) => {
@@ -67,7 +111,8 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
 
   // 1. OPD Appointments (Category: DOCTORS)
   appointments.forEach((apt, idx) => {
-    if ((apt.appointment_date === reportDate || !apt.appointment_date) && apt.status !== 'cancelled') {
+    const aptDate = apt.appointment_date || (apt.created_at ? apt.created_at.split('T')[0] : todayStr);
+    if (isDateInSelectedRange(aptDate) && apt.status !== 'cancelled') {
       const notesLower = (apt.notes || '').toLowerCase();
       let mode = 'Cash';
       if (notesLower.includes('upi') || notesLower.includes('qr')) mode = 'UPI / QR';
@@ -84,6 +129,7 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
         doctor_id: apt.doctor_id,
         doctor_name: apt.doctor_name || 'Consulting Physician',
         department: apt.department || 'General Medicine',
+        date: aptDate,
         time_or_date: apt.time_slot || '10:00 AM',
         payment_mode: mode,
         amount: fee
@@ -93,7 +139,8 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
 
   // 2. Billing Payment Receipts (Category: XRAY, OT, IPD, DOCTORS, OTHER)
   paymentReceipts.forEach((rcpt) => {
-    if (rcpt.payment_date === reportDate || !rcpt.payment_date) {
+    const rcptDate = rcpt.payment_date || (rcpt.created_at ? rcpt.created_at.split('T')[0] : todayStr);
+    if (isDateInSelectedRange(rcptDate)) {
       rcpt.items.forEach((item, itemIdx) => {
         const catLower = (item.category || item.description || '').toLowerCase();
         let cat: CollectionCategoryFilter | 'OTHER' = 'OTHER';
@@ -121,6 +168,7 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
           categoryLabel: item.description || label,
           doctor_name: 'Consulting Specialist',
           department: label,
+          date: rcptDate,
           time_or_date: 'Receipt Ref: ' + rcpt.receipt_number,
           payment_mode: rcpt.payment_mode || 'Cash',
           amount: item.amount || 0
@@ -131,7 +179,8 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
 
   // 3. Inpatient Discharges (Category: IPD)
   admittedPatients.forEach((ipd, idx) => {
-    if (ipd.status === 'Discharged' || (ipd.total_paid_amount && ipd.total_paid_amount > 0)) {
+    const ipdDate = ipd.discharge_date || ipd.admission_date || (ipd.created_at ? ipd.created_at.split('T')[0] : todayStr);
+    if (isDateInSelectedRange(ipdDate) && (ipd.status === 'Discharged' || (ipd.total_paid_amount && ipd.total_paid_amount > 0))) {
       unifiedItems.push({
         id: `ipd-${ipd.id || idx}`,
         patient_code: ipd.patient_code || `SKMH-IPD-${200 + idx}`,
@@ -141,6 +190,7 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
         doctor_id: ipd.doctor_id,
         doctor_name: ipd.doctor_name || 'Attending IPD Consultant',
         department: ipd.department || 'IPD Ward',
+        date: ipdDate,
         time_or_date: ipd.discharge_date ? `Discharged: ${ipd.discharge_date}` : `Admitted: ${ipd.admission_date}`,
         payment_mode: 'Cash / Bank Transfer',
         amount: ipd.total_paid_amount || (ipd.daily_bed_charge * 2) || 12000
@@ -233,8 +283,8 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-6xl overflow-hidden flex flex-col max-h-[94vh] my-auto">
         
         {/* Sticky Modal Header Actions (Screen Only) */}
         <div className="sticky top-0 z-20 bg-slate-900 text-white px-6 sm:px-8 py-4 flex items-center justify-between shrink-0 print:hidden border-b border-slate-800">
@@ -357,6 +407,112 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
           )}
         </div>
 
+        {/* DATE RANGE SELECTION BAR */}
+        <div className="bg-slate-900 text-white px-4 py-2.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden text-xs">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 font-bold text-slate-300">
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              <span className="uppercase text-[11px] tracking-wider text-slate-300 font-extrabold">Report Date Range:</span>
+            </div>
+
+            {/* From Date */}
+            <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1">
+              <label className="text-[10px] uppercase font-bold text-slate-400">From:</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-transparent text-emerald-400 font-bold text-xs focus:outline-none cursor-pointer [color-scheme:dark]"
+              />
+            </div>
+
+            {/* To Date */}
+            <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1">
+              <label className="text-[10px] uppercase font-bold text-slate-400">To:</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-transparent text-emerald-400 font-bold text-xs focus:outline-none cursor-pointer [color-scheme:dark]"
+              />
+            </div>
+
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1 pl-1">
+              <button
+                type="button"
+                onClick={() => { setStartDate(todayStr); setEndDate(todayStr); }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer ${
+                  startDate === todayStr && endDate === todayStr
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                Today
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const yest = new Date();
+                  yest.setDate(yest.getDate() - 1);
+                  const yestStr = yest.toISOString().split('T')[0];
+                  setStartDate(yestStr);
+                  setEndDate(yestStr);
+                }}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all cursor-pointer"
+              >
+                Yesterday
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const d7 = new Date();
+                  d7.setDate(d7.getDate() - 6);
+                  setStartDate(d7.toISOString().split('T')[0]);
+                  setEndDate(todayStr);
+                }}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all cursor-pointer"
+              >
+                Last 7 Days
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const now = new Date();
+                  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                  setStartDate(firstDay);
+                  setEndDate(todayStr);
+                }}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all cursor-pointer"
+              >
+                This Month
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer ${
+                  !startDate && !endDate
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                All Time
+              </button>
+            </div>
+          </div>
+
+          <div className="text-[11px] font-mono text-emerald-400 font-bold bg-slate-950 px-3 py-1 rounded-lg border border-slate-800">
+            {getDisplayDateRange()}
+          </div>
+        </div>
+
         {/* PRINTABLE REPORT CONTENT AREA */}
         <div id="printable-daily-report" className="p-8 space-y-6 overflow-y-auto font-sans text-slate-900 bg-white">
           
@@ -382,8 +538,8 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
             <div className="text-right border-l-2 border-slate-200 pl-4 space-y-0.5">
               <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Report Type</span>
               <span className="text-sm font-black text-emerald-950 uppercase block">{getReportTitle()}</span>
-              <span className="text-xs font-bold text-slate-700 block">{formattedReportDate}</span>
-              <span className="text-[10px] font-mono text-slate-400">Ref No: SKMH-DCR-{reportDate.replace(/-/g, '')}</span>
+              <span className="text-xs font-black text-slate-800 block">{getDisplayDateRange()}</span>
+              <span className="text-[10px] font-mono text-slate-400 block">{getRefNo()}</span>
             </div>
           </div>
 
@@ -477,6 +633,7 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
               <thead>
                 <tr className="bg-slate-900 text-white font-bold">
                   <th className="p-2 border-r border-slate-700">S.No</th>
+                  <th className="p-2 border-r border-slate-700">Date / Slot</th>
                   <th className="p-2 border-r border-slate-700">Patient Code</th>
                   <th className="p-2 border-r border-slate-700">Patient Name</th>
                   <th className="p-2 border-r border-slate-700">Service / Description</th>
@@ -488,7 +645,7 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
               <tbody className="divide-y divide-slate-200 text-slate-800">
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-6 text-center text-slate-400 font-medium italic">
+                    <td colSpan={8} className="p-6 text-center text-slate-400 font-medium italic">
                       No patient payment transactions found for this selection.
                     </td>
                   </tr>
@@ -496,6 +653,10 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
                   filteredItems.map((item, index) => (
                     <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-500 text-center">{index + 1}</td>
+                      <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-700 whitespace-nowrap">
+                        <span className="block text-slate-900 font-extrabold">{item.date}</span>
+                        <span className="block text-[10px] text-slate-500 font-normal">{item.time_or_date}</span>
+                      </td>
                       <td className="p-2 border-r border-slate-200 font-mono font-bold text-slate-700">
                         {item.patient_code}
                       </td>
@@ -512,7 +673,7 @@ export const DailyPaymentReportModal: React.FC<DailyPaymentReportModalProps> = (
               </tbody>
               <tfoot>
                 <tr className="bg-emerald-100 font-black text-slate-900 border-t-2 border-slate-900">
-                  <td colSpan={6} className="p-2 text-right uppercase tracking-wider text-xs">
+                  <td colSpan={7} className="p-2 text-right uppercase tracking-wider text-xs">
                     Grand Total Collection ({categoryFilter}):
                   </td>
                   <td className="p-2 text-right text-sm text-emerald-950 font-black">

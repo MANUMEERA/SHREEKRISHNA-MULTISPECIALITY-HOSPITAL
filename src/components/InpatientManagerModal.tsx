@@ -382,8 +382,8 @@ export const InpatientManagerModal: React.FC<InpatientManagerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:bg-white print:fixed print:inset-0">
-      <div className="bg-white rounded-3xl max-w-5xl w-full shadow-2xl my-auto print:shadow-none print:m-0 print:w-full print:max-w-none print:p-4 border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-5 overflow-y-auto print:p-0 print:bg-white print:fixed print:inset-0">
+      <div className="bg-white rounded-3xl max-w-7xl w-full shadow-2xl my-auto print:shadow-none print:m-0 print:w-full print:max-w-none print:p-4 border border-slate-200 overflow-hidden max-h-[94vh] flex flex-col">
         
         {/* Sticky Header */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 border-b border-slate-200 flex items-center justify-between shrink-0 print:hidden">

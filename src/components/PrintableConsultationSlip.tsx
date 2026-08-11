@@ -75,8 +75,8 @@ export const PrintableConsultationSlip: React.FC<PrintableConsultationSlipProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md overflow-y-auto pt-8 sm:pt-14 pb-16 px-3 sm:px-6 print:p-0 print:bg-white print:static print:inset-auto">
-      <div className="bg-white rounded-3xl max-w-3xl w-full mx-auto p-5 sm:p-8 shadow-2xl space-y-6 print:shadow-none print:m-0 print:p-4 print:max-w-none print:w-full border border-slate-200 relative">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md overflow-y-auto pt-6 sm:pt-10 pb-16 px-2 sm:px-5 print:p-0 print:bg-white print:static print:inset-auto">
+      <div className="bg-white rounded-3xl max-w-5xl w-full mx-auto p-5 sm:p-8 shadow-2xl space-y-6 print:shadow-none print:m-0 print:p-4 print:max-w-none print:w-full border border-slate-200 relative">
         
         {/* Action Bar & Controls Header (Hidden when printing) */}
         <div className="space-y-3 border-b border-slate-200 pb-4 print:hidden sticky top-0 bg-white/95 backdrop-blur-xs z-20 pt-1 -mt-2">

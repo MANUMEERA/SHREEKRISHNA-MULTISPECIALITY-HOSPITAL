@@ -191,19 +191,31 @@ const INITIAL_DOCTOR_LOGS: DoctorLoginLog[] = [
   }
 ];
 
+const STORED_CACHE = new Map<string, any>();
+
 function getStored<T>(key: string, fallback: T): T {
+  if (STORED_CACHE.has(key)) {
+    return STORED_CACHE.get(key);
+  }
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
+    if (item) {
+      const parsed = JSON.parse(item);
+      STORED_CACHE.set(key, parsed);
+      return parsed;
+    }
   } catch (e) {
     console.error(`Error reading ${key} from storage:`, e);
-    return fallback;
   }
+  STORED_CACHE.set(key, fallback);
+  return fallback;
 }
 
 function setStored<T>(key: string, data: T): void {
   try {
+    STORED_CACHE.set(key, data);
     localStorage.setItem(key, JSON.stringify(data));
+    clearApiMemoryCache();
   } catch (e) {
     console.error(`Error saving ${key} to storage:`, e);
   }
@@ -371,115 +383,147 @@ if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
   setStored(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]); // Patient
 }
 
+// In-Memory Cache for ultra-fast development rendering
+const MEMORY_CACHE: Record<string, { data: any; timestamp: number }> = {};
+const CACHE_TTL_MS = 15000; // 15 seconds in-memory TTL
+
+function getMemoryCache<T>(key: string): T | null {
+  const cached = MEMORY_CACHE[key];
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+    return cached.data as T;
+  }
+  return null;
+}
+
+function setMemoryCache<T>(key: string, data: T): void {
+  MEMORY_CACHE[key] = { data, timestamp: Date.now() };
+}
+
+export function clearApiMemoryCache(): void {
+  Object.keys(MEMORY_CACHE).forEach(k => delete MEMORY_CACHE[k]);
+}
+
 let isSeedingSupabase = false;
 export async function seedSupabaseInitialData(): Promise<void> {
   if (!isSupabaseConfigured || !supabase || isSeedingSupabase) return;
   isSeedingSupabase = true;
 
   try {
-    // 1. Seed Users if empty
-    const { count: usersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-    if (usersCount === 0) {
-      const usersToInsert = INITIAL_USERS.map(u => ({
-        patient_code: u.patient_code || `SKMH-2026-PAT-${Math.floor(100 + Math.random() * 800)}`,
-        email: u.email,
-        password_hash: u.password || 'User@2026',
-        full_name: u.full_name,
-        role: u.role,
-        phone: u.phone,
-        gender: u.gender || 'Male',
-        age: u.age || 30,
-        blood_group: u.blood_group || 'O+',
-        allergies: u.allergies || [],
-        chronic_conditions: u.chronic_conditions || [],
-        emergency_contact: u.emergency_contact || '',
-        emergency_phone: u.emergency_phone || '',
-        address: u.address || 'Silvassa, Dadra & Nagar Haveli',
-        created_at: u.created_at || new Date().toISOString()
-      }));
-      await supabase.from('users').insert(usersToInsert);
-    }
+    await Promise.allSettled([
+      // 1. Seed Users if empty
+      (async () => {
+        const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
+        if (count === 0) {
+          const usersToInsert = INITIAL_USERS.map(u => ({
+            patient_code: u.patient_code || `SKMH-2026-PAT-${Math.floor(100 + Math.random() * 800)}`,
+            email: u.email,
+            password_hash: u.password || 'User@2026',
+            full_name: u.full_name,
+            role: u.role,
+            phone: u.phone,
+            gender: u.gender || 'Male',
+            age: u.age || 30,
+            blood_group: u.blood_group || 'O+',
+            allergies: u.allergies || [],
+            chronic_conditions: u.chronic_conditions || [],
+            emergency_contact: u.emergency_contact || '',
+            emergency_phone: u.emergency_phone || '',
+            address: u.address || 'Silvassa, Dadra & Nagar Haveli',
+            created_at: u.created_at || new Date().toISOString()
+          }));
+          await supabase.from('users').insert(usersToInsert);
+        }
+      })(),
 
-    // 2. Seed Doctors if empty
-    const { count: docsCount } = await supabase.from('doctors').select('*', { count: 'exact', head: true });
-    if (docsCount === 0) {
-      const docsToInsert = INITIAL_DOCTORS.map(d => ({
-        name: d.name,
-        department: d.department,
-        specialization: d.specialization,
-        qualification: d.qualification,
-        experience_years: d.experience_years,
-        consultation_fee: d.consultation_fee,
-        rating: d.rating,
-        reviews_count: d.reviews_count,
-        photo_url: d.photo_url,
-        bio: d.bio,
-        availability_days: d.availability_days,
-        time_slots: d.time_slots,
-        opd_timings: d.opd_timings,
-        phone: d.phone,
-        email: d.email,
-        is_active: d.is_active,
-        is_on_call: d.is_on_call,
-        consultant_type: d.consultant_type,
-        availability_status: d.availability_status,
-        signature_url: d.signature_url,
-        stamp_url: d.stamp_url,
-        registration_number: d.registration_number,
-        designation: d.designation,
-        is_authorised_signatory: d.is_authorised_signatory,
-        login_password: d.login_password || 'Doctor@2026'
-      }));
-      await supabase.from('doctors').insert(docsToInsert);
-    }
+      // 2. Seed Doctors if empty
+      (async () => {
+        const { count } = await supabase.from('doctors').select('*', { count: 'exact', head: true });
+        if (count === 0) {
+          const docsToInsert = INITIAL_DOCTORS.map(d => ({
+            name: d.name,
+            department: d.department,
+            specialization: d.specialization,
+            qualification: d.qualification,
+            experience_years: d.experience_years,
+            consultation_fee: d.consultation_fee,
+            rating: d.rating,
+            reviews_count: d.reviews_count,
+            photo_url: d.photo_url,
+            bio: d.bio,
+            availability_days: d.availability_days,
+            time_slots: d.time_slots,
+            opd_timings: d.opd_timings,
+            phone: d.phone,
+            email: d.email,
+            is_active: d.is_active,
+            is_on_call: d.is_on_call,
+            consultant_type: d.consultant_type,
+            availability_status: d.availability_status,
+            signature_url: d.signature_url,
+            stamp_url: d.stamp_url,
+            registration_number: d.registration_number,
+            designation: d.designation,
+            is_authorised_signatory: d.is_authorised_signatory,
+            login_password: d.login_password || 'Doctor@2026'
+          }));
+          await supabase.from('doctors').insert(docsToInsert);
+        }
+      })(),
 
-    // 3. Seed Departments if empty
-    const { count: deptsCount } = await supabase.from('departments').select('*', { count: 'exact', head: true });
-    if (deptsCount === 0) {
-      const deptsToInsert = INITIAL_DEPARTMENTS.map(d => ({
-        name: d.name,
-        icon_name: d.icon_name,
-        description: d.description,
-        lead_doctor: d.lead_doctor,
-        total_doctors: d.total_doctors,
-        beds_count: d.beds_count,
-        equipment_highlights: d.equipment_highlights,
-        image_url: d.image_url,
-        common_conditions: d.common_conditions,
-        treatments: d.treatments
-      }));
-      await supabase.from('departments').insert(deptsToInsert);
-    }
+      // 3. Seed Departments if empty
+      (async () => {
+        const { count } = await supabase.from('departments').select('*', { count: 'exact', head: true });
+        if (count === 0) {
+          const deptsToInsert = INITIAL_DEPARTMENTS.map(d => ({
+            name: d.name,
+            icon_name: d.icon_name,
+            description: d.description,
+            lead_doctor: d.lead_doctor,
+            total_doctors: d.total_doctors,
+            beds_count: d.beds_count,
+            equipment_highlights: d.equipment_highlights,
+            image_url: d.image_url,
+            common_conditions: d.common_conditions,
+            treatments: d.treatments
+          }));
+          await supabase.from('departments').insert(deptsToInsert);
+        }
+      })(),
 
-    // 4. Seed Medicines if empty
-    const { count: medsCount } = await supabase.from('medicines').select('*', { count: 'exact', head: true });
-    if (medsCount === 0) {
-      const medsToInsert = INITIAL_MEDICINES.map(m => ({
-        name: m.name,
-        category: m.category,
-        stock_count: m.stock_count,
-        min_threshold: m.min_threshold,
-        unit: m.unit,
-        expiry_date: m.expiry_date,
-        unit_price: m.unit_price,
-        location: m.location
-      }));
-      await supabase.from('medicines').insert(medsToInsert);
-    }
+      // 4. Seed Medicines if empty
+      (async () => {
+        const { count } = await supabase.from('medicines').select('*', { count: 'exact', head: true });
+        if (count === 0) {
+          const medsToInsert = INITIAL_MEDICINES.map(m => ({
+            name: m.name,
+            category: m.category,
+            stock_count: m.stock_count,
+            min_threshold: m.min_threshold,
+            unit: m.unit,
+            expiry_date: m.expiry_date,
+            unit_price: m.unit_price,
+            location: m.location
+          }));
+          await supabase.from('medicines').insert(medsToInsert);
+        }
+      })(),
 
-    // 5. Seed Bot FAQs if empty
-    const { count: faqsCount } = await supabase.from('bot_faqs').select('*', { count: 'exact', head: true });
-    if (faqsCount === 0) {
-      const faqsToInsert = INITIAL_BOT_FAQS.map(f => ({
-        question: f.question,
-        answer: f.answer,
-        keywords: f.keywords || [],
-        category: f.category,
-        is_active: f.is_active,
-        click_count: f.click_count || 0
-      }));
-      await supabase.from('bot_faqs').insert(faqsToInsert);
-    }
+      // 5. Seed Bot FAQs if empty
+      (async () => {
+        const { count } = await supabase.from('bot_faqs').select('*', { count: 'exact', head: true });
+        if (count === 0) {
+          const faqsToInsert = INITIAL_BOT_FAQS.map(f => ({
+            question: f.question,
+            answer: f.answer,
+            keywords: f.keywords || [],
+            category: f.category,
+            is_active: f.is_active,
+            click_count: f.click_count || 0
+          }));
+          await supabase.from('bot_faqs').insert(faqsToInsert);
+        }
+      })()
+    ]);
   } catch (e) {
     console.warn('Supabase auto-seed warning:', e);
   } finally {
@@ -487,33 +531,38 @@ export async function seedSupabaseInitialData(): Promise<void> {
   }
 }
 
-// Automatically attempt seeding if configured
+// Automatically attempt seeding asynchronously if configured
 if (isSupabaseConfigured && supabase) {
-  seedSupabaseInitialData();
+  setTimeout(() => seedSupabaseInitialData(), 100);
 }
 
 export const api = {
   // --- AUTH API ---
   async getUsers(): Promise<User[]> {
+    const cacheKey = 'users_all';
+    const cachedMem = getMemoryCache<User[]>(cacheKey);
+    if (cachedMem) return cachedMem;
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
-          setStored(STORAGE_KEYS.USERS, data);
-          return data as User[];
-        } else if (!error && (!data || data.length === 0)) {
-          await seedSupabaseInitialData();
-          const { data: seededData } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-          if (seededData && seededData.length > 0) {
-            setStored(STORAGE_KEYS.USERS, seededData);
-            return seededData as User[];
-          }
+          const localUsers = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+          const remoteIds = new Set(data.map((u: any) => u.id));
+          const remoteEmails = new Set(data.map((u: any) => u.email.toLowerCase()));
+          const localOnly = localUsers.filter(u => !remoteIds.has(u.id) && !remoteEmails.has(u.email.toLowerCase()));
+          const merged = [...data, ...localOnly];
+          setStored(STORAGE_KEYS.USERS, merged);
+          setMemoryCache(cacheKey, merged);
+          return merged as User[];
         }
       } catch (e) {
         console.warn('Supabase getUsers warning:', e);
       }
     }
-    return getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const local = getStored<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    setMemoryCache(cacheKey, local);
+    return local;
   },
 
   async getReceptionistUser(): Promise<User> {
@@ -898,11 +947,16 @@ export const api = {
 
   // --- DEPARTMENTS API ---
   async getDepartments(): Promise<Department[]> {
+    const cacheKey = 'departments_all';
+    const cachedMem = getMemoryCache<Department[]>(cacheKey);
+    if (cachedMem) return cachedMem;
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('departments').select('*').order('name', { ascending: true });
         if (!error && data && data.length > 0) {
           setStored(STORAGE_KEYS.DEPARTMENTS, data);
+          setMemoryCache(cacheKey, data);
           return data as Department[];
         }
       } catch (e) {
@@ -910,11 +964,10 @@ export const api = {
       }
     }
     const depts = getStored<Department[]>(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
-    if (!depts || depts.length === 0) {
-      setStored(STORAGE_KEYS.DEPARTMENTS, INITIAL_DEPARTMENTS);
-      return INITIAL_DEPARTMENTS;
-    }
-    return depts;
+    const finalDepts = (!depts || depts.length === 0) ? INITIAL_DEPARTMENTS : depts;
+    setStored(STORAGE_KEYS.DEPARTMENTS, finalDepts);
+    setMemoryCache(cacheKey, finalDepts);
+    return finalDepts;
   },
 
   async createDepartment(data: Partial<Department>): Promise<Department> {
@@ -994,11 +1047,16 @@ export const api = {
 
   // --- DOCTORS API ---
   async getDoctors(): Promise<Doctor[]> {
+    const cacheKey = 'doctors_all';
+    const cachedMem = getMemoryCache<Doctor[]>(cacheKey);
+    if (cachedMem) return cachedMem;
+
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.from('doctors').select('*').order('name', { ascending: true });
         if (!error && data && data.length > 0) {
           setStored(STORAGE_KEYS.DOCTORS, data);
+          setMemoryCache(cacheKey, data);
           return data as Doctor[];
         }
       } catch (e) {
@@ -1006,6 +1064,7 @@ export const api = {
       }
     }
     const doctors = getStored<Doctor[]>(STORAGE_KEYS.DOCTORS, INITIAL_DOCTORS);
+    setMemoryCache(cacheKey, doctors);
     return doctors;
   },
 
@@ -1096,6 +1155,10 @@ export const api = {
 
   // --- APPOINTMENTS API ---
   async getAppointments(userId?: string, role?: UserRole): Promise<Appointment[]> {
+    const cacheKey = `apts_${userId || 'all'}_${role || 'all'}`;
+    const cachedMem = getMemoryCache<Appointment[]>(cacheKey);
+    if (cachedMem) return cachedMem;
+
     if (isSupabaseConfigured && supabase) {
       try {
         let query = supabase.from('appointments').select('*').order('created_at', { ascending: false });
@@ -1105,6 +1168,7 @@ export const api = {
         const { data, error } = await query;
         if (!error && data) {
           setStored(STORAGE_KEYS.APPOINTMENTS, data);
+          setMemoryCache(cacheKey, data);
           return data as Appointment[];
         }
       } catch (e) {
@@ -1112,13 +1176,14 @@ export const api = {
       }
     }
     const appointments = getStored<Appointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
+    let result = appointments;
     if (role === 'admin' || role === 'staff' || role === 'super_admin') {
-      return appointments;
+      result = appointments;
+    } else if (userId) {
+      result = appointments.filter(a => a.user_id === userId);
     }
-    if (userId) {
-      return appointments.filter(a => a.user_id === userId);
-    }
-    return appointments;
+    setMemoryCache(cacheKey, result);
+    return result;
   },
 
   async createAppointment(data: Omit<Appointment, 'id' | 'created_at' | 'status'>): Promise<Appointment> {
@@ -1152,6 +1217,7 @@ export const api = {
           const supabaseApt = { ...newApt, ...dbData, id: dbData.id };
           appointments.unshift(supabaseApt);
           setStored(STORAGE_KEYS.APPOINTMENTS, appointments);
+          clearApiMemoryCache();
 
           await this.addNotification({
             user_id: data.user_id,
@@ -1169,6 +1235,7 @@ export const api = {
 
     appointments.unshift(newApt);
     setStored(STORAGE_KEYS.APPOINTMENTS, appointments);
+    clearApiMemoryCache();
 
     // Create notification
     await this.addNotification({
@@ -1205,10 +1272,14 @@ export const api = {
     // Create notification for user
     const apt = appointments[idx];
     const statusEmoji = status === 'confirmed' ? '✅' : status === 'completed' ? '🎉' : '❌';
+    const dispatchDetails = status === 'confirmed'
+      ? ` Confirmation slip & details dispatched via WhatsApp (+91 ${apt.user_phone ? apt.user_phone.slice(-10) : 'registered'}) and Email (${apt.user_email || 'registered email'}).`
+      : '';
+
     await this.addNotification({
       user_id: apt.user_id,
       title: `Appointment ${status.toUpperCase()} ${statusEmoji}`,
-      message: `Your appointment with ${apt.doctor_name} on ${apt.appointment_date} is now ${status}.`,
+      message: `Your appointment with ${apt.doctor_name} on ${apt.appointment_date} (${apt.time_slot}) is now ${status}.${dispatchDetails}`,
       type: 'appointment'
     });
 
@@ -1923,6 +1994,9 @@ export const api = {
 
   async saveHospitalPolicies(policies: HospitalPolicy): Promise<HospitalPolicy> {
     setStored(STORAGE_KEYS.POLICIES, policies);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('policies_updated', { detail: policies }));
+    }
     return policies;
   },
 

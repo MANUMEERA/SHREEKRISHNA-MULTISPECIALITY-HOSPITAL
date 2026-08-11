@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { 
   Users, Calendar, Stethoscope, Plus, Edit, Trash2, ShieldCheck, Copy, Check, Search, ChevronRight, X, 
   Building2, Upload, Image as ImageIcon, HeartPulse, Brain, Bone, Baby, Activity, BedDouble, UserCheck, PhoneCall,
-  FileText, FolderHeart, AlertTriangle, Printer, FileSpreadsheet, Eye, ClipboardList, Clock, CheckCircle2, UserPlus, FilePlus, Pill, Share2, FileCheck2, Lock, ShieldAlert, RefreshCw, Database, Bot
+  FileText, FolderHeart, AlertTriangle, Printer, FileSpreadsheet, Eye, ClipboardList, Clock, CheckCircle2, UserPlus, FilePlus, Pill, Share2, FileCheck2, Lock, ShieldAlert, RefreshCw, Database, Bot, CreditCard
 } from 'lucide-react';
 import { ClinicalObservationModal } from '../components/ClinicalObservationModal';
 import { PrintableConsultationSlip } from '../components/PrintableConsultationSlip';
@@ -44,6 +44,7 @@ export const AdminDashboardPage: React.FC = () => {
   // Payment receipt modal
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptPatient, setReceiptPatient] = useState<{
+    id?: string;
     name: string;
     code: string;
     phone: string;
@@ -189,7 +190,7 @@ export const AdminDashboardPage: React.FC = () => {
     bio: '',
     photo_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400',
     is_on_call: false,
-    consultant_type: 'Resident Consultant' as 'Resident Consultant' | 'Visiting / On-Call',
+    consultant_type: 'Resident Consultant' as string,
     availability_status: 'Available' as DoctorAvailabilityStatus
   });
 
@@ -203,23 +204,25 @@ export const AdminDashboardPage: React.FC = () => {
   useEffect(() => {
     loadAllAdminData();
 
-    // Auto Refresh Interval every 5 seconds
+    // Auto Refresh Interval every 15 seconds (only when tab is active)
     const interval = setInterval(() => {
-      if (autoRefreshEnabled) {
+      if (autoRefreshEnabled && document.visibilityState === 'visible') {
         loadAllAdminData();
       }
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [autoRefreshEnabled]);
 
   const loadAllAdminData = async () => {
-    const s = await api.getAdminStats();
-    const docs = await api.getDoctors();
-    const depts = await api.getDepartments();
-    const apts = await api.getAppointments(undefined, 'admin');
-    const pts = await api.getPatients();
-    const reps = await api.getReports(undefined, 'admin');
+    const [s, docs, depts, apts, pts, reps] = await Promise.all([
+      api.getAdminStats(),
+      api.getDoctors(),
+      api.getDepartments(),
+      api.getAppointments(undefined, 'admin'),
+      api.getPatients(),
+      api.getReports(undefined, 'admin')
+    ]);
 
     setStats(s);
     setDoctors(docs);
@@ -538,8 +541,6 @@ export const AdminDashboardPage: React.FC = () => {
     } else {
       await api.createDoctor({
         ...payload,
-        rating: 5.0,
-        reviews_count: 1,
         availability_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         time_slots: ['09:00 AM', '11:00 AM', '01:00 PM', '06:00 PM', '08:00 PM'],
         is_active: true
@@ -1531,6 +1532,30 @@ export const AdminDashboardPage: React.FC = () => {
                                         phone: apt.patient_phone || '+91 98000 00000',
                                         email: apt.user_email,
                                         doctor: apt.doctor_name,
+                                        autoShowReceipt: false
+                                      });
+                                      setReceiptModalOpen(true);
+                                    }}
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                                      printingDisabled
+                                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-50 shadow-none'
+                                        : 'bg-blue-700 hover:bg-blue-800 text-white shadow cursor-pointer'
+                                    }`}
+                                    title={printingDisabled ? 'Billing disabled' : 'Pay Patient Charges / Add Extra Hospital Charges'}
+                                  >
+                                    <CreditCard className="w-3 h-3 text-blue-200" /> Pay / Add Charges
+                                  </button>
+
+                                  <button
+                                    disabled={printingDisabled}
+                                    onClick={() => {
+                                      if (printingDisabled) return;
+                                      setReceiptPatient({
+                                        name: apt.user_name,
+                                        code: apt.patient_code || 'SKMH-WALKIN',
+                                        phone: apt.patient_phone || '+91 98000 00000',
+                                        email: apt.user_email,
+                                        doctor: apt.doctor_name,
                                         autoShowReceipt: true
                                       });
                                       setReceiptModalOpen(true);
@@ -1540,7 +1565,7 @@ export const AdminDashboardPage: React.FC = () => {
                                         ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-50 shadow-none'
                                         : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow cursor-pointer'
                                     }`}
-                                    title={printingDisabled ? 'Bill receipt printing is currently DISABLED by Receptionist settings' : 'Print Official Payment Receipt (Consultation Completed)'}
+                                    title={printingDisabled ? 'Bill receipt printing is currently DISABLED by Receptionist settings' : 'Print Official Payment Receipt'}
                                   >
                                     <FileText className="w-3 h-3 text-emerald-300" /> Print Bill Receipt {printingDisabled && '(Disabled)'}
                                   </button>
@@ -1568,16 +1593,29 @@ export const AdminDashboardPage: React.FC = () => {
                                     <Printer className="w-3 h-3 text-blue-600" /> Slip {printingDisabled && '(Disabled)'}
                                   </button>
 
-                                  <span
-                                    className={`px-2 py-1 rounded-lg text-[11px] font-extrabold flex items-center gap-1 transition-all border ${
+                                  <button
+                                    disabled={printingDisabled}
+                                    onClick={() => {
+                                      if (printingDisabled) return;
+                                      setReceiptPatient({
+                                        name: apt.user_name,
+                                        code: apt.patient_code || 'SKMH-WALKIN',
+                                        phone: apt.patient_phone || '+91 98000 00000',
+                                        email: apt.user_email,
+                                        doctor: apt.doctor_name,
+                                        autoShowReceipt: false
+                                      });
+                                      setReceiptModalOpen(true);
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold flex items-center gap-1 transition-all ${
                                       printingDisabled
-                                        ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
-                                        : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                                        : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow cursor-pointer'
                                     }`}
-                                    title="Payment already received at OPD check-in. Official Bill Receipt print unlocks after Doctor marks consultation COMPLETED."
+                                    title="Fast Pay Patient's Charges, Add Extra Service Charges & Collect Bill Payment"
                                   >
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Payment Received (Print after Completed)
-                                  </span>
+                                    <CreditCard className="w-3 h-3 text-emerald-200" /> Pay / Add Charges
+                                  </button>
                                 </>
                               )}
 
@@ -1982,7 +2020,7 @@ export const AdminDashboardPage: React.FC = () => {
       {/* ================= PATIENT ELECTRONIC HEALTH RECORD (EHR) FULL MODAL ================= */}
       {selectedEhrPatient && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-6 border border-slate-100 animate-in fade-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-6xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-6 border border-slate-100 animate-in fade-in zoom-in-95 max-h-[94vh] overflow-y-auto">
             
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-4">
@@ -2364,7 +2402,7 @@ export const AdminDashboardPage: React.FC = () => {
       {/* ================= ADD / EDIT PATIENT MODAL ================= */}
       {patientModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <form onSubmit={handleSavePatient} className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in-95">
+          <form onSubmit={handleSavePatient} className="bg-white rounded-3xl max-w-5xl w-full p-6 sm:p-8 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800">
@@ -2520,7 +2558,7 @@ export const AdminDashboardPage: React.FC = () => {
       {/* ================= UPLOAD REPORT MODAL ================= */}
       {uploadReportModalOpen && reportPatient && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <form onSubmit={handleSaveUploadReport} className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in-95">
+          <form onSubmit={handleSaveUploadReport} className="bg-white rounded-3xl max-w-5xl w-full p-6 sm:p-8 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-blue-100 text-blue-800">
@@ -2611,7 +2649,7 @@ export const AdminDashboardPage: React.FC = () => {
       {/* ================= DEPARTMENT ADD / EDIT MODAL ================= */}
       {departmentModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <form onSubmit={handleSaveDepartment} className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in-95">
+          <form onSubmit={handleSaveDepartment} className="bg-white rounded-3xl max-w-5xl w-full p-6 sm:p-8 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800">
@@ -2728,7 +2766,7 @@ export const AdminDashboardPage: React.FC = () => {
       {/* ================= DOCTOR ADD / EDIT MODAL ================= */}
       {doctorModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <form onSubmit={handleSaveDoctor} className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in-95">
+          <form onSubmit={handleSaveDoctor} className="bg-white rounded-3xl max-w-5xl w-full p-6 sm:p-8 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800">

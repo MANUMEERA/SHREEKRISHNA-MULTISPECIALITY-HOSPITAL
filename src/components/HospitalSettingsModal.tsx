@@ -171,8 +171,8 @@ export const HospitalSettingsModal: React.FC<HospitalSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl my-auto border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-5 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-6xl w-full shadow-2xl my-auto border border-slate-200 overflow-hidden max-h-[94vh] flex flex-col">
         
         {/* Sticky Header */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-8 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">

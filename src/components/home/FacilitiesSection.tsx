@@ -324,7 +324,7 @@ export const FacilitiesSection: React.FC = () => {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-wide">
                   <Layers className="w-5 h-5 text-emerald-400" />
-                  PHOTO GALLERY
+                  FACILITY PHOTOGRAPHS
                 </h3>
                 <span className="text-xs text-slate-400">9 High Resolution Photographs</span>
               </div>

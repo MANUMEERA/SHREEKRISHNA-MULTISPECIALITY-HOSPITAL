@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, Mail, MapPin, Clock, ShieldCheck, HeartPulse, Award, Users, Eye, Share2, ChevronRight, ExternalLink } from 'lucide-react';
 import { HospitalLogo } from '../common/HospitalLogo';
+import { HospitalPolicyViewerModal, PolicyType } from '../HospitalPolicyViewerModal';
 
 interface FooterProps {
   setActiveTab: (tab: string) => void;
@@ -8,6 +9,13 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
   const [visitorCount, setVisitorCount] = useState<number>(148592);
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [policyTab, setPolicyTab] = useState<PolicyType>('privacy');
+
+  const openPolicy = (tab: PolicyType) => {
+    setPolicyTab(tab);
+    setPolicyModalOpen(true);
+  };
 
   useEffect(() => {
     // Increment visitor count on initial load
@@ -297,13 +305,37 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
           </div>
 
           <div className="flex items-center gap-6 text-[11px] text-slate-400">
-            <span className="hover:text-emerald-400 transition-colors cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-emerald-400 transition-colors cursor-pointer">Terms of Service</span>
-            <span className="hover:text-emerald-400 transition-colors cursor-pointer">Patients Charter</span>
+            <button
+              type="button"
+              onClick={() => openPolicy('privacy')}
+              className="hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none p-0 text-[11px] font-medium"
+            >
+              Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => openPolicy('terms')}
+              className="hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none p-0 text-[11px] font-medium"
+            >
+              Terms of Service
+            </button>
+            <button
+              type="button"
+              onClick={() => openPolicy('charter')}
+              className="hover:text-emerald-400 transition-colors cursor-pointer bg-transparent border-none p-0 text-[11px] font-medium"
+            >
+              Patients Charter
+            </button>
           </div>
         </div>
 
       </div>
+
+      <HospitalPolicyViewerModal
+        isOpen={policyModalOpen}
+        onClose={() => setPolicyModalOpen(false)}
+        initialTab={policyTab}
+      />
     </footer>
   );
 };

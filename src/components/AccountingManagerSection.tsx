@@ -853,7 +853,7 @@ export const AccountingManagerSection: React.FC = () => {
       {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
             <div className="flex justify-between items-center border-b pb-3 border-slate-100">
               <h3 className="font-extrabold text-slate-900 text-sm">Add New Accounting Ledger Entry</h3>
               <button onClick={() => setShowAddModal(false)} className="p-1 rounded-full text-slate-400 hover:text-slate-700">
@@ -944,7 +944,7 @@ export const AccountingManagerSection: React.FC = () => {
       {/* ================= MODAL: PRINT / PDF AUDIT REPORT VIEW ================= */}
       {showPrintModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto print:p-0 print:bg-white print:fixed print:inset-0">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-8 print:shadow-none print:m-0 print:w-full print:max-w-none print:p-4 border border-slate-200">
+          <div className="bg-white rounded-3xl max-w-6xl w-full p-6 sm:p-8 shadow-2xl space-y-6 my-8 print:shadow-none print:m-0 print:w-full print:max-w-none print:p-4 border border-slate-200">
             
             {/* Screen Controls Bar */}
             <div className="flex justify-between items-center pb-4 border-b border-slate-200 print:hidden">

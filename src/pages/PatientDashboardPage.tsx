@@ -37,6 +37,75 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
   const [printableSlipModalOpen, setPrintableSlipModalOpen] = useState(false);
   const [selectedSlipAppointment, setSelectedSlipAppointment] = useState<Appointment | null>(null);
 
+  // Patient Profile Editing States
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileFullName, setProfileFullName] = useState(user?.full_name || '');
+  const [profilePhone, setProfilePhone] = useState(user?.phone || '');
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [profileAge, setProfileAge] = useState<number | ''>(user?.age || 30);
+  const [profileGender, setProfileGender] = useState<'Male' | 'Female' | 'Other'>(user?.gender as any || 'Male');
+  const [profileBloodGroup, setProfileBloodGroup] = useState(user?.blood_group || 'O+');
+  const [profileAddress, setProfileAddress] = useState(user?.address || '');
+  const [profileEmergencyContact, setProfileEmergencyContact] = useState(user?.emergency_contact || '');
+  const [profileEmergencyPhone, setProfileEmergencyPhone] = useState(user?.emergency_phone || '');
+  const [profileAllergies, setProfileAllergies] = useState(Array.isArray(user?.allergies) ? user.allergies.join(', ') : '');
+  const [profileMedicalNotes, setProfileMedicalNotes] = useState(user?.medical_history_notes || user?.past_medical_history || '');
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [profileSaveLoading, setProfileSaveLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileFullName(user.full_name || '');
+      setProfilePhone(user.phone || '');
+      setProfileEmail(user.email || '');
+      setProfileAge(user.age || 30);
+      setProfileGender((user.gender as any) || 'Male');
+      setProfileBloodGroup(user.blood_group || 'O+');
+      setProfileAddress(user.address || '');
+      setProfileEmergencyContact(user.emergency_contact || '');
+      setProfileEmergencyPhone(user.emergency_phone || '');
+      setProfileAllergies(Array.isArray(user.allergies) ? user.allergies.join(', ') : '');
+      setProfileMedicalNotes(user.medical_history_notes || user.past_medical_history || '');
+    }
+  }, [user]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setProfileSaveLoading(true);
+    try {
+      const allergiesArr = profileAllergies
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const updatedData = {
+        full_name: profileFullName.trim(),
+        phone: profilePhone.trim(),
+        email: profileEmail.trim(),
+        age: Number(profileAge) || 30,
+        gender: profileGender,
+        blood_group: profileBloodGroup,
+        address: profileAddress.trim(),
+        emergency_contact: profileEmergencyContact.trim(),
+        emergency_phone: profileEmergencyPhone.trim(),
+        allergies: allergiesArr,
+        medical_history_notes: profileMedicalNotes.trim(),
+        past_medical_history: profileMedicalNotes.trim()
+      };
+
+      const savedUser = await api.updatePatientProfile(user.id, updatedData);
+      await api.setCurrentUser(savedUser);
+      setProfileSaveSuccess(true);
+      setIsEditingProfile(false);
+      setTimeout(() => setProfileSaveSuccess(false), 4000);
+    } catch (err) {
+      console.error('Error saving patient profile:', err);
+    } finally {
+      setProfileSaveLoading(false);
+    }
+  };
+
   const handleGateLogin = async (emailToUse?: string) => {
     const targetEmail = emailToUse || gateEmail.trim();
     if (!targetEmail) {
@@ -58,8 +127,10 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
     async function loadData() {
       setLoading(true);
       try {
-        const apts = await api.getAppointments(user?.id, role);
-        const reps = await api.getReports(user?.id, role);
+        const [apts, reps] = await Promise.all([
+          api.getAppointments(user?.id, role),
+          api.getReports(user?.id, role)
+        ]);
         setAppointments(apts);
         setReports(reps);
       } finally {
@@ -69,10 +140,12 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
 
     loadData();
 
-    // Auto refresh every 5 seconds
+    // Auto refresh every 15 seconds (only when tab is active)
     const interval = setInterval(() => {
-      loadData();
-    }, 5000);
+      if (document.visibilityState === 'visible') {
+        loadData();
+      }
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [user, role]);
@@ -600,25 +673,282 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
         {/* Tab 4: Patient Profile */}
         {activeSubTab === 'profile' && (
           <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
-            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Patient Profile & Health Vitals</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
-                <label className="text-slate-400 font-bold uppercase text-[10px] block">Full Name</label>
-                <div className="font-bold text-slate-900 text-sm mt-1">{user?.full_name || 'Amitabh Sharma'}</div>
+                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+                  Patient Health Records & Vitals
+                </span>
+                <h2 className="text-xl font-black text-slate-900 mt-1 flex items-center gap-2">
+                  <User className="w-5 h-5 text-emerald-600" /> Patient Profile & Demographics
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Patient UHID / Code: <strong className="font-mono text-emerald-700">{user?.patient_code || 'SKMH-PAT-2026'}</strong>
+                </p>
               </div>
-              <div>
-                <label className="text-slate-400 font-bold uppercase text-[10px] block">Email Address</label>
-                <div className="font-bold text-slate-900 text-sm mt-1">{user?.email || 'patient@skmh.org'}</div>
-              </div>
-              <div>
-                <label className="text-slate-400 font-bold uppercase text-[10px] block">Contact Number</label>
-                <div className="font-bold text-slate-900 text-sm mt-1">{user?.phone || '+91 98112 23344'}</div>
-              </div>
-              <div>
-                <label className="text-slate-400 font-bold uppercase text-[10px] block">Blood Group</label>
-                <div className="font-bold text-emerald-700 text-sm mt-1">{user?.blood_group || 'B+'}</div>
+
+              <div className="flex items-center gap-2">
+                {!isEditingProfile ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(true)}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    ✏️ Edit Profile Details
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel Editing
+                  </button>
+                )}
               </div>
             </div>
+
+            {profileSaveSuccess && (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <span>Patient profile updated successfully! Changes saved to hospital database.</span>
+              </div>
+            )}
+
+            {!isEditingProfile ? (
+              /* READ ONLY PROFILE VIEW */
+              <div className="space-y-6 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 bg-slate-50/70 p-5 rounded-2xl border border-slate-100">
+                  <div>
+                    <label className="text-slate-400 font-bold uppercase text-[10px] block">Full Name</label>
+                    <div className="font-bold text-slate-900 text-sm mt-1">{user?.full_name || 'Amitabh Sharma'}</div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-bold uppercase text-[10px] block">Email Address</label>
+                    <div className="font-bold text-slate-900 text-sm mt-1">{user?.email || 'patient@skmh.org'}</div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-bold uppercase text-[10px] block">Contact Number</label>
+                    <div className="font-bold text-slate-900 text-sm mt-1">{user?.phone || '+91 98112 23344'}</div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-bold uppercase text-[10px] block">Age & Gender</label>
+                    <div className="font-bold text-slate-900 text-sm mt-1">{user?.age || 32} Years • {user?.gender || 'Male'}</div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-bold uppercase text-[10px] block">Blood Group</label>
+                    <div className="font-extrabold text-rose-600 text-sm mt-1">{user?.blood_group || 'O+'}</div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 font-bold uppercase text-[10px] block">Residential City & State</label>
+                    <div className="font-bold text-slate-900 text-sm mt-1">{user?.city || 'Silvassa'}, {user?.state || 'Dadra & Nagar Haveli'}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-5 rounded-2xl bg-amber-50/60 border border-amber-100 space-y-2">
+                    <label className="text-amber-900 font-black uppercase text-[10px] tracking-wider block">
+                      Emergency Contact Info
+                    </label>
+                    <div className="text-xs space-y-1">
+                      <p><span className="text-slate-500 font-bold">Contact Person:</span> <strong className="text-slate-900">{user?.emergency_contact || 'Family Relative'}</strong></p>
+                      <p><span className="text-slate-500 font-bold">Emergency Phone:</span> <strong className="text-slate-900">{user?.emergency_phone || user?.phone || 'Not provided'}</strong></p>
+                      <p><span className="text-slate-500 font-bold">Address:</span> <strong className="text-slate-900">{user?.address || 'Silvassa, Dadra & Nagar Haveli'}</strong></p>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-rose-50/60 border border-rose-100 space-y-2">
+                    <label className="text-rose-900 font-black uppercase text-[10px] tracking-wider block">
+                      Known Allergies & Medical History
+                    </label>
+                    <div className="text-xs space-y-1.5">
+                      <div>
+                        <span className="text-slate-500 font-bold block">Allergies:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Array.isArray(user?.allergies) && user.allergies.length > 0 ? (
+                            user.allergies.map((alg, i) => (
+                              <span key={i} className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-bold">
+                                {alg}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-slate-500 italic text-[11px]">No known drug or food allergies recorded.</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="pt-1">
+                        <span className="text-slate-500 font-bold block">Past Medical Notes:</span>
+                        <p className="text-slate-800 text-[11px] bg-white p-2.5 rounded-xl border border-rose-100 mt-1">
+                          {user?.medical_history_notes || user?.past_medical_history || 'No major prior hospitalizations recorded.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* EDITABLE PROFILE FORM */
+              <form onSubmit={handleSaveProfile} className="space-y-6 text-xs animate-in fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={profileFullName}
+                      onChange={(e) => setProfileFullName(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Contact Phone *</label>
+                    <input
+                      type="text"
+                      required
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      value={profileEmail}
+                      onChange={(e) => setProfileEmail(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Age (Years) *</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      max={120}
+                      value={profileAge}
+                      onChange={(e) => setProfileAge(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Gender *</label>
+                    <select
+                      value={profileGender}
+                      onChange={(e) => setProfileGender(e.target.value as any)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 bg-white"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Blood Group *</label>
+                    <select
+                      value={profileBloodGroup}
+                      onChange={(e) => setProfileBloodGroup(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-emerald-600 bg-white"
+                    >
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Emergency Contact Person</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Spouse / Parent / Relative Name"
+                      value={profileEmergencyContact}
+                      onChange={(e) => setProfileEmergencyContact(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Emergency Contact Phone</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +91 98250 12345"
+                      value={profileEmergencyPhone}
+                      onChange={(e) => setProfileEmergencyPhone(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Residential Address</label>
+                  <input
+                    type="text"
+                    placeholder="Full street address, building, locality, Silvassa"
+                    value={profileAddress}
+                    onChange={(e) => setProfileAddress(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Known Drug / Food Allergies</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Penicillin, Sulfa, Dust, Peanuts (comma-separated)"
+                      value={profileAllergies}
+                      onChange={(e) => setProfileAllergies(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Past Medical Conditions / Notes</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Hypertension, Diabetes Type-2, Asthma history"
+                      value={profileMedicalNotes}
+                      onChange={(e) => setProfileMedicalNotes(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={profileSaveLoading}
+                    className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md cursor-pointer transition-all flex items-center gap-2"
+                  >
+                    {profileSaveLoading ? 'Saving Profile...' : '💾 Save Profile Changes'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
 

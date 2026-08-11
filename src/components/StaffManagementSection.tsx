@@ -970,7 +970,7 @@ export const StaffManagementSection: React.FC = () => {
       {/* ================= MODAL 1: ADD / EDIT STAFF CATEGORY ================= */}
       {categoryModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Briefcase className="w-5 h-5 text-emerald-600" />
@@ -1042,7 +1042,7 @@ export const StaffManagementSection: React.FC = () => {
       {/* ================= MODAL 2: ADD / EDIT STAFF DESIGNATION WITH PHOTOGRAPH ================= */}
       {designationModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-3xl max-w-5xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95">
             {/* STICKY HEADER */}
             <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -1349,7 +1349,7 @@ export const StaffManagementSection: React.FC = () => {
       {/* ================= MODAL: SHIFT MANAGEMENT FACILITY (ADD, MODIFY, DELETE SHIFTS) ================= */}
       {shiftModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-3xl max-w-5xl w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-emerald-600" />
@@ -1510,7 +1510,7 @@ export const StaffManagementSection: React.FC = () => {
       {/* ================= MODAL 4: STAFF CSV IMPORT PREVIEW MODAL ================= */}
       {showStaffCsvModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200">
+          <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[88vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200">
             <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-indigo-600 rounded-2xl">

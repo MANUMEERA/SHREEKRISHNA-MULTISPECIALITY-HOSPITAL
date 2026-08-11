@@ -48,6 +48,8 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
   useEffect(() => {
     if (user && user.role === 'doctor') {
       setIsDoctorLoggedIn(true);
+    } else if (!user || user.role !== 'doctor') {
+      setIsDoctorLoggedIn(false);
     }
   }, [user]);
 
@@ -117,6 +119,7 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
   const [completedToast, setCompletedToast] = useState<string | null>(null);
 
   const knownAptIdsRef = useRef<Set<string>>(new Set());
+  const acknowledgedAptIdsRef = useRef<Set<string>>(new Set());
   const initialDataLoadedRef = useRef(false);
 
   // Synthesize pleasant 2-note hospital reception chime sound (E5 -> B5)
@@ -162,8 +165,17 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
     async function loadData() {
       setLoading(true);
       try {
-        const docs = await api.getDoctors();
+        const [docs, allApts, allPatients, allReports] = await Promise.all([
+          api.getDoctors(),
+          api.getAppointments(undefined, 'admin'),
+          api.getPatients(),
+          api.getReports(undefined, 'admin')
+        ]);
+
         setDoctors(docs);
+        setAppointments(allApts);
+        setPatients(allPatients);
+        setReports(allReports);
 
         // Determine active doctor workspace
         let currentDoc = docs[0];
@@ -177,15 +189,6 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
         }
         setSelectedDoctor(currentDoc);
 
-        const allApts = await api.getAppointments(undefined, 'admin');
-        setAppointments(allApts);
-
-        const allPatients = await api.getPatients();
-        setPatients(allPatients);
-
-        const allReports = await api.getReports(undefined, 'admin');
-        setReports(allReports);
-
         // Check for newly assigned or confirmed patients to currentDoc by receptionist/desk
         if (currentDoc) {
           const docApts = allApts.filter(apt => {
@@ -195,14 +198,18 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
           });
 
           if (!initialDataLoadedRef.current) {
-            // Register initial appointment IDs and status
-            docApts.forEach(a => knownAptIdsRef.current.add(`${a.id}-${a.status}`));
+            // Register initial appointment IDs
+            docApts.forEach(a => knownAptIdsRef.current.add(a.id));
             initialDataLoadedRef.current = true;
           } else {
-            // Find newly assigned or confirmed appointments since last check
-            const newAssigned = docApts.filter(a => !knownAptIdsRef.current.has(`${a.id}-${a.status}`));
+            // Find newly assigned appointments since last check that haven't been acknowledged
+            const newAssigned = docApts.filter(a => 
+              !knownAptIdsRef.current.has(a.id) && 
+              !acknowledgedAptIdsRef.current.has(a.id) && 
+              a.status !== 'completed'
+            );
             if (newAssigned.length > 0) {
-              newAssigned.forEach(a => knownAptIdsRef.current.add(`${a.id}-${a.status}`));
+              newAssigned.forEach(a => knownAptIdsRef.current.add(a.id));
               const latest = newAssigned[0];
               const notifItem = {
                 id: latest.id,
@@ -215,7 +222,10 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                 assignedAt: new Date().toLocaleTimeString(),
                 read: false
               };
-              setAssignedNotifs(prev => [notifItem, ...prev]);
+              setAssignedNotifs(prev => {
+                if (prev.some(p => p.id === notifItem.id)) return prev;
+                return [notifItem, ...prev];
+              });
               setActiveAssignmentBanner(notifItem);
               playNotificationChimeSound();
             }
@@ -228,10 +238,12 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
     loadData();
 
-    // Auto-refresh interval every 5 seconds
+    // Auto-refresh interval every 15 seconds (only when tab is active)
     const interval = setInterval(() => {
-      loadData();
-    }, 5000);
+      if (document.visibilityState === 'visible') {
+        loadData();
+      }
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [user]);
@@ -364,6 +376,12 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
   // Handle Receptionist Notification Accept & Open Consultation Entry
   const handleAcceptAndStartConsultation = async (notifItem: { id: string; patientName: string }) => {
+    // Mark as acknowledged so sound and banner never repeat
+    acknowledgedAptIdsRef.current.add(notifItem.id);
+    knownAptIdsRef.current.add(notifItem.id);
+    setActiveAssignmentBanner(null);
+    setAssignedNotifs(prev => prev.filter(n => n.id !== notifItem.id));
+
     let targetApt = appointments.find(a => a.id === notifItem.id || a.user_name.toLowerCase() === notifItem.patientName.toLowerCase());
     if (!targetApt) {
       const freshApts = await api.getAppointments(undefined, 'admin');
@@ -372,6 +390,8 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
     }
 
     if (targetApt) {
+      acknowledgedAptIdsRef.current.add(targetApt.id);
+      knownAptIdsRef.current.add(targetApt.id);
       if (targetApt.status === 'pending') {
         await api.updateAppointmentStatus(targetApt.id, 'confirmed');
         await refreshAppointments();
@@ -380,12 +400,10 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
       setStatusFilter('active');
       setSelectedObsApt(targetApt);
       setObsModalOpen(true);
-      setActiveAssignmentBanner(null);
       setShowNotifMenu(false);
     } else {
       setDoctorSubTab('queue');
       setSearchQuery(notifItem.patientName);
-      setActiveAssignmentBanner(null);
       setShowNotifMenu(false);
     }
   };
@@ -550,6 +568,65 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
   // ================= LOGIN GATE: SHOW DOCTOR PORTAL LOGIN PAGE IF NOT AUTHENTICATED =================
   if (!isDoctorLoggedIn) {
+    // If a non-doctor user (e.g. Patient) is currently logged in, show Access Restricted View
+    if (user && user.role !== 'doctor' && user.role !== 'admin' && user.role !== 'super_admin') {
+      return (
+        <div className="min-h-[85vh] bg-slate-900 text-slate-100 py-16 px-4 flex flex-col justify-center items-center relative overflow-hidden">
+          <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="max-w-md w-full bg-slate-950 border border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-6 relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+              <ShieldAlert className="w-8 h-8 text-amber-400" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full bg-amber-950/90 text-amber-400 border border-amber-800">
+                Restricted Portal Access
+              </span>
+              <h2 className="text-xl font-black text-white pt-2">Doctor Panel Restricted</h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                You are currently signed in as <span className="font-bold text-emerald-400">{user.full_name}</span> (<span className="capitalize text-emerald-300 font-semibold">{user.role.replace('_', ' ')} Account</span>).
+              </p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                The Doctor Consultation Panel is reserved exclusively for registered medical doctors and hospital consultants.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-left text-xs space-y-2 text-slate-300">
+              <div className="flex items-center gap-2 font-bold text-amber-300 text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>To access the Doctor Workspace:</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Please logout from your patient account first, then sign in using your doctor email and medical password or quick doctor selector.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+              {setActiveTab && (
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <UserIcon className="w-4 h-4" />
+                  Return to Patient Portal
+                </button>
+              )}
+              <button
+                onClick={async () => {
+                  await logout();
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-rose-400" />
+                Logout & Switch Account
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 py-12 px-4 sm:px-8 flex flex-col justify-center items-center relative overflow-hidden">
         {/* Background Glow Effects */}
@@ -687,12 +764,12 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                   </p>
                 </div>
                 <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2.5 py-1 rounded-full border border-slate-700 shrink-0">
-                  4 Registered Specialists
+                  {doctors.length} Registered Specialists
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {doctors.slice(0, 4).map((doc) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-[500px] overflow-y-auto pr-1">
+                {doctors.map((doc) => (
                   <div
                     key={doc.id}
                     onClick={() => handleQuickDoctorSelectLogin(doc)}
@@ -957,6 +1034,9 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
               </button>
               <button
                 onClick={() => {
+                  if (activeAssignmentBanner) {
+                    acknowledgedAptIdsRef.current.add(activeAssignmentBanner.id);
+                  }
                   setDoctorSubTab('queue');
                   setSearchQuery(activeAssignmentBanner.patientName);
                   setActiveAssignmentBanner(null);
@@ -966,8 +1046,15 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                 <Eye className="w-3.5 h-3.5" /> View Queue
               </button>
               <button
-                onClick={() => setActiveAssignmentBanner(null)}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
+                onClick={() => {
+                  if (activeAssignmentBanner) {
+                    acknowledgedAptIdsRef.current.add(activeAssignmentBanner.id);
+                    setAssignedNotifs(prev => prev.filter(n => n.id !== activeAssignmentBanner.id));
+                  }
+                  setActiveAssignmentBanner(null);
+                }}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                title="Acknowledge & Dismiss Alert"
               >
                 <X className="w-4 h-4" />
               </button>

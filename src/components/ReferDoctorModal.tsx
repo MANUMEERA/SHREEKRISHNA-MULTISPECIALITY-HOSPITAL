@@ -47,8 +47,8 @@ export const ReferDoctorModal: React.FC<ReferDoctorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[94vh] my-auto">
         
         {/* Sticky Header */}
         <div className="sticky top-0 z-20 bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 px-6 py-4 text-white flex items-center justify-between shrink-0">
