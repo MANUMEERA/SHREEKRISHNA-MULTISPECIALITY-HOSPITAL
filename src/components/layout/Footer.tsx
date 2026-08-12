@@ -18,12 +18,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab }) => {
   };
 
   useEffect(() => {
-    // Increment visitor count on initial load
-    const saved = localStorage.getItem('shree_krishna_visitor_count');
-    let count = saved ? parseInt(saved, 10) : 148592;
-    count += 1;
-    localStorage.setItem('shree_krishna_visitor_count', count.toString());
-    setVisitorCount(count);
+    setVisitorCount(148593);
   }, []);
 
   return (

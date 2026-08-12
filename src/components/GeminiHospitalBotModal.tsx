@@ -32,10 +32,10 @@ export const GeminiHospitalBotModal: React.FC<{
 
   useEffect(() => {
     if (isOpen) {
-      api.getDoctors().then(docs => setDoctors(docs));
+      api.getDoctors().then(docs => setDoctors(docs)).catch(err => console.warn('Bot getDoctors warning:', err));
       api.getBotFaqs().then(allFaqs => {
         setFaqs(allFaqs.filter(f => f.is_active));
-      });
+      }).catch(err => console.warn('Bot getBotFaqs warning:', err));
     }
   }, [isOpen]);
 

@@ -79,6 +79,9 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
   const [editingPatientNotes, setEditingPatientNotes] = useState(false);
   const [ehrNotesInput, setEhrNotesInput] = useState('');
 
+  // Database Error State
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   // Upload Lab Report Modal State (Doctor allowed to add diagnostic reports)
   const [uploadReportModalOpen, setUploadReportModalOpen] = useState(false);
   const [reportTargetApt, setReportTargetApt] = useState<Appointment | null>(null);
@@ -164,13 +167,24 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
   useEffect(() => {
     async function loadData() {
       setLoading(true);
+      setFetchError(null);
       try {
-        const [docs, allApts, allPatients, allReports] = await Promise.all([
+        const [docsRes, aptsRes, ptsRes, repsRes] = await Promise.allSettled([
           api.getDoctors(),
           api.getAppointments(undefined, 'admin'),
           api.getPatients(),
           api.getReports(undefined, 'admin')
         ]);
+
+        const errors: string[] = [];
+        const docs = docsRes.status === 'fulfilled' ? docsRes.value : (errors.push(docsRes.reason?.message || 'Failed to fetch doctors'), []);
+        const allApts = aptsRes.status === 'fulfilled' ? aptsRes.value : (errors.push(aptsRes.reason?.message || 'Failed to fetch appointments'), []);
+        const allPatients = ptsRes.status === 'fulfilled' ? ptsRes.value : (errors.push(ptsRes.reason?.message || 'Failed to fetch patients'), []);
+        const allReports = repsRes.status === 'fulfilled' ? repsRes.value : (errors.push(repsRes.reason?.message || 'Failed to fetch reports'), []);
+
+        if (errors.length > 0) {
+          setFetchError(errors.join(' | '));
+        }
 
         setDoctors(docs);
         setAppointments(allApts);
@@ -231,6 +245,9 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
             }
           }
         }
+      } catch (err: any) {
+        console.warn('Doctor dashboard data error:', err);
+        setFetchError(err?.message || 'Failed to connect to database');
       } finally {
         setLoading(false);
       }
@@ -252,40 +269,23 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
   const handleDoctorLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    if (!loginEmail.trim()) {
-      setAuthError('Please enter your Doctor Email or click a consultant card below.');
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setAuthError('Please enter both Doctor Email and Password.');
       return;
-    }
-
-    const docs = await api.getDoctors();
-    const match = docs.find(
-      d => d.email.toLowerCase() === loginEmail.trim().toLowerCase() ||
-           d.name.toLowerCase().includes(loginEmail.trim().toLowerCase())
-    );
-
-    if (match) {
-      const expectedPass = match.login_password || 'Doctor@100';
-      if (!loginPassword.trim()) {
-        setAuthError(`Password is required for ${match.name}. (Default: ${expectedPass})`);
-        return;
-      }
-      if (
-        loginPassword.trim() !== expectedPass &&
-        loginPassword.trim() !== 'Doctor@123' &&
-        loginPassword.trim() !== '123456'
-      ) {
-        setAuthError(`Invalid password for ${match.name}. Default password is ${expectedPass}`);
-        return;
-      }
     }
 
     setAuthenticating(true);
     try {
-      const loggedUser = await login(loginEmail.trim(), 'doctor');
+      const loggedUser = await login(loginEmail.trim(), loginPassword.trim());
       setIsDoctorLoggedIn(true);
+      const docs = await api.getDoctors();
+      const match = docs.find(
+        d => d.email.toLowerCase() === loginEmail.trim().toLowerCase() ||
+             d.name.toLowerCase().includes(loginEmail.trim().toLowerCase())
+      );
       setSelectedDoctor(match || docs[0]);
     } catch (err: any) {
-      setAuthError(err?.message || 'Doctor login failed. Please check your credentials.');
+      setAuthError(err?.message || 'Doctor authentication failed. Please check your credentials.');
     } finally {
       setAuthenticating(false);
     }
@@ -302,31 +302,21 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
   // Confirm Password & Perform Doctor Login
   const handleConfirmDoctorPasswordLogin = async () => {
     if (!passModalDoc) return;
-    const expectedPass = passModalDoc.login_password || 'Doctor@100';
 
     if (!docPassInput.trim()) {
       setDocPassError('Please enter password to access OPD doctor workspace.');
       return;
     }
 
-    if (
-      docPassInput.trim() !== expectedPass &&
-      docPassInput.trim() !== 'Doctor@123' &&
-      docPassInput.trim() !== '123456'
-    ) {
-      setDocPassError(`Incorrect password for ${passModalDoc.name}. Default password is ${expectedPass}`);
-      return;
-    }
-
     setAuthenticating(true);
     setDocPassError('');
     try {
-      await login(passModalDoc.email, 'doctor');
+      await login(passModalDoc.email, docPassInput.trim());
       setIsDoctorLoggedIn(true);
       setSelectedDoctor(passModalDoc);
       setPassModalDoc(null);
     } catch (err: any) {
-      setDocPassError('Failed to sign in: ' + (err?.message || 'Unknown error'));
+      setDocPassError('Authentication failed: ' + (err?.message || 'Invalid password'));
     } finally {
       setAuthenticating(false);
     }
@@ -512,7 +502,7 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
       title: newReportTitle,
       category: newReportCategory,
       file_name: newReportFile ? newReportFile.name : `${newReportTitle.replace(/\s+/g, '_')}.pdf`,
-      file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      file_url: '',
       file_size: newReportFile ? `${(newReportFile.size / 1024 / 1024).toFixed(1)} MB` : '1.8 MB',
       uploaded_by_role: 'doctor',
       doctor_notes: `Added directly by Dr. ${selectedDoctor?.name || 'Consultant'}`
@@ -857,7 +847,7 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
                     <Lock className="w-3.5 h-3.5 text-emerald-400" /> Security Password
                   </label>
                   <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
-                    Default: {passModalDoc.login_password || 'Doctor@100'}
+                    Encrypted Authentication
                   </span>
                 </div>
 
@@ -918,6 +908,23 @@ export const DoctorDashboardPage: React.FC<DoctorDashboardPageProps> = ({ setAct
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
+      {/* Database Fetch Error Alert */}
+      {fetchError && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-3 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Database Alert: {fetchError}</span>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
+          >
+            <RefreshCw className="w-3 h-3 animate-spin" />
+            Retry Connection
+          </button>
+        </div>
+      )}
+
       {/* TOP STICKY BAR FOR DOCTOR WORKSPACE EXIT */}
       <div className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 py-2.5 px-4 sm:px-8 text-white flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-3">

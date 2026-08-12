@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Department } from '../types';
 import { api } from '../lib/api';
-import { HeartPulse, Brain, Bone, Baby, Activity, Stethoscope, Users, BedDouble, CheckCircle2, ChevronRight, X, Calendar } from 'lucide-react';
+import { HeartPulse, Brain, Bone, Baby, Activity, Stethoscope, Users, BedDouble, CheckCircle2, ChevronRight, X, Calendar, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface DepartmentsPageProps {
   setActiveTab: (tab: string) => void;
@@ -11,9 +11,24 @@ interface DepartmentsPageProps {
 export const DepartmentsPage: React.FC<DepartmentsPageProps> = ({ setActiveTab, onSelectDepartment }) => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDepartments = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.getDepartments();
+      setDepartments(data);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch departments from database.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    api.getDepartments().then(setDepartments);
+    fetchDepartments();
   }, []);
 
   const getIcon = (iconName: string) => {
@@ -40,9 +55,27 @@ export const DepartmentsPage: React.FC<DepartmentsPageProps> = ({ setActiveTab, 
             Centres of Medical Excellence
           </h1>
           <p className="text-sm text-slate-600 leading-relaxed">
-            Shree Krishna Multispeciality Hospital houses 25+ dedicated medical departments led by renowned senior consultants, backed by cutting-edge robotic and diagnostic infrastructure.
+            Shree Krishna Multispeciality Hospital houses dedicated medical departments led by renowned senior consultants, backed by cutting-edge robotic and diagnostic infrastructure.
           </p>
         </div>
+
+        {error && (
+          <div className="mb-8 p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-rose-600 flex-shrink-0" />
+              <div>
+                <h3 className="font-bold text-sm text-rose-900">Database Connection Error</h3>
+                <p className="text-xs text-rose-700">{error}</p>
+              </div>
+            </div>
+            <button
+              onClick={fetchDepartments}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors flex items-center gap-2 flex-shrink-0"
+            >
+              <RefreshCw className="w-4 h-4" /> Retry Connection
+            </button>
+          </div>
+        )}
 
         {/* Departments Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

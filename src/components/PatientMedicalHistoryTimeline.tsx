@@ -133,7 +133,7 @@ export const PatientMedicalHistoryTimeline: React.FC<PatientMedicalHistoryTimeli
 
           // 4. Query fresh user profile from Supabase
           const userQuery = await supabase
-            .from('users')
+            .from('profiles')
             .select('*')
             .eq('id', user.id)
             .maybeSingle();

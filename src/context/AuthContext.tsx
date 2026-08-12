@@ -1,15 +1,36 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, NotificationItem } from '../types';
 import { api } from '../lib/api';
+import { supabase } from '../lib/supabaseClient';
+
+interface SignupData {
+  email: string;
+  password?: string;
+  full_name: string;
+  phone?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  age?: number;
+  blood_group?: string;
+  street_address?: string;
+  locality?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  past_medical_history?: string;
+  allergies?: string[];
+  chronic_conditions?: string[];
+  emergency_contact?: string;
+  emergency_phone?: string;
+  role?: UserRole;
+}
 
 interface AuthContextType {
   user: User | null;
   role: UserRole;
   loading: boolean;
-  login: (email: string, role?: UserRole) => Promise<User>;
-  signup: (data: Partial<User>) => Promise<User>;
+  login: (email: string, password?: string) => Promise<User>;
+  signup: (data: SignupData) => Promise<User>;
   logout: () => Promise<void>;
-  switchUserRole: (newRole: UserRole) => Promise<void>;
   notifications: NotificationItem[];
   unreadCount: number;
   markNotificationRead: (id: string) => Promise<void>;
@@ -23,22 +44,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
+  const fetchAndSetUser = async (userId: string) => {
+    try {
+      const u = await api.getCurrentUserById(userId);
+      setUser(u);
+      if (u) {
+        const notifs = await api.getNotifications(u.id);
+        setNotifications(notifs);
+      }
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
+      setUser(null);
+    }
+  };
+
   useEffect(() => {
-    async function loadUser() {
+    let mounted = true;
+
+    async function initAuth() {
       try {
-        const u = await api.getCurrentUser();
-        setUser(u);
-        if (u) {
-          const notifs = await api.getNotifications(u.id);
-          setNotifications(notifs);
+        if (!supabase) {
+          const u = await api.getCurrentUser();
+          if (mounted) setUser(u);
+          return;
+        }
+
+        const { data: { user: authUser }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.warn('Supabase auth.getUser error:', error.message);
+        }
+        if (authUser && mounted) {
+          await fetchAndSetUser(authUser.id);
+        } else if (mounted) {
+          setUser(null);
         }
       } catch (err) {
-        console.error('Failed to load user state:', err);
+        console.error('Auth init error:', err);
+        if (mounted) setUser(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     }
-    loadUser();
+
+    initAuth();
+
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mounted) return;
+        if (session?.user) {
+          await fetchAndSetUser(session.user.id);
+        } else {
+          setUser(null);
+          setNotifications([]);
+        }
+        setLoading(false);
+      });
+
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+      };
+    }
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const refreshNotifications = async () => {
@@ -48,39 +118,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (email: string, targetRole?: UserRole) => {
-    const loggedInUser = await api.login(email, targetRole);
-    setUser(loggedInUser);
-    const notifs = await api.getNotifications(loggedInUser.id);
-    setNotifications(notifs);
-    return loggedInUser;
+  const login = async (email: string, password?: string) => {
+    setLoading(true);
+    try {
+      const loggedInUser = await api.login(email, password);
+      setUser(loggedInUser);
+      const notifs = await api.getNotifications(loggedInUser.id);
+      setNotifications(notifs);
+      return loggedInUser;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const signup = async (data: Partial<User>) => {
-    const newUser = await api.signup(data);
-    setUser(newUser);
-    setNotifications([]);
-    return newUser;
+  const signup = async (data: SignupData) => {
+    setLoading(true);
+    try {
+      const newUser = await api.signup(data);
+      setUser(newUser);
+      setNotifications([]);
+      return newUser;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {
-    await api.logout();
-    setUser(null);
-    setNotifications([]);
-  };
-
-  const switchUserRole = async (newRole: UserRole) => {
-    let targetEmail = 'patient@skmh.org';
-    if (newRole === 'admin' || newRole === 'super_admin') {
-      targetEmail = 'SHREEKRISHNA';
-    } else if (newRole === 'receptionist') {
-      targetEmail = 'reception.opd@skmh.org';
-    } else if (newRole === 'doctor') {
-      targetEmail = 'rajesh.krishna@skmh.org';
+    setLoading(true);
+    try {
+      await api.logout();
+      setUser(null);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
     }
-
-    const loggedUser = await api.login(targetEmail, newRole);
-    setUser(loggedUser);
   };
 
   const markNotificationRead = async (id: string) => {
@@ -99,7 +170,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
-        switchUserRole,
         notifications,
         unreadCount,
         markNotificationRead,
@@ -118,3 +188,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

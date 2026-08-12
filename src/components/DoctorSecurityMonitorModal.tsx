@@ -19,11 +19,8 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
   onClose,
   onDoctorUpdated
 }) => {
-  const [passkeyInput, setPasskeyInput] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [passkeyError, setPasskeyError] = useState('');
-
-  const [activeSubTab, setActiveSubTab] = useState<'credentials' | 'audit_logs' | 'change_passkey'>('credentials');
+  const [isUnlocked, setIsUnlocked] = useState(true);
+  const [activeSubTab, setActiveSubTab] = useState<'credentials' | 'audit_logs'>('credentials');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [logs, setLogs] = useState<DoctorLoginLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,15 +50,11 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
   });
   const [savingFullEdit, setSavingFullEdit] = useState(false);
 
-  // Change Passkey State
-  const [newSuperPasskey, setNewSuperPasskey] = useState('');
-  const [passkeySuccessMsg, setPasskeySuccessMsg] = useState('');
-
   useEffect(() => {
-    if (isOpen && isUnlocked) {
+    if (isOpen) {
       loadSecurityData();
     }
-  }, [isOpen, isUnlocked]);
+  }, [isOpen]);
 
   const loadSecurityData = async () => {
     setLoading(true);
@@ -77,17 +70,6 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
     }
   };
 
-  const handleVerifyPasskey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasskeyError('');
-    const isValid = await api.verifySuperAdminPasskey(passkeyInput);
-    if (isValid) {
-      setIsUnlocked(true);
-    } else {
-      setPasskeyError('Invalid Security Passkey. Please try again.');
-    }
-  };
-
   const handleTogglePasswordVisibility = (docId: string) => {
     setShowPasswordsMap(prev => ({
       ...prev,
@@ -96,15 +78,15 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
   };
 
   const handleSavePassword = async () => {
-    if (!editingDoctor || !newPassword) return;
+    if (!editingDoctor) return;
     try {
-      await api.updateDoctorSecurity(editingDoctor.id, { login_password: newPassword });
+      await api.updateDoctorSecurity(editingDoctor.id, { account_status: 'active' });
       setEditingDoctor(null);
       setNewPassword('');
       loadSecurityData();
       onDoctorUpdated?.();
     } catch (err) {
-      alert('Failed to update doctor password.');
+      alert('Failed to update doctor security.');
     }
   };
 
@@ -175,18 +157,6 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
     }
   };
 
-  const handleChangeSuperPasskey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSuperPasskey || newSuperPasskey.length < 4) {
-      alert('Passkey must be at least 4 characters long.');
-      return;
-    }
-    await api.setSuperAdminPasskey(newSuperPasskey);
-    setPasskeySuccessMsg('Super Administrator Passkey updated successfully!');
-    setNewSuperPasskey('');
-    setTimeout(() => setPasskeySuccessMsg(''), 3000);
-  };
-
   if (!isOpen) return null;
 
   const filteredDoctors = doctors.filter(d => 
@@ -208,8 +178,8 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-black tracking-tight text-white">Super Administrator Security Console</h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-black uppercase tracking-wider">
-                  Passkey Guarded
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-black uppercase tracking-wider">
+                  Supabase RLS Protected
                 </span>
               </div>
               <p className="text-xs text-slate-300 font-medium mt-0.5">
@@ -220,11 +190,7 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
 
           <button
             type="button"
-            onClick={() => {
-              setIsUnlocked(false);
-              setPasskeyInput('');
-              onClose();
-            }}
+            onClick={onClose}
             className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center gap-1.5 font-bold text-xs shrink-0 cursor-pointer border border-white/20 shadow-md transition-all"
             title="Close Security Console"
           >
@@ -236,57 +202,8 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
         {/* Scrollable Modal Body */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
 
-        {/* LOCKED STATE: Passkey Prompt */}
-        {!isUnlocked ? (
-          <div className="p-8 sm:p-12 text-center max-w-md mx-auto space-y-6">
-            <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto shadow-sm">
-              <Lock className="w-8 h-8" />
-            </div>
-
-            <div>
-              <h3 className="text-xl font-extrabold text-slate-900">Security Verification Required</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Enter the Super Administrator Passkey to view confidential Doctor login credentials and security logs.
-              </p>
-            </div>
-
-            <form onSubmit={handleVerifyPasskey} className="space-y-4">
-              <div className="relative">
-                <KeyRound className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="password"
-                  required
-                  placeholder="Enter Security Passkey..."
-                  value={passkeyInput}
-                  onChange={(e) => setPasskeyInput(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-300 font-mono text-sm focus:outline-none focus:border-emerald-600 text-center tracking-widest"
-                />
-              </div>
-
-              {passkeyError && (
-                <p className="text-xs font-bold text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
-                  {passkeyError}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
-              >
-                <Unlock className="w-4 h-4" /> Unlock Security Monitor
-              </button>
-            </form>
-
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left text-[11px] text-slate-600 space-y-1">
-              <span className="font-bold text-slate-900 block flex items-center gap-1">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> Default Passkey Hint:
-              </span>
-              <p className="font-mono text-slate-800">Passkey: <code className="bg-slate-200 px-1.5 py-0.5 rounded font-bold text-emerald-800">Krishna@123</code> or <code className="bg-slate-200 px-1.5 py-0.5 rounded font-bold text-emerald-800">123456</code></p>
-            </div>
-          </div>
-        ) : (
-          /* UNLOCKED STATE: Doctor Security Dashboard */
-          <div className="p-6 space-y-6">
+          {/* Doctor Security Dashboard */}
+          <div className="space-y-6">
             
             {/* Top Navigation Sub-Tabs */}
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -310,16 +227,6 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
                   }`}
                 >
                   <History className="w-4 h-4 text-blue-600" /> Access Audit Trail ({logs.length})
-                </button>
-                <button
-                  onClick={() => setActiveSubTab('change_passkey')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                    activeSubTab === 'change_passkey'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Lock className="w-4 h-4 text-amber-600" /> Passkey Configuration
                 </button>
               </div>
 
@@ -389,7 +296,7 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
                             <td className="p-3.5">
                               <div className="inline-flex items-center gap-2 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
                                 <span className="font-mono text-xs font-bold text-slate-900">
-                                  {showPass ? (doc.login_password || 'Doctor@123') : '••••••••'}
+                                  Supabase Auth Managed
                                 </span>
                                 <button
                                   type="button"
@@ -436,7 +343,7 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
                                 type="button"
                                 onClick={() => {
                                   setEditingDoctor(doc);
-                                  setNewPassword(doc.login_password || '');
+                                  setNewPassword('');
                                 }}
                                 className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
                                 title="Change Doctor Login Password"
@@ -510,49 +417,7 @@ export const DoctorSecurityMonitorModal: React.FC<DoctorSecurityMonitorModalProp
               </div>
             )}
 
-            {/* TAB 3: Change Super Passkey */}
-            {activeSubTab === 'change_passkey' && (
-              <div className="max-w-md bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-amber-600" /> Change Super Administrator Security Passkey
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Update the master security passkey required to access this Doctor Security Console.
-                </p>
-
-                {passkeySuccessMsg && (
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    {passkeySuccessMsg}
-                  </div>
-                )}
-
-                <form onSubmit={handleChangeSuperPasskey} className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">New Security Passkey</label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="e.g. SKMH-MASTER-2026"
-                      value={newSuperPasskey}
-                      onChange={(e) => setNewSuperPasskey(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:border-emerald-600"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
-                  >
-                    <Check className="w-4 h-4" /> Save New Passkey
-                  </button>
-                </form>
-              </div>
-            )}
-
           </div>
-        )}
-
         </div>
       </div>
 

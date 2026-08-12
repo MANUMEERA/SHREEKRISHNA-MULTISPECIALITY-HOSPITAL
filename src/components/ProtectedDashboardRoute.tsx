@@ -17,12 +17,10 @@ export const ProtectedDashboardRoute: React.FC<ProtectedDashboardRouteProps> = (
   children,
   routeName
 }) => {
-  const { user, switchUserRole } = useAuth();
+  const { user } = useAuth();
   const { showToast } = useNotificationToast();
 
-  // Inspect user role from user profile or Supabase auth metadata
-  const userRole = (user as any)?.user_metadata?.role || user?.role;
-
+  const userRole = user?.role;
   const isAuthorized = user && userRole && allowedRoles.includes(userRole);
 
   useEffect(() => {
@@ -79,25 +77,6 @@ export const ProtectedDashboardRoute: React.FC<ProtectedDashboardRouteProps> = (
           <p className="text-xs text-slate-600 leading-relaxed">
             Your logged-in account role is <strong className="font-mono text-rose-700 uppercase">"{userRole}"</strong>. Accessing <strong className="text-slate-900">{routeName}</strong> requires elevated authorization ({allowedRoles.join(', ').toUpperCase()}).
           </p>
-
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left space-y-2 text-xs">
-            <span className="font-bold text-slate-700 block">Switch Account Role Demo Preset:</span>
-            <div className="flex flex-wrap gap-2">
-              {allowedRoles.map(role => (
-                <button
-                  key={role}
-                  onClick={async () => {
-                    await switchUserRole(role);
-                    showToast('Role Switched', `Switched to ${role.toUpperCase()} mode. Access granted.`, 'success');
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
-                >
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span>Switch to {role.toUpperCase()}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="pt-2 flex justify-center gap-3">
             <button

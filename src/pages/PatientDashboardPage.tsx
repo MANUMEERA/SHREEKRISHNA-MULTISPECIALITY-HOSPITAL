@@ -112,10 +112,14 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
       setGateError('Please enter your registered patient email address.');
       return;
     }
+    if (!gatePassword.trim()) {
+      setGateError('Please enter your account password.');
+      return;
+    }
     setGateLoading(true);
     setGateError('');
     try {
-      await login(targetEmail, 'patient');
+      await login(targetEmail, gatePassword.trim());
     } catch (err: any) {
       setGateError(err?.message || 'Failed to login to Patient Portal.');
     } finally {
@@ -167,7 +171,7 @@ export const PatientDashboardPage: React.FC<PatientDashboardPageProps> = ({ setA
       title: newReportTitle,
       category: newReportCategory,
       file_name: newReportFile ? newReportFile.name : `${newReportTitle.replace(/\s+/g, '_')}.pdf`,
-      file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      file_url: '',
       file_size: newReportFile ? `${(newReportFile.size / 1024 / 1024).toFixed(1)} MB` : '1.5 MB',
       uploaded_by_role: 'patient',
       doctor_notes: 'Uploaded directly by patient.'

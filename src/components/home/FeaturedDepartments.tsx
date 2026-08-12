@@ -10,9 +10,17 @@ interface FeaturedDepartmentsProps {
 
 export const FeaturedDepartments: React.FC<FeaturedDepartmentsProps> = ({ setActiveTab, onSelectDepartment }) => {
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDepartments = () => {
+    setError(null);
+    api.getDepartments().then(setDepartments).catch(err => {
+      setError(err?.message || 'Failed to fetch departments from database');
+    });
+  };
 
   useEffect(() => {
-    api.getDepartments().then(setDepartments);
+    fetchDepartments();
   }, []);
 
   const getIcon = (iconName: string) => {

@@ -33,24 +33,6 @@ const DEFAULT_SHIFTS = [
   { id: 'sh-5', name: 'Emergency / On-Call 24x7', timing: 'Flexible / Rotational' }
 ];
 
-const DEFAULT_DEPARTMENTS = [
-  'Hospital Front Desk & OPD Entry',
-  'Orthopedics & Joint Replacement',
-  'Cardiology & Cardiac Care',
-  'General Medicine & Diabetology',
-  'General & Laparoscopic Surgery',
-  'Pediatrics & Neonatology',
-  'Gynecology & Obstetrics',
-  'Intensive Care Unit (ICU) & Critical Care',
-  'Inpatient Ward Management (IPD)',
-  'Emergency & Casualty',
-  'Laboratory & Pathology',
-  'Radiology & Imaging',
-  'Pharmacy & Drug Stores',
-  'Hospital Administration & Billing',
-  'IT & Medical Systems Specialist'
-];
-
 export const StaffManagementSection: React.FC = () => {
   const [categories, setCategories] = useState<StaffCategory[]>([]);
   const [designations, setDesignations] = useState<StaffDesignation[]>([]);
@@ -72,23 +54,8 @@ export const StaffManagementSection: React.FC = () => {
   const [editingDesignation, setEditingDesignation] = useState<StaffDesignation | null>(null);
 
   // Shift & Department State
-  const [shifts, setShifts] = useState<{ id: string; name: string; timing: string }[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS_STAFF.SHIFTS);
-      return saved ? JSON.parse(saved) : DEFAULT_SHIFTS;
-    } catch {
-      return DEFAULT_SHIFTS;
-    }
-  });
-
-  const [departmentList, setDepartmentList] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS_STAFF.DEPARTMENTS);
-      return saved ? JSON.parse(saved) : DEFAULT_DEPARTMENTS;
-    } catch {
-      return DEFAULT_DEPARTMENTS;
-    }
-  });
+  const [shifts, setShifts] = useState<{ id: string; name: string; timing: string }[]>(DEFAULT_SHIFTS);
+  const [departmentList, setDepartmentList] = useState<string[]>([]);
 
   // Shift Management Modal
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
@@ -116,20 +83,20 @@ export const StaffManagementSection: React.FC = () => {
   // Delete Confirmation State
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ type: 'category' | 'designation'; id: string; name: string } | null>(null);
 
-  // Receptionist Credentials Manager State (Set by Super Administrator)
-  const [recEmail, setRecEmail] = useState('reception.opd@skmh.org');
-  const [recPassword, setRecPassword] = useState('Reception@2026');
-  const [recFullName, setRecFullName] = useState('Pooja Mehta (Reception Desk)');
-  const [recPhone, setRecPhone] = useState('+91 98765 11001');
+  // Receptionist Credentials Manager State
+  const [recEmail, setRecEmail] = useState('');
+  const [recPassword, setRecPassword] = useState('');
+  const [recFullName, setRecFullName] = useState('');
+  const [recPhone, setRecPhone] = useState('');
   const [showRecPass, setShowRecPass] = useState(false);
   const [recSuccessMsg, setRecSuccessMsg] = useState('');
   const [savingRec, setSavingRec] = useState(false);
 
-  // Admin Credentials Manager State (Appointed by Super Administrator SHREEKRISHNA)
-  const [adminEmail, setAdminEmail] = useState('admin@skmh.org');
-  const [adminPassword, setAdminPassword] = useState('Admin@2026');
-  const [adminFullName, setAdminFullName] = useState('Hospital Administrator');
-  const [adminPhone, setAdminPhone] = useState('+91 99001 88776');
+  // Admin Credentials Manager State
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminFullName, setAdminFullName] = useState('');
+  const [adminPhone, setAdminPhone] = useState('');
   const [showAdminPass, setShowAdminPass] = useState(false);
   const [adminSuccessMsg, setAdminSuccessMsg] = useState('');
   const [savingAdmin, setSavingAdmin] = useState(false);
@@ -148,19 +115,22 @@ export const StaffManagementSection: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [cats, desigs, recUser] = await Promise.all([
+      const [cats, desigs, recUser, depts] = await Promise.all([
         api.getStaffCategories(),
         api.getStaffDesignations(),
-        api.getReceptionistUser()
+        api.getReceptionistUser(),
+        api.getDepartments().catch(() => [])
       ]);
       setCategories(cats);
       setDesignations(desigs);
+      if (depts && depts.length > 0) {
+        setDepartmentList(depts.map(d => d.name));
+      }
       if (cats.length > 0 && !desigCategoryId) {
         setDesigCategoryId(cats[0].id);
       }
       if (recUser) {
         setRecEmail(recUser.email);
-        if (recUser.password) setRecPassword(recUser.password);
         if (recUser.full_name) setRecFullName(recUser.full_name);
         if (recUser.phone) setRecPhone(recUser.phone);
       }
@@ -205,7 +175,6 @@ export const StaffManagementSection: React.FC = () => {
     }
 
     setShifts(updatedShifts);
-    localStorage.setItem(STORAGE_KEYS_STAFF.SHIFTS, JSON.stringify(updatedShifts));
     
     // Automatically select newly created/updated shift if designation modal is open
     const shiftStr = `${shiftNameInput.trim()} (${shiftTimingInput.trim() || 'Flexible Hours'})`;
@@ -223,7 +192,6 @@ export const StaffManagementSection: React.FC = () => {
     }
     const updated = shifts.filter(s => s.id !== shiftId);
     setShifts(updated);
-    localStorage.setItem(STORAGE_KEYS_STAFF.SHIFTS, JSON.stringify(updated));
     if (editingShift && editingShift.id === shiftId) {
       setEditingShift(null);
       setShiftNameInput('');
@@ -237,7 +205,6 @@ export const StaffManagementSection: React.FC = () => {
     if (!departmentList.includes(newDept)) {
       const updated = [...departmentList, newDept];
       setDepartmentList(updated);
-      localStorage.setItem(STORAGE_KEYS_STAFF.DEPARTMENTS, JSON.stringify(updated));
     }
     setDesigDepartment(newDept);
     setIsCustomDept(false);
@@ -248,8 +215,8 @@ export const StaffManagementSection: React.FC = () => {
     e.preventDefault();
     setSavingRec(true);
     try {
-      await api.updateReceptionistCredentials(recEmail, recPassword, recFullName, recPhone);
-      setRecSuccessMsg('Receptionist Login & Password updated! Receptionist can now log in to access ONLY the OPD Appointment Booking option.');
+      await api.updateReceptionistCredentials(recEmail, recFullName, recPhone);
+      setRecSuccessMsg('Receptionist profile details updated successfully.');
       setTimeout(() => setRecSuccessMsg(''), 6000);
     } catch (err) {
       console.error('Failed to update receptionist credentials', err);
@@ -262,7 +229,7 @@ export const StaffManagementSection: React.FC = () => {
     e.preventDefault();
     setSavingAdmin(true);
     try {
-      await api.updateAdminCredentials(adminEmail, adminPassword, adminFullName, adminPhone);
+      await api.updateAdminCredentials(adminEmail, adminFullName, adminPhone);
       setAdminSuccessMsg('Admin Login & Credentials updated! Admin can now log in with full access for ALL modules EXCEPT delete permissions (reserved for Super Admin SHREEKRISHNA).');
       setTimeout(() => setAdminSuccessMsg(''), 6000);
     } catch (err) {

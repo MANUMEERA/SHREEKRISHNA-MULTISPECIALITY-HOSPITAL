@@ -11,9 +11,17 @@ interface TopDoctorsProps {
 export const TopDoctors: React.FC<TopDoctorsProps> = ({ setActiveTab, onSelectDoctor }) => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [filter, setFilter] = useState<'all' | 'resident' | 'on_call'>('all');
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDoctors = () => {
+    setError(null);
+    api.getDoctors().then(setDoctors).catch(err => {
+      setError(err?.message || 'Failed to fetch doctors from database');
+    });
+  };
 
   useEffect(() => {
-    api.getDoctors().then(setDoctors);
+    fetchDoctors();
   }, []);
 
   const displayedDoctors = doctors.filter(doc => {

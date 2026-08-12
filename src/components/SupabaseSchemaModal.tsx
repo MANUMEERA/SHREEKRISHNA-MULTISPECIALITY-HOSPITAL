@@ -303,7 +303,7 @@ export const SupabaseSchemaModal: React.FC<SupabaseSchemaModalProps> = ({ isOpen
           {activeTab === 'sql' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Copy and run this SQL script directly in your <strong>Supabase SQL Editor</strong> dashboard:</span>
+                <span>Authoritative migration file: <strong className="text-emerald-400 font-mono">supabase/migrations/001_hospital_production_schema.sql</strong></span>
                 <span className="font-mono text-emerald-400">PostgreSQL DDL • RLS Enabled</span>
               </div>
               <pre className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-emerald-400 font-mono text-xs overflow-x-auto max-h-[500px] leading-relaxed select-all">

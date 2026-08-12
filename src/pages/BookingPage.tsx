@@ -59,15 +59,22 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   // Completed appointment confirmation slip modal state
   const [confirmedAppointment, setConfirmedAppointment] = useState<Appointment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dataFetchError, setDataFetchError] = useState<string | null>(null);
 
   useEffect(() => {
+    setDataFetchError(null);
     api.getDoctors().then((docs) => {
       setDoctors(docs);
       if (!selectedDoctor && docs.length > 0) {
         setSelectedDoctor(docs[0]);
       }
+    }).catch(err => {
+      setDataFetchError(err?.message || 'Failed to fetch doctors from database.');
     });
-    api.getDepartments().then(setDepartments);
+
+    api.getDepartments().then(setDepartments).catch(err => {
+      setDataFetchError(err?.message || 'Failed to fetch departments from database.');
+    });
   }, []);
 
   useEffect(() => {
@@ -104,7 +111,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
       );
 
       const emailToUse = found ? found.email : loginIdentifier.includes('@') ? loginIdentifier : `patient.${loginIdentifier.replace(/[^0-9]/g, '')}@skmh.org`;
-      const loggedIn = await login(emailToUse, 'patient');
+      const loggedIn = await login(emailToUse, loginPassword);
       setPatientName(loggedIn.full_name);
       setPatientEmail(loggedIn.email);
       setPatientPhone(loggedIn.phone || '+91 98112 23344');
@@ -130,6 +137,10 @@ export const BookingPage: React.FC<BookingPageProps> = ({
       setAuthError('Please enter a valid Email Address.');
       return;
     }
+    if (!regPassword || regPassword.length < 6) {
+      setAuthError('Please enter a password of at least 6 characters.');
+      return;
+    }
 
     setAuthLoading(true);
     try {
@@ -137,7 +148,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
         full_name: regFullName.trim(),
         phone: regPhone.trim(),
         email: regEmail.trim(),
-        password: regPassword || 'Patient@123',
+        password: regPassword.trim(),
         age: Number(regAge) || 30,
         gender: regGender,
         role: 'patient'
@@ -159,7 +170,9 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
   const STANDARD_OPD_TIME_SLOTS = ['09:00 AM', '11:00 AM', '01:00 PM', '06:00 PM', '08:00 PM'];
 
-  const availableTimeSlots = STANDARD_OPD_TIME_SLOTS;
+  const availableTimeSlots = selectedDoctor?.time_slots && selectedDoctor.time_slots.length > 0
+    ? selectedDoctor.time_slots
+    : STANDARD_OPD_TIME_SLOTS;
 
   const handleDeptChange = (deptName: string) => {
     setSelectedDeptName(deptName);
@@ -196,7 +209,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
           title: `Attached Record for ${selectedDoctor.name}`,
           category: 'Other',
           file_name: medicalRecordFile.name,
-          file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+          file_url: '',
           file_size: `${(medicalRecordFile.size / 1024 / 1024).toFixed(1)} MB`,
           uploaded_by_role: 'patient',
           doctor_notes: `Uploaded during booking for appointment ${newApt.id}`
@@ -476,8 +489,15 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                 <ChevronLeft className="w-4 h-4" /> Back
               </button>
               <button
-                onClick={() => setStep(3)}
-                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5"
+                onClick={() => {
+                  if (!timeSlot) {
+                    alert('Please select an active OPD time slot to proceed.');
+                    return;
+                  }
+                  setStep(3);
+                }}
+                disabled={!timeSlot}
+                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 Proceed to Patient Details <ChevronRight className="w-4 h-4" />
               </button>

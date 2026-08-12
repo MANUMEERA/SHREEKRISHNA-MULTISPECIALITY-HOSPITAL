@@ -315,35 +315,17 @@ export const InventoryManagerSection: React.FC = () => {
             <tr>
               <th className="p-3.5">Medicine Name</th>
               <th className="p-3.5">Category</th>
-              <th className="p-3.5">Current Stock</th>
-              <th className="p-3.5">Rack Location</th>
-              <th className="p-3.5">Expiry Date</th>
-              <th className="p-3.5">Unit Price (₹)</th>
               <th className="p-3.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium">
             {filteredMedicines.map((m) => {
-              const isLowStock = m.stock_count <= m.min_threshold;
               return (
-                <tr key={m.id} className={`hover:bg-slate-50 ${isLowStock ? 'bg-rose-50/40' : ''}`}>
+                <tr key={m.id} className="hover:bg-slate-50">
                   <td className="p-3.5">
                     <strong className="text-slate-900 text-xs block font-black">{m.name}</strong>
-                    {isLowStock && (
-                      <span className="text-[10px] text-rose-600 font-bold flex items-center gap-1 mt-0.5">
-                        <AlertTriangle className="w-3 h-3" /> Re-order Required (Min: {m.min_threshold})
-                      </span>
-                    )}
                   </td>
                   <td className="p-3.5 font-bold text-slate-700">{m.category}</td>
-                  <td className="p-3.5 font-black text-sm">
-                    <span className={isLowStock ? 'text-rose-600' : 'text-emerald-700'}>
-                      {m.stock_count} {m.unit}
-                    </span>
-                  </td>
-                  <td className="p-3.5 text-slate-600 font-mono text-[11px]">{m.location || 'Pharmacy'}</td>
-                  <td className="p-3.5 font-mono text-slate-800">{m.expiry_date}</td>
-                  <td className="p-3.5 font-bold text-slate-900">₹{m.unit_price}</td>
                   <td className="p-3.5 text-right space-x-1">
                     <button
                       onClick={() => openEditModal(m)}
@@ -368,9 +350,9 @@ export const InventoryManagerSection: React.FC = () => {
       {/* Add / Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
             <h3 className="font-extrabold text-slate-900 text-sm">
-              {editingMed ? 'Edit Medicine Stock Record' : 'Add New Medicine Stock Item'}
+              {editingMed ? 'Edit Medicine Master Record' : 'Add New Medicine Master Item'}
             </h3>
 
             <form onSubmit={handleSaveMedicine} className="space-y-3 text-xs">
@@ -386,85 +368,35 @@ export const InventoryManagerSection: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Category</label>
-                  <select
-                    value={medForm.category}
-                    onChange={(e) => setMedForm({ ...medForm, category: e.target.value as any })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold"
-                  >
-                    <option value="Tablet">Tablet</option>
-                    <option value="Capsule">Capsule</option>
-                    <option value="Syrup">Syrup</option>
-                    <option value="Injection">Injection</option>
-                    <option value="Saline">Saline</option>
-                    <option value="Drops">Drops</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Stock Quantity</label>
-                  <input
-                    type="number"
-                    value={medForm.stock_count}
-                    onChange={(e) => setMedForm({ ...medForm, stock_count: parseInt(e.target.value) || 0 })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 font-black"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Low Alert Threshold</label>
-                  <input
-                    type="number"
-                    value={medForm.min_threshold}
-                    onChange={(e) => setMedForm({ ...medForm, min_threshold: parseInt(e.target.value) || 0 })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 font-bold text-rose-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Unit Price (₹)</label>
-                  <input
-                    type="number"
-                    value={medForm.unit_price}
-                    onChange={(e) => setMedForm({ ...medForm, unit_price: parseFloat(e.target.value) || 0 })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Expiration Date</label>
-                  <input
-                    type="date"
-                    value={medForm.expiry_date}
-                    onChange={(e) => setMedForm({ ...medForm, expiry_date: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase mb-1">Shelf / Rack Location</label>
-                  <input
-                    type="text"
-                    placeholder="Shelf B-3"
-                    value={medForm.location}
-                    onChange={(e) => setMedForm({ ...medForm, location: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold"
-                  />
-                </div>
+              <div>
+                <label className="block font-bold text-slate-700 uppercase mb-1">Category</label>
+                <select
+                  value={medForm.category}
+                  onChange={(e) => setMedForm({ ...medForm, category: e.target.value as any })}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 font-semibold"
+                >
+                  <option value="Tablet">Tablet</option>
+                  <option value="Capsule">Capsule</option>
+                  <option value="Syrup">Syrup</option>
+                  <option value="Injection">Injection</option>
+                  <option value="Saline">Saline</option>
+                  <option value="Drops">Drops</option>
+                </select>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-xl bg-slate-100 font-bold">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-slate-700"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold shadow">
-                  Save Stock Item
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 font-bold text-white shadow-md shadow-emerald-600/20"
+                >
+                  Save Medicine
                 </button>
               </div>
             </form>

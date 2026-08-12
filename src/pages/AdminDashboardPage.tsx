@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Doctor, Department, Appointment, User, MedicalReport, AnalyticsStats, ReportCategory, DoctorAvailabilityStatus } from '../types';
+import { Doctor, Department, Appointment, User, MedicalReport, AnalyticsStats, ReportCategory, DoctorAvailabilityStatus, AppointmentStatus } from '../types';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { SUPABASE_SQL_SCHEMA } from '../lib/supabaseSchema';
@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { 
   Users, Calendar, Stethoscope, Plus, Edit, Trash2, ShieldCheck, Copy, Check, Search, ChevronRight, X, 
   Building2, Upload, Image as ImageIcon, HeartPulse, Brain, Bone, Baby, Activity, BedDouble, UserCheck, PhoneCall,
-  FileText, FolderHeart, AlertTriangle, Printer, FileSpreadsheet, Eye, ClipboardList, Clock, CheckCircle2, UserPlus, FilePlus, Pill, Share2, FileCheck2, Lock, ShieldAlert, RefreshCw, Database, Bot, CreditCard
+  FileText, FolderHeart, AlertTriangle, AlertCircle, Printer, FileSpreadsheet, Eye, EyeOff, ClipboardList, Clock, CheckCircle2, UserPlus, FilePlus, Pill, Share2, FileCheck2, Lock, ShieldAlert, RefreshCw, Database, Bot, CreditCard
 } from 'lucide-react';
 import { ClinicalObservationModal } from '../components/ClinicalObservationModal';
 import { PrintableConsultationSlip } from '../components/PrintableConsultationSlip';
@@ -78,6 +78,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<User[]>([]);
   const [reports, setReports] = useState<MedicalReport[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Walk-In Direct Hospital Patient Registration Modal State
   const [walkInModalOpen, setWalkInModalOpen] = useState(false);
@@ -148,7 +149,7 @@ export const AdminDashboardPage: React.FC = () => {
     title: '',
     category: 'Blood Test' as ReportCategory,
     file_name: 'lab_report.pdf',
-    file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    file_url: '',
     file_size: '1.5 MB',
     doctor_notes: ''
   });
@@ -201,31 +202,23 @@ export const AdminDashboardPage: React.FC = () => {
   // Copy SQL script state
   const [sqlCopied, setSqlCopied] = useState(false);
 
-  // Super Admin Delete Authorization State
+  // Delete Confirmation Authorization State
   const [deleteAuthModalOpen, setDeleteAuthModalOpen] = useState(false);
   const [deleteAuthTarget, setDeleteAuthTarget] = useState<{ title: string; recordName: string; onConfirm: () => Promise<void> } | null>(null);
-  const [passkeyInput, setPasskeyInput] = useState('');
-  const [showPasskey, setShowPasskey] = useState(false);
-  const [passkeyError, setPasskeyError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [deletingRecord, setDeletingRecord] = useState(false);
 
-  const isSuperAdmin = user?.role === 'super_admin' || user?.email?.toLowerCase().includes('shreekrishna') || user?.email === 'SHREEKRISHNA';
+  const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
 
   const triggerDelete = (title: string, recordName: string, onConfirmAction: () => Promise<void>) => {
     setDeleteAuthTarget({ title, recordName, onConfirm: onConfirmAction });
-    setPasskeyInput('');
-    setPasskeyError('');
+    setDeleteError('');
     setDeleteAuthModalOpen(true);
   };
 
-  const handleExecuteDeleteWithPasskey = async (e: React.FormEvent) => {
+  const handleExecuteDelete = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deleteAuthTarget) return;
-
-    if (passkeyInput.trim() !== 'Krishna@123' && passkeyInput.trim() !== api.getSuperAdminPasskey()) {
-      setPasskeyError('Invalid Super Admin Passkey! Only Super Admin (SHREEKRISHNA) with passkey "Krishna@123" can authorize deletion.');
-      return;
-    }
 
     setDeletingRecord(true);
     try {
@@ -239,7 +232,7 @@ export const AdminDashboardPage: React.FC = () => {
       });
     } catch (err) {
       console.error('Failed to execute delete:', err);
-      setPasskeyError('Error deleting record. Please try again.');
+      setDeleteError('Error deleting record. Please try again.');
     } finally {
       setDeletingRecord(false);
     }
@@ -317,22 +310,40 @@ export const AdminDashboardPage: React.FC = () => {
   }, [autoRefreshEnabled]);
 
   const loadAllAdminData = async () => {
-    const [s, docs, depts, apts, pts, reps] = await Promise.all([
-      api.getAdminStats(),
-      api.getDoctors(),
-      api.getDepartments(),
-      api.getAppointments(undefined, 'admin'),
-      api.getPatients(),
-      api.getReports(undefined, 'admin')
-    ]);
+    try {
+      setFetchError(null);
+      const [sRes, docsRes, deptsRes, aptsRes, ptsRes, repsRes] = await Promise.allSettled([
+        api.getAdminStats(),
+        api.getDoctors(),
+        api.getDepartments(),
+        api.getAppointments(undefined, 'admin'),
+        api.getPatients(),
+        api.getReports(undefined, 'admin')
+      ]);
 
-    setStats(s);
-    setDoctors(docs);
-    setDepartments(depts);
-    setAppointments(apts);
-    setPatients(pts);
-    setReports(reps);
-    setLastRefreshedTime(new Date().toLocaleTimeString());
+      const errors: string[] = [];
+      const s = sRes.status === 'fulfilled' ? sRes.value : null;
+      const docs = docsRes.status === 'fulfilled' ? docsRes.value : (errors.push(docsRes.reason?.message || 'Failed to fetch doctors'), []);
+      const depts = deptsRes.status === 'fulfilled' ? deptsRes.value : (errors.push(deptsRes.reason?.message || 'Failed to fetch departments'), []);
+      const apts = aptsRes.status === 'fulfilled' ? aptsRes.value : (errors.push(aptsRes.reason?.message || 'Failed to fetch appointments'), []);
+      const pts = ptsRes.status === 'fulfilled' ? ptsRes.value : (errors.push(ptsRes.reason?.message || 'Failed to fetch patients'), []);
+      const reps = repsRes.status === 'fulfilled' ? repsRes.value : (errors.push(repsRes.reason?.message || 'Failed to fetch reports'), []);
+
+      if (errors.length > 0) {
+        setFetchError(errors.join(' | '));
+      }
+
+      if (s) setStats(s);
+      setDoctors(docs);
+      setDepartments(depts);
+      setAppointments(apts);
+      setPatients(pts);
+      setReports(reps);
+      setLastRefreshedTime(new Date().toLocaleTimeString());
+    } catch (err: any) {
+      console.warn('Admin dashboard load error:', err);
+      setFetchError(err?.message || 'Failed to connect to database');
+    }
   };
 
   // Open EHR History Drawer / Modal
@@ -434,6 +445,7 @@ export const AdminDashboardPage: React.FC = () => {
     } else {
       await api.createPatient({
         ...payload,
+        role: 'patient',
         avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'
       });
     }
@@ -457,7 +469,7 @@ export const AdminDashboardPage: React.FC = () => {
       title: 'Lab Blood Screening Report',
       category: 'Blood Test',
       file_name: `${patient.full_name.replace(/\s+/g, '_')}_Report.pdf`,
-      file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      file_url: '',
       file_size: '1.4 MB',
       doctor_notes: 'Screening values within normal limits. Reviewed by Hospital Pathology.'
     });
@@ -665,7 +677,7 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   const handleSaveObservationModal = async (aptId: string, observationData: any) => {
-    await api.saveClinicalObservation(aptId, observationData);
+    await api.saveClinicalObservation({ appointment_id: aptId, ...observationData });
     await loadAllAdminData();
     if (selectedEhrPatient) {
       // Refresh selected EHR patient's state if modal is open
@@ -760,6 +772,22 @@ export const AdminDashboardPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
         
+        {fetchError && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium shadow-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+              <span><strong>Database Notice:</strong> {fetchError}</span>
+            </div>
+            <button
+              onClick={() => loadAllAdminData()}
+              className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors shadow-sm"
+            >
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              Retry Connection
+            </button>
+          </div>
+        )}
+
         {/* Admin / Receptionist Header Banner */}
         {isReceptionist ? (
           <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-purple-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-purple-800">
@@ -1160,7 +1188,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </button>
 
 
-                {/* Super Admin Passkey Monitor Button */}
+                {/* Doctor Security Monitor Button */}
                 <button
                   onClick={() => setDoctorSecurityModalOpen(true)}
                   className="w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-between group bg-slate-900 text-emerald-400 hover:bg-slate-800 border border-slate-800 shadow-sm"
@@ -1172,7 +1200,7 @@ export const AdminDashboardPage: React.FC = () => {
                     <span className="text-[11px] text-white font-bold">Doctor Logins & Security</span>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    Passkey
+                    Console
                   </span>
                 </button>
 
@@ -1567,10 +1595,17 @@ export const AdminDashboardPage: React.FC = () => {
                             {apt.notes && <p className="text-[10px] text-slate-400 italic">Notes: {apt.notes}</p>}
                           </td>
                           <td className="p-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                              apt.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : apt.status === 'completed' ? 'bg-blue-100 text-blue-800' : apt.status === 'cancelled' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-flex items-center gap-1 ${
+                              apt.status === 'doctor_accepted' ? 'bg-teal-100 text-teal-800 border border-teal-300' :
+                              apt.status === 'ready_for_consultation' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                              apt.status === 'forwarded_to_doctor' ? 'bg-indigo-100 text-indigo-800 border border-indigo-300' :
+                              apt.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                              apt.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                              apt.status === 'cancelled' || apt.status === 'doctor_rejected' ? 'bg-rose-100 text-rose-800' :
+                              'bg-amber-100 text-amber-800'
                             }`}>
-                              {apt.status}
+                              {apt.status === 'doctor_accepted' && <CheckCircle2 className="w-3 h-3 text-teal-700" />}
+                              {apt.status === 'doctor_accepted' ? 'ACCEPTED' : apt.status.replace(/_/g, ' ')}
                             </span>
                           </td>
                           <td className="p-3 text-right">
@@ -1952,7 +1987,7 @@ export const AdminDashboardPage: React.FC = () => {
                     <button
                       onClick={() => setDoctorSecurityModalOpen(true)}
                       className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-700 font-bold text-xs shadow flex items-center gap-1.5 whitespace-nowrap"
-                      title="Super Admin Passkey Protected Doctor Security Console"
+                      title="Doctor Security Console"
                     >
                       <Lock className="w-3.5 h-3.5" /> Doctor Security Logins
                     </button>
@@ -3209,7 +3244,7 @@ export const AdminDashboardPage: React.FC = () => {
         onClose={() => setSupabaseSchemaModalOpen(false)}
       />
 
-      {/* ================= SUPER ADMIN DELETE AUTHORIZATION PASSKEY MODAL ================= */}
+      {/* ================= DELETE AUTHORIZATION CONFIRMATION MODAL ================= */}
       {deleteAuthModalOpen && deleteAuthTarget && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-200">
@@ -3219,8 +3254,8 @@ export const AdminDashboardPage: React.FC = () => {
                   <ShieldAlert className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Super Admin Delete Authorization</h3>
-                  <p className="text-[11px] text-slate-500 font-semibold">Authorized ID: SHREEKRISHNA</p>
+                  <h3 className="text-base font-black text-slate-900">Confirm Record Deletion</h3>
+                  <p className="text-[11px] text-slate-500 font-semibold">Authorized User: {user?.full_name || 'Administrator'}</p>
                 </div>
               </div>
               <button
@@ -3232,43 +3267,17 @@ export const AdminDashboardPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleExecuteDeleteWithPasskey} className="mt-4 space-y-4">
+            <form onSubmit={handleExecuteDelete} className="mt-4 space-y-4">
               <div className="p-3.5 bg-rose-50 border border-rose-200/80 rounded-2xl text-xs space-y-1">
                 <div className="font-bold text-rose-900">
                   Target Record: <span className="underline">{deleteAuthTarget.title}</span> - {deleteAuthTarget.recordName}
                 </div>
                 <p className="text-rose-700 text-[11px] font-medium leading-relaxed">
-                  Delete actions are restricted strictly to Super Admin (<strong className="font-mono text-rose-950">SHREEKRISHNA</strong>). Enter passkey <strong className="font-mono text-rose-950">Krishna@123</strong> to authorize permanent removal.
+                  Confirm permanent removal of this record. This action cannot be undone.
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Enter Super Admin Passkey
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPasskey ? "text" : "password"}
-                    required
-                    value={passkeyInput}
-                    onChange={(e) => {
-                      setPasskeyInput(e.target.value);
-                      setPasskeyError('');
-                    }}
-                    placeholder="Enter passkey (Krishna@123)"
-                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasskey(!showPasskey)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPasskey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {passkeyError && (
+                {deleteError && (
                   <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5" /> {passkeyError}
+                    <AlertTriangle className="w-3.5 h-3.5" /> {deleteError}
                   </p>
                 )}
               </div>

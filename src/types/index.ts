@@ -4,7 +4,6 @@ export interface User {
   id: string;
   patient_code?: string; // e.g. "SKMH-2026-PAT-101"
   email: string;
-  password?: string;
   full_name: string;
   role: UserRole;
   phone?: string;
@@ -37,8 +36,8 @@ export interface Doctor {
   qualification: string;
   experience_years: number;
   consultation_fee: number;
-  rating: number;
-  reviews_count: number;
+  rating?: number;
+  reviews_count?: number;
   photo_url: string;
   bio: string;
   availability_days: string[];
@@ -62,7 +61,6 @@ export interface Doctor {
   achievements?: string[];
   
   // Security & Super Admin Monitoring
-  login_password?: string;
   last_login_at?: string;
   last_login_ip?: string;
   account_status?: 'active' | 'suspended' | 'locked';
@@ -94,7 +92,7 @@ export interface Department {
   treatments: string[];
 }
 
-export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'doctor_accepted' | 'ready_for_consultation' | 'forwarded_to_doctor' | 'doctor_rejected';
 
 export interface PrescribedMedicine {
   id: string;
@@ -328,6 +326,8 @@ export interface Appointment {
   referred_to_doctor_name?: string;
   referral_reason?: string;
   referral_date?: string;
+  payment_status?: string;
+  consultation_fee?: number;
 }
 
 export type ReportCategory = 'Blood Test' | 'Radiology / X-Ray' | 'MRI Scan' | 'Prescription' | 'Discharge Summary' | 'Lab Result' | 'Other';
@@ -341,7 +341,7 @@ export interface MedicalReport {
   file_name: string;
   file_url: string;
   file_size: string;
-  uploaded_at: string;
+  uploaded_at?: string;
   doctor_notes?: string;
   uploaded_by_role: 'patient' | 'doctor' | 'admin';
 }
@@ -354,6 +354,7 @@ export interface NotificationItem {
   type: 'appointment' | 'report' | 'system';
   read: boolean;
   created_at: string;
+  recipient_role?: string;
 }
 
 export interface AnalyticsStats {
@@ -366,6 +367,15 @@ export interface AnalyticsStats {
   department_distribution: { name: string; count: number }[];
   appointment_status_distribution: { status: string; count: number }[];
   monthly_booking_trend: { month: string; bookings: number; revenue: number }[];
+  total_appointments?: number;
+  confirmed_appointments?: number;
+  completed_appointments?: number;
+  total_departments?: number;
+  active_ipd_patients?: number;
+  today_revenue?: number;
+  monthly_revenue?: number;
+  monthly_growth_rate?: number;
+  occupancy_rate?: number;
 }
 
 export interface StaffCategory {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Doctor, Department } from '../types';
 import { api } from '../lib/api';
-import { Search, Filter, Star, Clock, Calendar, Phone, Mail, Award, CheckCircle2, X } from 'lucide-react';
+import { Search, Filter, Star, Clock, Calendar, Phone, Mail, Award, CheckCircle2, X, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface DoctorsPageProps {
   setActiveTab: (tab: string) => void;
@@ -12,14 +12,32 @@ interface DoctorsPageProps {
 export const DoctorsPage: React.FC<DoctorsPageProps> = ({ setActiveTab, onSelectDoctor, initialSearchQuery = '' }) => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(initialSearchQuery);
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'resident' | 'on_call'>('all');
   const [selectedDocForModal, setSelectedDocForModal] = useState<Doctor | null>(null);
 
+  const fetchDoctorsData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [docs, depts] = await Promise.all([
+        api.getDoctors(),
+        api.getDepartments()
+      ]);
+      setDoctors(docs);
+      setDepartments(depts);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch doctors and departments from database.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    api.getDoctors().then(setDoctors);
-    api.getDepartments().then(setDepartments);
+    fetchDoctorsData();
   }, []);
 
   const departmentsList = ['all', ...Array.from(new Set([
@@ -56,9 +74,27 @@ export const DoctorsPage: React.FC<DoctorsPageProps> = ({ setActiveTab, onSelect
             Find & Book Specialist Doctors
           </h1>
           <p className="text-sm text-slate-600">
-            Select from 85+ highly skilled MD, DM, and M.Ch senior consultants across 25 multispeciality departments.
+            Select from our highly skilled MD, DM, and M.Ch senior consultants across our multispeciality departments.
           </p>
         </div>
+
+        {error && (
+          <div className="mb-8 p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-rose-600 flex-shrink-0" />
+              <div>
+                <h3 className="font-bold text-sm text-rose-900">Database Connection Error</h3>
+                <p className="text-xs text-rose-700">{error}</p>
+              </div>
+            </div>
+            <button
+              onClick={fetchDoctorsData}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors flex items-center gap-2 flex-shrink-0"
+            >
+              <RefreshCw className="w-4 h-4" /> Retry Connection
+            </button>
+          </div>
+        )}
 
         {/* Filter Toolbar */}
         <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/90 shadow-sm mb-10 space-y-4">

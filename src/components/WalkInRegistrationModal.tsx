@@ -45,18 +45,36 @@ export const WalkInRegistrationModal: React.FC<WalkInRegistrationModalProps> = (
   const [reason, setReason] = useState('General Hospital OPD Consultation');
   const [paymentMode, setPaymentMode] = useState<'Cash at Counter' | 'UPI / QR Code' | 'Card Payment' | 'Government Free OPD Scheme'>('Cash at Counter');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadInitialData() {
-      const docs = await api.getDoctors();
-      setDoctors(docs);
-      if (!selectedDocId && docs.length > 0) {
-        setSelectedDocId(defaultDoctorId || docs[0].id);
-      }
+      setFetchError(null);
+      try {
+        const [docsRes, ptsRes] = await Promise.allSettled([
+          api.getDoctors(),
+          api.getPatients()
+        ]);
 
-      const patients = await api.getPatients();
-      setExistingPatients(patients);
-      setRegistrationType(initialRegistrationType);
+        const docs = docsRes.status === 'fulfilled' ? docsRes.value : [];
+        const patients = ptsRes.status === 'fulfilled' ? ptsRes.value : [];
+
+        if (docsRes.status === 'rejected' || ptsRes.status === 'rejected') {
+          const err = (docsRes.status === 'rejected' ? docsRes.reason?.message : '') || (ptsRes.status === 'rejected' ? ptsRes.reason?.message : '');
+          setFetchError(err || 'Failed to fetch doctors or patients from database.');
+        }
+
+        setDoctors(docs);
+        if (!selectedDocId && docs.length > 0) {
+          setSelectedDocId(defaultDoctorId || docs[0].id);
+        }
+
+        setExistingPatients(patients);
+        setRegistrationType(initialRegistrationType);
+      } catch (err: any) {
+        console.warn('Error loading walk-in data:', err);
+        setFetchError(err?.message || 'Failed to connect to database.');
+      }
     }
     if (isOpen) {
       loadInitialData();

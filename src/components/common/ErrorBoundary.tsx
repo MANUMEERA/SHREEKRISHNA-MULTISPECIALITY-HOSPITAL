@@ -34,7 +34,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleClearStorageAndReset = () => {
     try {
-      localStorage.clear();
       sessionStorage.clear();
     } catch (e) {
       console.error('Failed to clear storage:', e);

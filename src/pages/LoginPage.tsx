@@ -12,7 +12,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
-  const { login, signup, switchUserRole } = useAuth();
+  const { login, signup } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [isSchemaModalOpen, setIsSchemaModalOpen] = useState(false);
@@ -80,8 +80,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
 
     try {
       if (isSignup) {
-        if (!email || !fullName) {
-          setError('Please provide email and full name');
+        if (!email || !fullName || !password) {
+          setError('Please provide email, password, and full name');
           setLoading(false);
           return;
         }
@@ -90,10 +90,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
           ? `${emergencyContactPhone ? `${emergencyContactPhone} ` : ''}(${emergencyContactName})`
           : phone;
 
-        await signup({
+        const newUser = await signup({
           email,
+          password,
           full_name: fullName,
-          role: selectedRole,
+          role: 'patient', // Force patient role for online signup
           phone,
           gender,
           age: Number(age) || 30,
@@ -109,45 +110,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
           emergency_contact: formattedEmergency,
           emergency_phone: emergencyContactPhone
         });
+
+        setActiveTab('dashboard');
       } else {
-        if (!email) {
-          setError('Please enter your email address');
+        if (!email || !password) {
+          setError('Please enter both email and password');
           setLoading(false);
           return;
         }
-        await login(email, selectedRole);
-      }
+        const loggedInUser = await login(email, password);
+        const userRole = loggedInUser?.role || 'patient';
 
-      if (selectedRole === 'admin' || selectedRole === 'staff' || selectedRole === 'super_admin' || selectedRole === 'receptionist') {
-        setActiveTab('admin');
-      } else if (selectedRole === 'doctor') {
-        setActiveTab('doctor_panel');
-      } else {
-        setActiveTab('dashboard');
+        if (userRole === 'admin' || userRole === 'staff' || userRole === 'super_admin' || userRole === 'receptionist') {
+          setActiveTab('admin');
+        } else if (userRole === 'doctor') {
+          setActiveTab('doctor_panel');
+        } else {
+          setActiveTab('dashboard');
+        }
       }
     } catch (err: any) {
       setError(err?.message || 'Authentication failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickDemoLogin = async (role: UserRole) => {
-    if (role === 'patient') {
-      setSelectedRole('patient');
-      setIsSignup(true);
-      return;
-    }
-    setLoading(true);
-    try {
-      await switchUserRole(role);
-      if (role === 'admin' || role === 'super_admin' || role === 'receptionist') {
-        setActiveTab('admin');
-      } else if (role === 'doctor') {
-        setActiveTab('doctor_panel');
-      } else {
-        setActiveTab('dashboard');
-      }
     } finally {
       setLoading(false);
     }
@@ -228,24 +211,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             
             {/* Role Picker (Only shown on Sign In) or Registration Role Banner */}
-            {!isSignup ? (
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Account Role
-                </label>
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-600 bg-white text-slate-800"
-                >
-                  <option value="patient">Patient Portal Account</option>
-                  <option value="receptionist">Receptionist / Front Desk (Appointment Booking Only)</option>
-                  <option value="doctor">Consultant Doctor</option>
-                  <option value="admin">Hospital Admin Panel</option>
-                  <option value="super_admin">Super Administrator</option>
-                </select>
-              </div>
-            ) : (
+            {isSignup && (
               <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-xs space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-extrabold text-amber-900 flex items-center gap-1.5 text-xs">
@@ -538,41 +504,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ setActiveTab }) => {
             </button>
 
           </form>
-
-          {/* Quick One-Click Demo Logins */}
-          <div className="pt-4 border-t border-slate-100">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center mb-3">
-              Fast Demo One-Click Logins
-            </span>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                onClick={() => handleQuickDemoLogin('patient')}
-                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[11px] font-bold text-emerald-800 text-center transition-colors"
-              >
-                👤 Register Patient
-              </button>
-              <button
-                onClick={() => handleQuickDemoLogin('receptionist')}
-                className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[11px] font-bold text-purple-800 text-center transition-colors"
-              >
-                📋 Receptionist
-              </button>
-              <button
-                onClick={() => handleQuickDemoLogin('doctor')}
-                className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-bold text-blue-800 text-center transition-colors"
-              >
-                🩺 Doctor
-              </button>
-              <button
-                onClick={() => handleQuickDemoLogin('admin')}
-                className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-[11px] font-bold text-amber-800 text-center transition-colors"
-              >
-                ⚙️ Admin
-              </button>
-            </div>
-          </div>
-
         </div>
 
       </div>
