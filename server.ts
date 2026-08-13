@@ -10,6 +10,20 @@ async function startServer() {
   app.use(express.json({ limit: '15mb' }));
 
   // --- HEALTH & CONFIG ENDPOINTS ---
+  app.get('/001_hospital_production_schema.sql', (_req, res) => {
+    const filePath = path.join(process.cwd(), 'supabase', 'migrations', '001_hospital_production_schema.sql');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'inline; filename="001_hospital_production_schema.sql"');
+    res.sendFile(filePath);
+  });
+
+  app.get('/api/schema/download', (_req, res) => {
+    const filePath = path.join(process.cwd(), 'supabase', 'migrations', '001_hospital_production_schema.sql');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="001_hospital_production_schema.sql"');
+    res.sendFile(filePath);
+  });
+
   app.get('/api/health', (_req, res) => {
     res.json({
       status: 'ok',
